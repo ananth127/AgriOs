@@ -14,13 +14,13 @@ pandas
 scikit-learn
 opentelemetry-api
 opentelemetry-sdk
-ultralytics
+# ultralytics
 python-multipart
 
 # Voice Search - Free AI Alternatives
-openai-whisper
-google-generativeai
-google-cloud-texttospeech
+# openai-whisper
+# google-generativeai
+# google-cloud-texttospeech
 
 # Security - .env encryption
 cryptography
