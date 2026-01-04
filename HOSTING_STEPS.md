@@ -55,7 +55,7 @@
 2. Click "New Project"
 3. Fill in:
    - Name: `agri-os-db`
-   - Password: [Create strong password - SAVE THIS!]
+   - Password: [Create strong password - SAVE THIS!] 2c%UH5-sQukJLMN
    - Region: [Choose closest to you]
 4. Wait 2-3 minutes for creation
 5. Go to: Database → Extensions
@@ -63,6 +63,7 @@
 7. Go to: Settings → Database
 8. Copy: Connection String (URI)
    - Format: `postgresql://postgres.[ref]:[password]@[region].pooler.supabase.com:6543/postgres`
+   postgresql://postgres:[YOUR-PASSWORD]@db.uhqjgahpxhcenzpmgjrr.supabase.co:5432/postgres
 9. **SAVE THIS CONNECTION STRING!**
 
 **Result:** ✅ Database ready with PostGIS enabled
