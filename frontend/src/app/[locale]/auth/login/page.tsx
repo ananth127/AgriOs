@@ -1,27 +1,68 @@
+
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/navigation';
 import { Card } from '@/components/ui/Card';
-import { Sprout, Tractor, ShoppingBag, Truck, User } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
+import { User, Lock, Mail, Loader2, Phone } from 'lucide-react';
 import { Link } from '@/navigation';
 
 export default function LoginPage() {
-    const [selectedRole, setSelectedRole] = useState<string | null>(null);
+    const [phoneNumber, setPhoneNumber] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const { login } = useAuth();
     const router = useRouter();
 
-    const roles = [
-        { id: 'farmer', label: 'Farmer', icon: Sprout, description: 'Manage crops, farms, and yield.', color: 'text-green-400', bg: 'bg-green-500/10', border: 'hover:border-green-500' },
-        { id: 'agri_officer', label: 'Agri Officer', icon: Tractor, description: 'Monitor region stats and approvals.', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'hover:border-blue-500' },
-        { id: 'broker', label: 'Broker', icon: ShoppingBag, description: 'Trade produced goods.', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'hover:border-orange-500' },
-        { id: 'buyer', label: 'Buyer', icon: User, description: 'Purchase high-quality produce.', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'hover:border-purple-500' },
-        { id: 'logistics', label: 'Logistics', icon: Truck, description: 'Handle supply chain transport.', color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'hover:border-yellow-500' },
-    ];
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
 
-    const handleLogin = (roleId: string) => {
-        // In a real app, this would set a session/cookie
-        // For MVP, we just redirect to dashboard
-        router.push('/en');
+        try {
+            // Reconstruct email from phone number
+            const email = `${phoneNumber}@agri.com`;
+
+            // 1. Login to get token
+            const formData = new FormData();
+            formData.append('username', email); // OAuth2 expects 'username' (which is email for us)
+            formData.append('password', password);
+
+            const res = await fetch('http://127.0.0.1:8000/api/v1/auth/login', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.detail || 'Login failed');
+            }
+
+            const data = await res.json();
+            const token = data.access_token;
+
+            // 2. Fetch User Details
+            const userRes = await fetch('http://127.0.0.1:8000/api/v1/auth/me', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!userRes.ok) throw new Error('Failed to fetch user profile');
+
+            const userData = await userRes.json();
+
+            // 3. Update Auth Context
+            login(token, userData);
+
+        } catch (err: any) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -32,32 +73,69 @@ export default function LoginPage() {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[100px]"></div>
             </div>
 
-            <div className="z-10 text-center mb-12">
-                <h1 className="text-5xl font-bold bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent mb-4">
-                    Agri-OS
-                </h1>
-                <p className="text-slate-400 text-lg">Select your role to continue</p>
-            </div>
+            <Card className="w-full max-w-md p-8 border-white/10 bg-slate-900/50 backdrop-blur-xl z-10">
+                <div className="text-center mb-8">
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">
+                        Welcome Back
+                    </h1>
+                    <p className="text-slate-400 mt-2">Sign in to your Agri-OS account</p>
+                </div>
 
-            <div className="z-10 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl w-full">
-                {roles.map((role) => (
-                    <Card
-                        key={role.id}
-                        onClick={() => handleLogin(role.id)}
-                        className={`cursor-pointer group transition-all duration-300 hover:scale-[1.02] border-white/5 ${role.border}`}
-                    >
-                        <div className="flex flex-col items-center text-center p-4">
-                            <div className={`p-4 rounded-2xl mb-4 transition-colors ${role.bg} group-hover:bg-opacity-20`}>
-                                <role.icon className={`w-10 h-10 ${role.color}`} />
-                            </div>
-                            <h3 className="text-xl font-semibold text-white mb-2">{role.label}</h3>
-                            <p className="text-sm text-slate-500">{role.description}</p>
+                {error && (
+                    <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg mb-6 text-sm text-center">
+                        {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleLogin} className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-300">Mobile Number</label>
+                        <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <input
+                                type="tel"
+                                required
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                                className="w-full bg-slate-950/50 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-green-500/50 transition-colors"
+                                placeholder="9876543210"
+                            />
                         </div>
-                    </Card>
-                ))}
-            </div>
+                    </div>
 
-            <div className="z-10 mt-12 text-slate-500 text-sm">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-300">Password</label>
+                        <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <input
+                                type="password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="w-full bg-slate-950/50 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-green-500/50 transition-colors"
+                                placeholder="••••••••"
+                            />
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-medium py-2.5 rounded-lg transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In'}
+                    </button>
+                </form>
+
+                <div className="mt-6 text-center text-sm text-slate-400">
+                    Don't have an account?{' '}
+                    <Link href="/auth/signup" className="text-green-400 hover:text-green-300 font-medium">
+                        Sign up
+                    </Link>
+                </div>
+            </Card>
+
+            <div className="z-10 mt-8 text-slate-500 text-sm">
                 Powered by <span className="text-slate-400 font-semibold">Agri-Stack</span>
             </div>
         </main>

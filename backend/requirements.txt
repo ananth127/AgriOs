@@ -1,10 +1,11 @@
 fastapi
 uvicorn
 sqlalchemy
-pydantic
+pydantic[email]
 python-dotenv
 psycopg2-binary
-passlib[bcrypt]
+passlib
+bcrypt==3.2.2
 python-jose[cryptography]
 pydantic-settings
 GeoAlchemy2
@@ -15,4 +16,12 @@ opentelemetry-api
 opentelemetry-sdk
 ultralytics
 python-multipart
-openai
+
+# Voice Search - Free AI Alternatives
+openai-whisper
+google-generativeai
+google-cloud-texttospeech
+
+# Security - .env encryption
+cryptography
+

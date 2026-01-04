@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -5,14 +6,16 @@ import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/navigation';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/lib/auth-context';
 import {
-    LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Menu, X, Calculator
+    LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Menu, X, Calculator, LogIn, LogOut
 } from 'lucide-react';
 
 export default function NavBar({ locale }: { locale: string }) {
     const t = useTranslations('Index');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const pathname = usePathname();
+    const { isAuthenticated, user, logout } = useAuth();
 
     const links = [
         { href: '/', label: 'Overview', icon: LayoutDashboard },
@@ -73,13 +76,36 @@ export default function NavBar({ locale }: { locale: string }) {
                         })}
 
                         <div className="pt-4 border-t border-white/10 mt-2">
-                            <Link href="/auth/login" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors group" onClick={() => setIsMenuOpen(false)}>
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 group-hover:from-red-500 group-hover:to-orange-500"></div>
-                                <div>
-                                    <div className="text-sm font-medium text-white group-hover:text-red-200">Guest Farmer</div>
-                                    <div className="text-xs text-slate-500 group-hover:text-red-300">Logout</div>
-                                </div>
-                            </Link>
+                            {isAuthenticated ? (
+                                <button
+                                    onClick={() => { logout(); setIsMenuOpen(false); }}
+                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 transition-colors group text-left"
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-green-500 to-emerald-600 flex items-center justify-center text-xs font-bold text-white">
+                                        {user?.full_name?.charAt(0) || 'U'}
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-medium text-white group-hover:text-red-300">{user?.full_name}</div>
+                                        <div className="text-xs text-slate-500 group-hover:text-red-400 flex items-center gap-1">
+                                            <LogOut className="w-3 h-3" /> Logout
+                                        </div>
+                                    </div>
+                                </button>
+                            ) : (
+                                <Link
+                                    href="/auth/login"
+                                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors group"
+                                    onClick={() => setIsMenuOpen(false)}
+                                >
+                                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-slate-400">
+                                        <LogIn className="w-4 h-4" />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-medium text-white group-hover:text-green-300">Sign In</div>
+                                        <div className="text-xs text-slate-500 group-hover:text-green-400">Access Account</div>
+                                    </div>
+                                </Link>
+                            )}
                         </div>
                     </div>
                 </div>

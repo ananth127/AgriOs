@@ -1,13 +1,40 @@
 from datetime import date
+import sys
+# Load environment first!
+try:
+    from load_env import load_env_with_decryption
+    load_env_with_decryption()
+except ImportError:
+    pass
+
 from app.core.database import SessionLocal
 from app.modules.registry import models as registry_models, schemas as registry_schemas, service as registry_service
 from app.modules.farms import models as farm_models, schemas as farm_schemas, service as farm_service
 from app.modules.marketplace import models as market_models, schemas as market_schemas, service as market_service
 from app.modules.livestock import models as livestock_models, schemas as livestock_schemas, service as livestock_service
+from app.modules.auth import models as auth_models, schemas as auth_schemas, service as auth_service
 
 def seed_all():
     db = SessionLocal()
     
+    # --- 0. Users ---
+    print("👤 Seeding Users...")
+    default_user_email = "admin@agrios.com"
+    existing_user = auth_service.get_user_by_email(db, default_user_email)
+    if not existing_user:
+        user_in = auth_schemas.UserCreate(
+            email=default_user_email,
+            password="password123",
+            full_name="Agri Admin",
+            role="admin"
+        )
+        created_user = auth_service.create_user(db, user_in)
+        admin_id = created_user.id
+        print(f"   Created User: {default_user_email} (ID: {admin_id})")
+    else:
+        admin_id = existing_user.id
+        print(f"   Skipped User {default_user_email} (Exists, ID: {admin_id})")
+
     # --- 1. Registry ---
     crops = [
         {"name": "Wheat (Genhu)", "category": "Cereal", "definition": {"duration_days": 120, "water_needs": "Moderate"}},
@@ -34,7 +61,7 @@ def seed_all():
     wkt_poly = "POLYGON((73.5 18.5, 73.51 18.5, 73.51 18.51, 73.5 18.51, 73.5 18.5))"
     farm_data = {
         "name": "Sunny Acres (Nasik)",
-        "owner_id": 1,
+        "owner_id": admin_id,
         "geometry": wkt_poly,
         "soil_profile": {"type": "Black Soil", "ph": 6.5}
     }
@@ -85,7 +112,7 @@ def seed_all():
         # Service handles point WKT creation if we used the create_provider service
         # But we need to be careful with the service logic imports.
         # Let's verify service usage. the service.create_provider takes (db, schemas, user_id)
-        created_prov = market_service.create_provider(db, prov_create, user_id=99)
+        created_prov = market_service.create_provider(db, prov_create, user_id=admin_id)
         prov_id = created_prov.id
         print("   Created Provider: AgriDrone")
         

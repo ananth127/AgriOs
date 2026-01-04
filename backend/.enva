@@ -1,0 +1,2 @@
+DATABASE_URL=postgresql://postgres.uhqjgahpxhcenzpmgjrr:2c%UH5-sQukJLMN@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres
+GEMINI_API_KEY=AIzaSyCxEGQZLvkFv1kgftRgomt_yK_1GE8peS4

@@ -7,13 +7,15 @@ services:
     plan: free
     branch: main
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      pip install -r requirements.txt
+      python -c "import whisper; whisper.load_model('base')"
     startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
     healthCheckPath: /docs
     envVars:
       - key: DATABASE_URL
         sync: false
-      - key: OPENAI_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
       - key: PYTHON_VERSION
         value: 3.10.0

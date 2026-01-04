@@ -24,7 +24,7 @@ yarn-error.log*
 .pnpm-debug.log*
 lerna-debug.log*
 
-# Environment Variables
+# Environment Variables (Plain - NEVER COMMIT)
 .env
 .env.local
 .env.development.local
@@ -33,6 +33,12 @@ lerna-debug.log*
 .env.production
 .env.*.local
 backend/.env
+frontend/.env.local
+
+# Encrypted .env files are OK to commit
+# !.env.enc
+# !.env.local.enc
+
 
 # Database
 *.db

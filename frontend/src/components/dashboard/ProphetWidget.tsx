@@ -3,14 +3,15 @@
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 
-export default function ProphetWidget() {
+export default function ProphetWidget({ locationName }: { locationName?: string }) {
     const [prediction, setPrediction] = useState<any>(null);
 
     useEffect(() => {
+        const targetLocation = locationName || "Nasik"; // Fallback
         // Call Mock Prophet Engine
         api.prophet.predict({
             crop_name: "Onion",
-            location: "Nasik", // Was 'region', changed to match Pydantic schema 'location'
+            location: targetLocation,
             date: new Date().toISOString()
         })
             .then(data => {

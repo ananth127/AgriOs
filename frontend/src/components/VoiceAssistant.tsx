@@ -55,7 +55,7 @@ export default function VoiceAssistant() {
             {/* Floating Trigger Button */}
             <button
                 onClick={toggleAssistant}
-                className={`fixed bottom-8 right-8 w-16 h-16 rounded-full shadow-lg flex items-center justify-center transition-all z-50 ${isOpen ? 'bg-red-500 rotate-45' : 'bg-green-500 hover:scale-110 hover:bg-green-400'
+                className={`fixed bottom-8 right-6 w-16 h-16 rounded-full shadow-lg flex items-center justify-center transition-all z-50 ${isOpen ? 'bg-red-500 rotate-45' : 'bg-green-500 hover:scale-110 hover:bg-green-400'
                     }`}
             >
                 {isOpen ? <X className="w-8 h-8 text-white" /> : <Mic className="w-8 h-8 text-slate-900" />}
@@ -75,8 +75,8 @@ export default function VoiceAssistant() {
 
                         <div className="relative z-10 flex flex-col items-center text-center space-y-6 py-8">
                             <div className={`p-6 rounded-full transition-colors duration-500 ${status === 'listening' ? 'bg-green-500/20 text-green-400' :
-                                    status === 'processing' ? 'bg-blue-500/20 text-blue-400 animate-pulse' :
-                                        'bg-slate-800 text-slate-400'
+                                status === 'processing' ? 'bg-blue-500/20 text-blue-400 animate-pulse' :
+                                    'bg-slate-800 text-slate-400'
                                 }`}>
                                 <Mic className="w-12 h-12" />
                             </div>

@@ -9,14 +9,20 @@ def get_farms(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.FarmTable).offset(skip).limit(limit).all()
 
 def create_farm(db: Session, farm: schemas.FarmCreate):
-    # If using SQLite, we store the raw WKT string.
-    # If using PostGIS, GeoAlchemy handles WKT->Geometry automatically usually,
-    # but strictly checking types helps.
+    # Adapt Geometry for PostGIS if needed
+    geometry_value = farm.geometry
+    
+    # Check if we need WKTElement (PostGIS)
+    # We can check the geometry column type or just database URL
+    from app.core.config import settings
+    if "sqlite" not in settings.DATABASE_URL:
+        from geoalchemy2.elements import WKTElement
+        geometry_value = WKTElement(farm.geometry, srid=4326)
     
     db_farm = models.FarmTable(
         name=farm.name,
         owner_id=farm.owner_id,
-        geometry=farm.geometry, # Pass WKT directly
+        geometry=geometry_value,
         soil_profile=farm.soil_profile
     )
     db.add(db_farm)
