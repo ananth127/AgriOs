@@ -6,6 +6,7 @@ import { useRouter } from '@/navigation';
 import { Card } from '@/components/ui/Card';
 import { User, Lock, Mail, Loader2, Sprout, Briefcase, MapPin, Search, Phone } from 'lucide-react';
 import { Link } from '@/navigation';
+import { API_BASE_URL } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 
 const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
@@ -75,7 +76,7 @@ export default function SignupPage() {
                 })
             };
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/v1/auth/register`, {
+            const res = await fetch(`${API_BASE_URL}/auth/register`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

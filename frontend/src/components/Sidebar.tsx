@@ -5,6 +5,7 @@ import { Link, usePathname } from '@/navigation';
 import { cn } from '@/lib/utils';
 import { LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Calculator, LogOut, LogIn, X, MapPin, Briefcase, Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { API_BASE_URL } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 
 const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
@@ -52,7 +53,7 @@ export function Sidebar({ locale }: SidebarProps) {
                 })
             };
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/v1/auth/me`, {
+            const res = await fetch(`${API_BASE_URL}/auth/me`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

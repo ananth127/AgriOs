@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { useAuth } from '@/lib/auth-context';
 import { User, Lock, Mail, Loader2, Phone } from 'lucide-react';
 import { Link } from '@/navigation';
+import { API_BASE_URL } from '@/lib/constants';
 
 export default function LoginPage() {
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -31,7 +32,7 @@ export default function LoginPage() {
             formData.append('username', email); // OAuth2 expects 'username' (which is email for us)
             formData.append('password', password);
 
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/v1/auth/login`, {
+            const res = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: 'POST',
                 body: formData,
             });
@@ -45,7 +46,7 @@ export default function LoginPage() {
             const token = data.access_token;
 
             // 2. Fetch User Details
-            const userRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/v1/auth/me`, {
+            const userRes = await fetch(`${API_BASE_URL}/auth/me`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
