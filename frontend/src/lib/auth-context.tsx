@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (storedToken) {
             setToken(storedToken);
             // Fetch user profile
-            fetch('http://127.0.0.1:8000/api/v1/auth/me', {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/v1/auth/me`, {
                 headers: {
                     'Authorization': `Bearer ${storedToken}`
                 }
