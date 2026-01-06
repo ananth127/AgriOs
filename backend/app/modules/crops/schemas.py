@@ -11,6 +11,14 @@ class CropCycleBase(BaseModel):
 class CropCycleCreate(CropCycleBase):
     pass
 
+class CropCycleUpdate(BaseModel):
+    farm_id: Optional[int] = None
+    registry_id: Optional[int] = None
+    sowing_date: Optional[date] = None
+    harvest_date_estimated: Optional[date] = None
+    current_stage: Optional[str] = None
+    health_score: Optional[float] = None
+
 class CropCycle(CropCycleBase):
     id: int
     current_stage: str

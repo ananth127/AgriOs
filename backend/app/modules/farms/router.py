@@ -39,3 +39,25 @@ def read_farm(farm_id: int, db: Session = Depends(get_db)):
     if db_farm is None:
         raise HTTPException(status_code=404, detail="Farm not found")
     return db_farm
+
+@router.put("/{farm_id}", response_model=schemas.Farm)
+def update_farm(farm_id: int, farm_update: schemas.FarmUpdate, db: Session = Depends(get_db)):
+    db_farm = service.update_farm(db, farm_id=farm_id, farm_update=farm_update)
+    if db_farm is None:
+        raise HTTPException(status_code=404, detail="Farm not found")
+    # Geometry handling for response
+    if hasattr(db_farm.geometry, "desc"):
+         from geoalchemy2.shape import to_shape
+         try:
+             sh = to_shape(db_farm.geometry)
+             db_farm.geometry = sh.wkt
+         except:
+             pass
+    return db_farm
+
+@router.delete("/{farm_id}", response_model=schemas.Farm)
+def delete_farm(farm_id: int, db: Session = Depends(get_db)):
+    db_farm = service.delete_farm(db, farm_id=farm_id)
+    if db_farm is None:
+        raise HTTPException(status_code=404, detail="Farm not found")
+    return db_farm

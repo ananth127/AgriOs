@@ -57,6 +57,24 @@ def check_database():
     print(f"   Total: {len(animals)} animals")
     for animal in animals:
         print(f"   - Tag: {animal.tag_id}, Farm: {animal.farm_id}, Health: {animal.health_status}")
+
+    # Check Marketplace
+    from app.modules.marketplace import models as market_models
+    print("\n🛒 MARKETPLACE:")
+    listings = db.query(market_models.ProductListing).all()
+    print(f"   Total: {len(listings)} product listings")
+    for item in listings:
+        print(f"   - {item.product_name} ({item.quantity} {item.unit}) - ₹{item.price}")
+    
+    # Check Farm Management
+    from app.modules.farm_management import models as farm_mgmt_models
+    print("\n📋 FARM MANAGEMENT:")
+    loans = db.query(farm_mgmt_models.FarmLoan).all()
+    print(f"   Loans: {len(loans)}")
+    activities = db.query(farm_mgmt_models.FarmActivity).all()
+    print(f"   Activities Logged: {len(activities)}")
+    jobs = db.query(farm_mgmt_models.LaborJob).all()
+    print(f"   Labor Jobs: {len(jobs)}")
     
     print("\n" + "=" * 50)
     

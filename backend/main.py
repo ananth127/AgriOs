@@ -18,6 +18,7 @@ from app.modules.voice_search import router as voice_router
 from app.modules.crops import router as crops_router
 from app.modules.livestock import router as livestock_router
 from app.modules.supply_chain import router as supply_router
+from app.modules.farm_management import routers as farm_mgmt_router
 
 from app.modules.auth import models as auth_models
 from app.modules.auth import router as auth_router
@@ -55,6 +56,7 @@ app.include_router(voice_router.router, prefix="/api/v1/voice-search", tags=["vo
 app.include_router(crops_router.router, prefix="/api/v1/crops", tags=["crops"])
 app.include_router(livestock_router.router, prefix="/api/v1/livestock", tags=["livestock"])
 app.include_router(supply_router.router, prefix="/api/v1/supply-chain", tags=["supply_chain"])
+app.include_router(farm_mgmt_router.router, prefix="/api/v1/farm-management", tags=["farm_management"])
 
 @app.get("/")
 def read_root():

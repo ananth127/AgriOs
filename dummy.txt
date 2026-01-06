@@ -1,0 +1,3 @@
+Step Id: 313
+Created file file:///d:/Programs/Android%20Studio/Settings/Farming/Agri-OS/frontend/src/components/crops/CropAnalyticsDashboard.tsx with requested content.
+If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.

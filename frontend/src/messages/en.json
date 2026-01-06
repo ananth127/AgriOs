@@ -1,5 +1,18 @@
 {
     "Index": {
         "title": "Welcome to Agri-OS"
+    },
+    "FarmManagement": {
+        "title": "Farm Management",
+        "description": "Track investments, operations, and resources.",
+        "tabs": {
+            "overview": "Overview",
+            "timeline": "Timeline",
+            "loans": "Loans",
+            "inventory": "Inventory",
+            "machinery": "Machinery",
+            "labor": "Labor",
+            "iot": "IoT"
+        }
     }
 }

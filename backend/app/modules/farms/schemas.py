@@ -10,6 +10,12 @@ class FarmBase(BaseModel):
 class FarmCreate(FarmBase):
     pass
 
+class FarmUpdate(BaseModel):
+    name: Optional[str] = None
+    owner_id: Optional[int] = None
+    geometry: Optional[str] = None
+    soil_profile: Optional[Dict[str, Any]] = None
+
 class Farm(FarmBase):
     id: int
 

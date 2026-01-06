@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import date
 
 class ListingBase(BaseModel):
     title: str
@@ -13,6 +14,28 @@ class ListingCreate(ListingBase):
 class Listing(ListingBase):
     id: int
     provider_id: int
+    is_active: bool
+
+    class Config:
+        from_attributes = True
+
+class ProductListingBase(BaseModel):
+    product_name: str
+    category: str
+    quantity: float
+    unit: str
+    price: float
+    price_unit: str
+    available_date: Optional[date] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+class ProductListingCreate(ProductListingBase):
+    pass
+
+class ProductListing(ProductListingBase):
+    id: int
+    seller_id: int
     is_active: bool
 
     class Config:

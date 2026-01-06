@@ -28,8 +28,33 @@ def create_listing(db: Session, listing: schemas.ListingCreate, provider_id: int
     db.refresh(db_listing)
     return db_listing
 
+def create_product_listing(db: Session, listing: schemas.ProductListingCreate, seller_id: int):
+    # Optional Location
+    loc = None
+    if listing.latitude and listing.longitude:
+        loc = f'POINT({listing.longitude} {listing.latitude})'
+
+    db_prod = models.ProductListing(
+        seller_id=seller_id,
+        product_name=listing.product_name,
+        category=listing.category,
+        quantity=listing.quantity,
+        unit=listing.unit,
+        price=listing.price,
+        price_unit=listing.price_unit,
+        available_date=listing.available_date,
+        location=loc
+    )
+    db.add(db_prod)
+    db.commit()
+    db.refresh(db_prod)
+    return db_prod
+
 def get_all_listings(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.ServiceListing).filter(models.ServiceListing.is_active == True).offset(skip).limit(limit).all()
+
+def get_all_product_listings(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.ProductListing).filter(models.ProductListing.is_active == True).offset(skip).limit(limit).all()
 
 def search_providers(db: Session, lat: float, lon: float, radius_km: float = 50):
     # Example logic using GeoAlchemy2

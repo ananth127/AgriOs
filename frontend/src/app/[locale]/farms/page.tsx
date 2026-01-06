@@ -4,10 +4,13 @@ import { useEffect, useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
+import { CreateFarmModal } from '@/components/farms/CreateFarmModal';
+import { Plus } from 'lucide-react';
 
 export default function FarmsPage() {
     const [farms, setFarms] = useState<any[]>([]);
     const [selectedFarmId, setSelectedFarmId] = useState<number | undefined>(undefined);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Dynamically import Map to avoid SSR issues with Leaflet
     const FarmMap = useMemo(() => dynamic(
@@ -18,18 +21,22 @@ export default function FarmsPage() {
         }
     ), []);
 
-    useEffect(() => {
+    const fetchFarms = () => {
         api.farms.list()
             .then((data: any) => {
                 if (Array.isArray(data)) {
                     setFarms(data);
-                    if (data.length > 0) setSelectedFarmId(data[0].id);
+                    if (data.length > 0 && !selectedFarmId) setSelectedFarmId(data[0].id);
                 } else {
                     console.error("Farms API returned non-array:", data);
                     setFarms([]);
                 }
             })
             .catch(err => console.error("Failed to fetch farms", err));
+    };
+
+    useEffect(() => {
+        fetchFarms();
     }, []);
 
     // Find selected farm details
@@ -64,20 +71,30 @@ export default function FarmsPage() {
             <div className="absolute top-0 left-0 right-0 z-10 p-4 w-full md:w-96 flex flex-col gap-3 pointer-events-none max-h-screen overflow-hidden">
 
                 {/* 1. Search Bar (Above Farm) */}
-                <div className="pointer-events-auto relative shadow-xl">
-                    <input
-                        type="text"
-                        placeholder="Search location..."
-                        className="w-full bg-slate-900/95 backdrop-blur text-white border border-white/20 rounded-xl px-4 py-3 shadow-2xl focus:outline-none focus:border-green-500 text-sm pl-11"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                    />
+                <div className="pointer-events-auto relative shadow-xl flex gap-2">
+                    <div className="relative flex-1">
+                        <input
+                            type="text"
+                            placeholder="Search location..."
+                            className="w-full bg-slate-900/95 backdrop-blur text-white border border-white/20 rounded-xl px-4 py-3 shadow-2xl focus:outline-none focus:border-green-500 text-sm pl-11"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                        />
+                        <button
+                            onClick={handleSearch}
+                            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white"
+                        >
+                            🔍
+                        </button>
+                    </div>
+                    {/* Add Farm Button */}
                     <button
-                        onClick={handleSearch}
-                        className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white"
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-green-600 hover:bg-green-500 text-white rounded-xl px-4 flex items-center justify-center shadow-xl"
+                        title="Add New Farm"
                     >
-                        🔍
+                        <Plus className="w-5 h-5" />
                     </button>
                 </div>
 
@@ -149,6 +166,11 @@ export default function FarmsPage() {
                     )}
                 </Card>
             </div>
+            <CreateFarmModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={fetchFarms}
+            />
         </div>
     );
 }

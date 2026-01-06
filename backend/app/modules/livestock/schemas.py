@@ -13,6 +13,15 @@ class AnimalBase(BaseModel):
 class AnimalCreate(AnimalBase):
     pass
 
+class AnimalUpdate(BaseModel):
+    registry_id: Optional[int] = None
+    farm_id: Optional[int] = None
+    tag_id: Optional[str] = None
+    date_of_birth: Optional[date] = None
+    weight_kg: Optional[float] = None
+    health_status: Optional[str] = None
+    last_vaccination_date: Optional[date] = None
+
 class Animal(AnimalBase):
     id: int
     last_vaccination_date: Optional[date]

@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from . import models, schemas
 from geoalchemy2.shape import to_shape
+from app.core.config import settings
 
 def get_farm(db: Session, farm_id: int):
     return db.query(models.FarmTable).filter(models.FarmTable.id == farm_id).first()
@@ -14,7 +15,6 @@ def create_farm(db: Session, farm: schemas.FarmCreate):
     
     # Check if we need WKTElement (PostGIS)
     # We can check the geometry column type or just database URL
-    from app.core.config import settings
     if "sqlite" not in settings.DATABASE_URL:
         from geoalchemy2.elements import WKTElement
         geometry_value = WKTElement(farm.geometry, srid=4326)
@@ -28,4 +28,35 @@ def create_farm(db: Session, farm: schemas.FarmCreate):
     db.add(db_farm)
     db.commit()
     db.refresh(db_farm)
+    return db_farm
+
+def update_farm(db: Session, farm_id: int, farm_update: schemas.FarmUpdate):
+    db_farm = get_farm(db, farm_id)
+    if not db_farm:
+        return None
+    
+    update_data = farm_update.model_dump(exclude_unset=True)
+    
+    if "geometry" in update_data:
+        geometry_val = update_data["geometry"]
+        if "sqlite" not in settings.DATABASE_URL:
+            from geoalchemy2.elements import WKTElement
+            geometry_val = WKTElement(geometry_val, srid=4326)
+        update_data["geometry"] = geometry_val
+
+    for key, value in update_data.items():
+        setattr(db_farm, key, value)
+
+    db.add(db_farm)
+    db.commit()
+    db.refresh(db_farm)
+    return db_farm
+
+def delete_farm(db: Session, farm_id: int):
+    db_farm = get_farm(db, farm_id)
+    if not db_farm:
+        return None
+    
+    db.delete(db_farm)
+    db.commit()
     return db_farm

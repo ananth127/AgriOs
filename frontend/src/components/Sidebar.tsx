@@ -80,6 +80,7 @@ export function Sidebar({ locale }: SidebarProps) {
         { href: '/', label: 'Overview', icon: LayoutDashboard },
         { href: '/farms', label: 'My Farms', icon: Tractor },
         { href: '/crops', label: 'Crops & Registry', icon: Sprout },
+        { href: '/farm-management', label: 'Management', icon: Briefcase },
         { href: '/livestock', label: 'Livestock', icon: Users },
         { href: '/supply-chain', label: 'Track & Trace', icon: ScrollText },
         { href: '/marketplace', label: 'Marketplace', icon: ShoppingBag },

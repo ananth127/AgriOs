@@ -4,21 +4,25 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Search, Truck, Package, CheckCircle, Clock } from 'lucide-react';
+import { CreateBatchModal } from '@/components/supply-chain/CreateBatchModal';
 
 export default function SupplyChainPage() {
     const [batchId, setBatchId] = useState('');
     const [batchData, setBatchData] = useState<any>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const handleTrack = async () => {
-        if (!batchId) return;
+    const handleTrack = async (searchId?: string) => {
+        const idToSearch = searchId || batchId;
+        if (!idToSearch) return;
         setLoading(true);
         setError('');
         setBatchData(null);
         try {
-            const data = await api.supplyChain.getBatch(batchId);
+            const data = await api.supplyChain.getBatch(idToSearch);
             setBatchData(data);
+            setBatchId(idToSearch); // Update input if tracked from tracking modal success
         } catch (err) {
             setError('Batch not found or invalid ID');
         } finally {
@@ -28,9 +32,17 @@ export default function SupplyChainPage() {
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-6">
-            <header>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-cyan-500 bg-clip-text text-transparent">Supply Chain</h1>
-                <p className="text-slate-400">Track your produce from farm to fork with immutable transparency.</p>
+            <header className="flex justify-between items-center">
+                <div>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-teal-400 to-cyan-500 bg-clip-text text-transparent">Supply Chain</h1>
+                    <p className="text-slate-400">Track your produce from farm to fork with immutable transparency.</p>
+                </div>
+                <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="bg-teal-600 hover:bg-teal-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
+                >
+                    + Create Batch
+                </button>
             </header>
 
             {/* Search Box */}
@@ -45,7 +57,7 @@ export default function SupplyChainPage() {
                         onKeyDown={(e) => e.key === 'Enter' && handleTrack()}
                     />
                     <button
-                        onClick={handleTrack}
+                        onClick={() => handleTrack()}
                         className="absolute right-2 top-2 bottom-2 bg-teal-600 hover:bg-teal-500 rounded-md px-4 font-bold transition-colors"
                     >
                         Track
@@ -56,7 +68,7 @@ export default function SupplyChainPage() {
 
             {/* Results */}
             {batchData && (
-                <div className="space-y-8">
+                <div className="space-y-8 animate-in fade-in duration-500">
                     {/* Header Info */}
                     <Card className="border-t-4 border-t-teal-500">
                         <div className="flex justify-between items-start">
@@ -104,7 +116,7 @@ export default function SupplyChainPage() {
 
             {/* Demo State if no data found yet (Empty State) */}
             {!batchData && !loading && !error && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 opacity-30">
                     <div className="bg-slate-900 p-6 rounded-xl border border-white/5">
                         <Package className="w-8 h-8 mb-4 text-purple-400" />
                         <h3 className="font-bold">Harvest</h3>
@@ -122,6 +134,12 @@ export default function SupplyChainPage() {
                     </div>
                 </div>
             )}
+
+            <CreateBatchModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={(id) => handleTrack(id)} // Auto track created batch
+            />
         </div>
     );
 }
