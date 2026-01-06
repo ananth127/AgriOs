@@ -98,7 +98,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
         }
     };
 
-    const handleGetCurrentLocation = () => {
+    const handleGetCurrentLocation = (source: 'auto' | 'manual' = 'manual') => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 const lat = pos.coords.latitude;
@@ -116,12 +116,30 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
                     console.error("Failed to reverse geocode current location", e);
                 }
 
-                trackCurrentLocation(lat, lng, locationName);
-                onSelect(lat, lng, locationName, 'gps');
-                onClose();
+                trackCurrentLocation(lat, lng, locationName, source);
+
+                // Only auto-select/close if manual, otherwise just update map center
+                if (source === 'manual') {
+                    onSelect(lat, lng, locationName, 'gps');
+                    onClose();
+                }
             });
         }
     };
+
+    // Auto-fetch if permission is granted (on mount)
+    useEffect(() => {
+        if (isOpen && navigator.geolocation && navigator.permissions) {
+            navigator.permissions.query({ name: 'geolocation' }).then(result => {
+                if (result.state === 'granted') {
+                    handleGetCurrentLocation('auto');
+                }
+            }).catch(e => {
+                // Ignore permission query errors (some browsers/enviros might not support strictly)
+                console.log("Permission query skipped", e);
+            });
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -209,7 +227,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
                     {/* Floating GPS Button */}
                     <div className="w-full flex justify-end pointer-events-auto">
                         <button
-                            onClick={handleGetCurrentLocation}
+                            onClick={() => handleGetCurrentLocation('manual')}
                             className="bg-slate-900 border border-white/20 text-white p-3 rounded-full shadow-lg hover:bg-green-600 transition-all active:scale-95"
                             title="Use Current Location"
                         >

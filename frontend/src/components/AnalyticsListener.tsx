@@ -3,7 +3,7 @@
 
 import { useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { initAnalytics, trackPageView, trackGlobalClick, setUserLoginStatus } from '@/lib/analytics';
+import { initAnalytics, trackPageView, trackGlobalClick, setUserLoginStatus, setUserLocation } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth-context';
 
 // Map paths to readable Page Names (matching Sidebar)
@@ -40,7 +40,7 @@ function getPageName(path: string): string {
 function AnalyticsTracker() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
 
     useEffect(() => {
         initAnalytics();
@@ -48,7 +48,10 @@ function AnalyticsTracker() {
 
     useEffect(() => {
         setUserLoginStatus(isAuthenticated);
-    }, [isAuthenticated]);
+        if (user?.latitude && user?.longitude && user?.location_name) {
+            setUserLocation(user.latitude, user.longitude, user.location_name);
+        }
+    }, [isAuthenticated, user]);
 
     useEffect(() => {
         if (pathname) {

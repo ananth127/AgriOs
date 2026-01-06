@@ -38,7 +38,7 @@ export default function CalculatorPage() {
         const roi = (netProfit / totalCost) * 100;
 
         return { totalYield, totalRevenue, costs, totalCost, netProfit, roi };
-    }, [crop, acres, pricePerQuintal, CROP_DATA]);
+    }, [crop, acres, pricePerQuintal]);
 
     // Mock Historical Data for Chart
     const historyData = [
