@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
@@ -21,7 +21,7 @@ export default function FarmsPage() {
         }
     ), []);
 
-    const fetchFarms = () => {
+    const fetchFarms = useCallback(() => {
         api.farms.list()
             .then((data: any) => {
                 if (Array.isArray(data)) {
@@ -33,11 +33,11 @@ export default function FarmsPage() {
                 }
             })
             .catch(err => console.error("Failed to fetch farms", err));
-    };
+    }, [selectedFarmId]);
 
     useEffect(() => {
         fetchFarms();
-    }, []);
+    }, [fetchFarms]);
 
     // Find selected farm details
     const currentFarm = farms.find(f => f.id === selectedFarmId);

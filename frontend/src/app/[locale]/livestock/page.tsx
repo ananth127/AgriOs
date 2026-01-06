@@ -108,7 +108,7 @@ export default function LivestockPage() {
                         {animals.length === 0 && (
                             <tr>
                                 <td colSpan={6} className="p-8 text-center text-slate-500">
-                                    No animals registered. Click "+ Register Animal" to add your herd.
+                                    No animals registered. Click &quot;+ Register Animal&quot; to add your herd.
                                 </td>
                             </tr>
                         )}

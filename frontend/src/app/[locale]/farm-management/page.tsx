@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { FinancialDashboard } from '@/components/farm-management/FinancialDashboard';
 import { CropTimeline } from '@/components/farm-management/CropTimeline';
@@ -29,7 +29,7 @@ export default function FarmManagementPage() {
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
 
     // Fetch initial data
-    const refreshData = async () => {
+    const refreshData = useCallback(async () => {
         try {
             // 1. Fetch Financials
             const financials = await api.farmManagement.getFinancials(farmId) as any;
@@ -81,11 +81,11 @@ export default function FarmManagementPage() {
         } catch (e) {
             console.error("Failed to load farm data", e);
         }
-    };
+    }, [farmId]);
 
     useEffect(() => {
         refreshData();
-    }, [farmId]);
+    }, [refreshData]);
 
     return (
         <div className="p-4 md:p-8 space-y-8">

@@ -133,10 +133,13 @@ export default function LoginPage() {
                 </form>
 
                 <div className="mt-6 text-center text-sm text-slate-400">
-                    Don't have an account?{' '}
-                    <Link href="/auth/signup" className="text-green-400 hover:text-green-300 font-medium">
+                    Don&apos;t have an account?{' '}
+                    <button
+                        onClick={() => router.push('/auth/signup')}
+                        className="text-green-400 hover:text-green-300 font-medium"
+                    >
                         Sign up
-                    </Link>
+                    </button>
                 </div>
             </Card>
 

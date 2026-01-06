@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useRouter } from '@/navigation';
 import { API_BASE_URL } from './constants';
 
@@ -33,6 +33,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
+    const logout = useCallback(() => {
+        localStorage.removeItem('access_token');
+        setToken(null);
+        setUser(null);
+        router.push('/auth/login');
+    }, [router]);
+
     useEffect(() => {
         // Check local storage on load
         const storedToken = localStorage.getItem('access_token');
@@ -59,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
             setLoading(false);
         }
-    }, []);
+    }, [logout]);
 
     const login = (newToken: string, newUser: User) => {
         localStorage.setItem('access_token', newToken);
@@ -70,13 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const updateUser = (updatedUser: User) => {
         setUser(updatedUser);
-    };
-
-    const logout = () => {
-        localStorage.removeItem('access_token');
-        setToken(null);
-        setUser(null);
-        router.push('/auth/login');
     };
 
     return (

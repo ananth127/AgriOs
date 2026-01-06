@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { CreateLoanModal } from './CreateLoanModal';
 import { api } from '@/lib/api';
@@ -17,7 +17,7 @@ export const LoanManager: React.FC<{ farmId: number }> = ({ farmId }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
 
-    const fetchLoans = async () => {
+    const fetchLoans = useCallback(async () => {
         setLoading(true);
         try {
             const data = await api.farmManagement.getLoans(farmId);
@@ -27,11 +27,11 @@ export const LoanManager: React.FC<{ farmId: number }> = ({ farmId }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [farmId]);
 
     useEffect(() => {
         fetchLoans();
-    }, [farmId]);
+    }, [fetchLoans]);
 
     return (
         <>

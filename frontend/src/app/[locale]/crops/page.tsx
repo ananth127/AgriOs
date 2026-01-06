@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Search, Trash2, Pencil, BarChart3 } from 'lucide-react';
@@ -26,7 +26,7 @@ export default function CropsPage() {
     const [selectedCropId, setSelectedCropId] = useState<string>("");
     const [sowingDate, setSowingDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
-    const fetchMyCrops = () => {
+    const fetchMyCrops = useCallback(() => {
         if (farms.length > 0) {
             const farmId = selectedFarmId || farms[0].id;
             api.crops.list(farmId)
@@ -35,7 +35,7 @@ export default function CropsPage() {
                 })
                 .catch(err => console.error("Failed to fetch crops", err));
         }
-    };
+    }, [farms, selectedFarmId]);
 
     useEffect(() => {
         api.registry.list().then((data: any) => { if (Array.isArray(data)) setRegistry(data); });
@@ -49,7 +49,7 @@ export default function CropsPage() {
 
     useEffect(() => {
         if (activeTab === 'my-crops') fetchMyCrops();
-    }, [activeTab, selectedFarmId, farms]);
+    }, [activeTab, fetchMyCrops]);
 
     const handlePlant = async () => {
         if (!selectedFarmId || !selectedCropId) return;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { AddInventoryModal } from './AddInventoryModal';
 import { EditInventoryModal } from './EditInventoryModal';
@@ -11,7 +11,7 @@ export const InventoryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
     const [loading, setLoading] = useState(false);
     const [editingItem, setEditingItem] = useState<any>(null);
 
-    const fetchInventory = async () => {
+    const fetchInventory = useCallback(async () => {
         setLoading(true);
         try {
             const data = await api.farmManagement.getInventory(farmId);
@@ -21,7 +21,7 @@ export const InventoryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [farmId]);
 
     const handleDelete = async (id: number) => {
         if (!confirm("Are you sure you want to delete this item?")) return;
@@ -36,7 +36,7 @@ export const InventoryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
 
     useEffect(() => {
         fetchInventory();
-    }, [farmId]);
+    }, [fetchInventory]);
 
     return (
         <>

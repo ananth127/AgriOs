@@ -86,7 +86,7 @@ export default function VoiceAssistant() {
                                 {status === 'processing' && <p className="text-xl font-light text-blue-400">Thinking...</p>}
                                 {(status === 'idle' && !response) && <p className="text-slate-500">Tap mic to speak</p>}
 
-                                {transcript && <p className="text-lg italic text-slate-300">"{transcript}"</p>}
+                                {transcript && <p className="text-lg italic text-slate-300">&quot;{transcript}&quot;</p>}
                             </div>
 
                             {response && (
@@ -99,6 +99,14 @@ export default function VoiceAssistant() {
                                             <h4 className="font-bold text-green-400 mb-1">Agri-OS</h4>
                                             <p className="text-sm text-slate-200 leading-relaxed">{response.response_text}</p>
                                         </div>
+                                    </div>
+
+                                    <div className="mt-4 p-3 bg-white/5 rounded text-sm text-slate-300">
+                                        <p className="font-bold mb-1">Try saying:</p>
+                                        <ul className="list-disc pl-4 space-y-1">
+                                            <li>&quot;What is the price of Onion?&quot;</li>
+                                            <li>&quot;Will it rain tomorrow?&quot;</li>
+                                        </ul>
                                     </div>
 
                                     {response.intent === 'market_price' && (

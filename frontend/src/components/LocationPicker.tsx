@@ -55,7 +55,7 @@ export default function LocationPicker({ onLocationSelect }: { onLocationSelect:
         if (position) {
             onLocationSelect(position.lat, position.lng, locationName);
         }
-    }, [position, locationName]);
+    }, [position, locationName, onLocationSelect]);
 
     const handleGetCurrentLocation = () => {
         if (navigator.geolocation) {

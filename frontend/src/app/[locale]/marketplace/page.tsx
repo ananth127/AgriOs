@@ -90,7 +90,7 @@ export default function MarketplacePage() {
             {displayedListings.length === 0 ? (
                 <div className="text-center py-12 text-slate-500 bg-slate-900/50 rounded-lg border border-white/5 border-dashed">
                     <p className="text-lg">No listings found.</p>
-                    {activeTab === 'my-listings' && <p className="text-sm">You haven't posted anything yet.</p>}
+                    {activeTab === 'my-listings' && <p className="text-sm">You haven&apos;t posted anything yet.</p>}
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -20,7 +20,7 @@ export default function ProphetWidget({ locationName }: { locationName?: string 
                 }
             })
             .catch(err => console.error("Prophet failed", err));
-    }, []);
+    }, [locationName]);
 
     return (
         <div className="col-span-1 md:col-span-2 row-span-2 rounded-2xl bg-slate-900 border border-white/10 p-6 flex flex-col relative overflow-hidden group hover:border-green-500/50 transition-colors">

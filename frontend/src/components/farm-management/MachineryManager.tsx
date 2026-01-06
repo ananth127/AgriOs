@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { AddAssetModal } from './AddAssetModal';
 import { EditAssetModal } from './EditAssetModal';
@@ -11,7 +11,7 @@ export const MachineryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
     const [loading, setLoading] = useState(false);
     const [editingAsset, setEditingAsset] = useState<any>(null);
 
-    const fetchAssets = async () => {
+    const fetchAssets = useCallback(async () => {
         setLoading(true);
         try {
             const data = await api.farmManagement.getAssets(farmId);
@@ -21,7 +21,7 @@ export const MachineryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [farmId]);
 
     const handleDelete = async (id: number) => {
         if (!confirm("Are you sure you want to delete this asset?")) return;
@@ -36,7 +36,7 @@ export const MachineryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
 
     useEffect(() => {
         fetchAssets();
-    }, [farmId]);
+    }, [fetchAssets]);
 
     return (
         <>

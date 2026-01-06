@@ -97,7 +97,7 @@ export default function SupplyChainPage() {
                                     </div>
                                     <h3 className="font-bold text-lg mb-1">{event.status}</h3>
                                     <p className="text-slate-400">{event.location}</p>
-                                    {event.notes && <p className="text-sm text-slate-500 mt-2 italic">"{event.notes}"</p>}
+                                    {event.notes && <p className="text-sm text-slate-500 mt-2 italic">&quot;{event.notes}&quot;</p>}
                                 </div>
                             </div>
                         ))}
@@ -123,9 +123,10 @@ export default function SupplyChainPage() {
                         <p className="text-sm text-slate-500 mt-2">Logged at source with geolocation.</p>
                     </div>
                     <div className="bg-slate-900 p-6 rounded-xl border border-white/5">
-                        <Truck className="w-8 h-8 mb-4 text-blue-400" />
-                        <h3 className="font-bold">Transit</h3>
-                        <p className="text-sm text-slate-500 mt-2">IoT verified temperature logs.</p>
+                        <div className="text-center py-12">
+                            <p className="text-slate-400 mb-4">No quality certificates found.</p>
+                            <p className="text-sm text-slate-500">Generate a &quot;New Batch&quot; to start tracing.</p>
+                        </div>
                     </div>
                     <div className="bg-slate-900 p-6 rounded-xl border border-white/5">
                         <CheckCircle className="w-8 h-8 mb-4 text-green-400" />

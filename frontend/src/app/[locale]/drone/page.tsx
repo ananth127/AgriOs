@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { Upload, Camera, Zap, AlertTriangle } from 'lucide-react';
+import Image from 'next/image';
 
 export default function DronePage() {
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -53,7 +54,12 @@ export default function DronePage() {
                     <Card className="p-8 border-dashed border-2 border-slate-700 bg-slate-900/50 flex flex-col items-center justify-center min-h-[400px]">
                         {selectedImage ? (
                             <div className="relative w-full h-full">
-                                <img src={selectedImage} alt="Upload" className="w-full h-full object-contain rounded-lg" />
+                                <Image
+                                    src={selectedImage}
+                                    alt="Upload"
+                                    fill
+                                    className="object-contain rounded-lg"
+                                />
                                 <button
                                     onClick={() => setSelectedImage(null)}
                                     className="absolute top-2 right-2 bg-slate-900/80 p-2 rounded-full hover:bg-slate-800"

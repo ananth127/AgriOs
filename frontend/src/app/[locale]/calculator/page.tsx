@@ -5,18 +5,21 @@ import { Card } from '@/components/ui/Card';
 import { Sprout, Calculator, DollarSign, Droplets, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
+
+// Hardcoded agronomical data (In production, fetch from DB/Registry)
+const CROP_DATA: Record<string, any> = {
+    'Wheat': { yieldPerAcre: 18, seedCost: 1200, fertilizerCost: 3500, laborCost: 5000, waterCost: 1000, color: '#F5DEB3' },
+    'Rice': { yieldPerAcre: 22, seedCost: 1500, fertilizerCost: 4000, laborCost: 8000, waterCost: 2000, color: '#90EE90' },
+    'Onion': { yieldPerAcre: 120, seedCost: 8000, fertilizerCost: 6000, laborCost: 10000, waterCost: 3000, color: '#E9967A' },
+    'Tomato': { yieldPerAcre: 250, seedCost: 12000, fertilizerCost: 8000, laborCost: 15000, waterCost: 4000, color: '#FF6347' },
+};
+
 export default function CalculatorPage() {
     const [crop, setCrop] = useState('Wheat');
     const [acres, setAcres] = useState(1);
     const [pricePerQuintal, setPricePerQuintal] = useState(2200);
 
-    // Hardcoded agronomical data (In production, fetch from DB/Registry)
-    const CROP_DATA: Record<string, any> = {
-        'Wheat': { yieldPerAcre: 18, seedCost: 1200, fertilizerCost: 3500, laborCost: 5000, waterCost: 1000, color: '#F5DEB3' },
-        'Rice': { yieldPerAcre: 22, seedCost: 1500, fertilizerCost: 4000, laborCost: 8000, waterCost: 2000, color: '#90EE90' },
-        'Onion': { yieldPerAcre: 120, seedCost: 8000, fertilizerCost: 6000, laborCost: 10000, waterCost: 3000, color: '#E9967A' },
-        'Tomato': { yieldPerAcre: 250, seedCost: 12000, fertilizerCost: 8000, laborCost: 15000, waterCost: 4000, color: '#FF6347' },
-    };
+
 
     const calculation = useMemo(() => {
         const data = CROP_DATA[crop];
@@ -35,7 +38,7 @@ export default function CalculatorPage() {
         const roi = (netProfit / totalCost) * 100;
 
         return { totalYield, totalRevenue, costs, totalCost, netProfit, roi };
-    }, [crop, acres, pricePerQuintal]);
+    }, [crop, acres, pricePerQuintal, CROP_DATA]);
 
     // Mock Historical Data for Chart
     const historyData = [

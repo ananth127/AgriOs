@@ -21,7 +21,7 @@ export default function WeatherWidget({ lat, lng, locationName }: { lat?: number
                 });
             })
             .catch(err => console.error("Weather fetch failed", err));
-    }, []);
+    }, [lat, lng]);
 
     return (
         <div className="col-span-1 row-span-1 rounded-2xl bg-gradient-to-br from-indigo-900 to-slate-900 border border-white/10 p-6 flex flex-col">
