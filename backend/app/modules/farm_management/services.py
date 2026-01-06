@@ -66,6 +66,22 @@ class FarmManagementService:
         timeline.sort(key=lambda x: str(x['date']))
         return timeline
 
+    def get_farm_timeline(self, farm_id: int):
+        activities = self.db.query(models.FarmActivity).filter(models.FarmActivity.farm_id == farm_id).all()
+        
+        timeline = []
+        for act in activities:
+            timeline.append({
+                "date": act.activity_date,
+                "type": "Activity",
+                "title": act.activity_type,
+                "details": act.description or f"{act.activity_type} performed using {act.quantity_used or ''}",
+                "crop_cycle_id": act.crop_cycle_id
+            })
+            
+        timeline.sort(key=lambda x: str(x['date']), reverse=True)
+        return timeline
+
     def accept_labor_application(self, application_id: int):
         # Worker application logic
         application = self.db.query(models.LaborApplication).filter(models.LaborApplication.id == application_id).first()

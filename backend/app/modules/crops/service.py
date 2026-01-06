@@ -24,7 +24,34 @@ def get_crop_cycle(db: Session, cycle_id: int):
     return db.query(models.CropCycle).filter(models.CropCycle.id == cycle_id).first()
 
 def get_crop_cycles(db: Session, farm_id: int):
-    return db.query(models.CropCycle).filter(models.CropCycle.farm_id == farm_id).all()
+    cycles = db.query(models.CropCycle).filter(models.CropCycle.farm_id == farm_id).all()
+    
+    # Dynamic "Realtime" Calculation
+    today = date.today()
+    for cycle in cycles:
+        days_elapsed = (today - cycle.sowing_date).days
+        
+        # Calculate Stage
+        if days_elapsed < 10:
+            cycle.current_stage = "Germination"
+        elif days_elapsed < 40:
+            cycle.current_stage = "Vegetative"
+        elif days_elapsed < 70:
+            cycle.current_stage = "Flowering"
+        elif days_elapsed < 90:
+            cycle.current_stage = "Fruiting"
+        else:
+            cycle.current_stage = "Harvest Ready"
+            
+        # Calculate Health (Mock simulation based on age)
+        # Random fluctuation or decay logic could go here
+        # For now, let's just make it look somewhat realistic
+        if days_elapsed > 100:
+             cycle.health_score = 0.5 # Old crop
+        else:
+             cycle.health_score = 0.95 # Healthy
+    
+    return cycles
 
 def update_crop_cycle(db: Session, cycle_id: int, cycle_update: schemas.CropCycleUpdate):
     db_cycle = get_crop_cycle(db, cycle_id)

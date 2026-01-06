@@ -7,6 +7,7 @@ import { LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camer
 import { useAuth } from '@/lib/auth-context';
 import { API_BASE_URL } from '@/lib/constants';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 
 const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
 
@@ -15,6 +16,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ locale }: SidebarProps) {
+    const t = useTranslations('Sidebar');
+    const tGlobal = useTranslations('Global');
+    const tAuth = useTranslations('Auth');
     const pathname = usePathname();
     const { user, isAuthenticated, logout, updateUser, token } = useAuth();
 
@@ -77,31 +81,29 @@ export function Sidebar({ locale }: SidebarProps) {
     };
 
     const links = [
-        { href: '/', label: 'Overview', icon: LayoutDashboard },
-        { href: '/farms', label: 'My Farms', icon: Tractor },
-        { href: '/crops', label: 'Crops & Registry', icon: Sprout },
-        { href: '/farm-management', label: 'Management', icon: Briefcase },
-        { href: '/livestock', label: 'Livestock', icon: Users },
-        { href: '/supply-chain', label: 'Track & Trace', icon: ScrollText },
-        { href: '/marketplace', label: 'Marketplace', icon: ShoppingBag },
-        { href: '/drone', label: 'Drone AI', icon: Camera },
-        { href: '/calculator', label: 'Calculator', icon: Calculator },
-        { href: '/docs', label: 'Docs', icon: Users },
+        { href: '/', label: t('menu_overview'), icon: LayoutDashboard },
+        { href: '/farms', label: t('menu_my_farms'), icon: Tractor },
+        { href: '/crops', label: t('menu_crops_registry'), icon: Sprout },
+        { href: '/farm-management', label: t('menu_management'), icon: Briefcase },
+        { href: '/livestock', label: t('menu_livestock'), icon: Users },
+        { href: '/supply-chain', label: t('menu_track_trace'), icon: ScrollText },
+        { href: '/marketplace', label: t('menu_marketplace'), icon: ShoppingBag },
+        { href: '/drone', label: t('menu_drone_ai'), icon: Camera },
+        { href: '/calculator', label: t('menu_calculator'), icon: Calculator },
+        { href: '/docs', label: t('menu_docs'), icon: Users },
     ];
 
     return (
-        <div className="w-64 bg-slate-900 border-r border-white/10 flex-col hidden md:flex h-full">
-            <div className="p-6">
-                <div className="text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">
-                    Agri-OS
+        <div className="w-72 bg-slate-950/80 backdrop-blur-xl border-r border-white/5 flex-col hidden md:flex h-full shadow-2xl relative z-40">
+            <div className="p-8 pb-6">
+                <div className="text-3xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600 bg-clip-text text-transparent tracking-tight">
+                    {tGlobal('app_name')}
                 </div>
-                <p className="text-xs text-slate-500 mt-1">Universal Farm OS</p>
+                <p className="text-xs font-medium text-slate-500 mt-1.5 uppercase tracking-widest pl-0.5">{tGlobal('app_tagline')}</p>
             </div>
 
-            <nav className="flex-1 px-4 space-y-2">
+            <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
                 {links.map((link) => {
-                    // usePathname from navigation.ts returns path WITHOUT locale (e.g. /farms)
-                    // We compare it directly to link.href
                     const isActive = pathname === link.href;
 
                     return (
@@ -109,36 +111,41 @@ export function Sidebar({ locale }: SidebarProps) {
                             key={link.href}
                             href={link.href}
                             className={cn(
-                                "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
+                                "flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group relative overflow-hidden",
                                 isActive
-                                    ? "bg-green-500/10 text-green-400 border border-green-500/20"
-                                    : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                                    ? "bg-green-500/10 text-green-400 shadow-[0_0_20px_rgba(34,197,94,0.1)] border border-green-500/20"
+                                    : "text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent"
                             )}
                         >
-                            <link.icon className="w-5 h-5" />
-                            {link.label}
+                            {isActive && (
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r-full shadow-lg shadow-green-500/50" />
+                            )}
+                            <link.icon className={cn("w-5 h-5 transition-transform duration-300 group-hover:scale-110", isActive ? "text-green-400" : "text-slate-500 group-hover:text-slate-300")} />
+                            <span className="relative z-10">{link.label}</span>
                         </Link>
                     );
                 })}
             </nav>
 
-            <div className="p-4 border-t border-white/10">
+            <div className="p-4 border-t border-white/5 bg-slate-900/30">
                 {isAuthenticated ? (
                     <>
                         <div
                             onClick={() => setIsProfileOpen(true)}
-                            className="bg-slate-800 rounded-lg p-3 hover:bg-green-500/10 hover:border-green-500/30 border border-transparent transition-colors cursor-pointer group"
+                            className="bg-slate-900/50 border border-white/5 rounded-xl p-3.5 hover:bg-slate-800/80 hover:border-green-500/30 transition-all cursor-pointer group shadow-lg"
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-green-500 to-emerald-600 flex items-center justify-center text-xs font-bold text-white">
-                                    {user?.full_name?.charAt(0) || 'U'}
+                            <div className="flex items-center gap-3.5">
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-500 to-teal-600 p-[1px] shadow-lg shadow-green-900/20">
+                                    <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-sm font-bold text-white uppercase">
+                                        {user?.full_name?.charAt(0) || 'U'}
+                                    </div>
                                 </div>
                                 <div className="overflow-hidden">
-                                    <div className="text-sm font-medium text-white truncate group-hover:text-green-400 transition-colors">
-                                        {user?.full_name || 'Farmer'}
+                                    <div className="text-sm font-semibold text-white truncate group-hover:text-green-400 transition-colors">
+                                        {user?.full_name || tAuth('guest_user')}
                                     </div>
-                                    <div className="text-xs text-slate-500 group-hover:text-green-500/70 flex items-center gap-1">
-                                        View Profile
+                                    <div className="text-xs font-medium text-slate-500 group-hover:text-green-500/70 flex items-center gap-1 transition-colors">
+                                        {t('profile_view')}
                                     </div>
                                 </div>
                             </div>
@@ -155,12 +162,12 @@ export function Sidebar({ locale }: SidebarProps) {
                                         <X className="w-5 h-5" />
                                     </button>
 
-                                    <h2 className="text-xl font-bold text-white mb-6">Edit Profile</h2>
+                                    <h2 className="text-xl font-bold text-white mb-6">{t('profile_edit_title')}</h2>
 
                                     <div className="space-y-4">
                                         {/* Name (Read-only for now or simple edit) */}
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-slate-400">Full Name</label>
+                                            <label className="text-sm font-medium text-slate-400">{t('profile_full_name')}</label>
                                             <div className="p-3 bg-slate-950/50 rounded-lg text-white border border-white/5">
                                                 {user?.full_name}
                                             </div>
@@ -168,7 +175,7 @@ export function Sidebar({ locale }: SidebarProps) {
 
                                         {/* Role */}
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-slate-400">Role</label>
+                                            <label className="text-sm font-medium text-slate-400">{t('profile_role')}</label>
                                             <div className="relative">
                                                 <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                                                 <select
@@ -187,7 +194,7 @@ export function Sidebar({ locale }: SidebarProps) {
 
                                         {/* Location */}
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-slate-400">Farming Location</label>
+                                            <label className="text-sm font-medium text-slate-400">{t('profile_farming_location')}</label>
                                             <div
                                                 onClick={() => setIsLocationSelectorOpen(true)}
                                                 className="w-full bg-slate-950/50 border border-white/10 rounded-lg py-3 px-4 text-white hover:bg-slate-900/80 cursor-pointer transition-colors flex items-center justify-between group"
@@ -195,10 +202,10 @@ export function Sidebar({ locale }: SidebarProps) {
                                                 <div className="flex items-center gap-3">
                                                     <MapPin className="w-4 h-4 text-slate-500 group-hover:text-green-400" />
                                                     <div className="text-sm truncate max-w-[200px]">
-                                                        {editLocation?.name || "Set Location"}
+                                                        {editLocation?.name || t('profile_set_location')}
                                                     </div>
                                                 </div>
-                                                <div className="text-xs text-green-400">Change</div>
+                                                <div className="text-xs text-green-400">{t('profile_change_location')}</div>
                                             </div>
                                         </div>
 
@@ -208,7 +215,7 @@ export function Sidebar({ locale }: SidebarProps) {
                                                 disabled={saving}
                                                 className="flex-1 bg-green-500 hover:bg-green-400 text-slate-900 font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
                                             >
-                                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
+                                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : tGlobal('save_changes')}
                                             </button>
                                             <button
                                                 onClick={() => {
@@ -217,7 +224,7 @@ export function Sidebar({ locale }: SidebarProps) {
                                                 }}
                                                 className="px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-medium rounded-lg border border-red-500/20 transition-colors"
                                             >
-                                                Logout
+                                                {tAuth('logout')}
                                             </button>
                                         </div>
                                     </div>
@@ -243,8 +250,8 @@ export function Sidebar({ locale }: SidebarProps) {
                                     <LogIn className="w-4 h-4" />
                                 </div>
                                 <div>
-                                    <div className="text-sm font-medium text-white group-hover:text-green-300 transition-colors">Sign In</div>
-                                    <div className="text-xs text-slate-500 group-hover:text-green-400/70">Access Account</div>
+                                    <div className="text-sm font-medium text-white group-hover:text-green-300 transition-colors">{tAuth('sign_in')}</div>
+                                    <div className="text-xs text-slate-500 group-hover:text-green-400/70">{tAuth('access_account')}</div>
                                 </div>
                             </div>
                         </div>

@@ -13,7 +13,9 @@ const WeatherWidget = dynamic(() => import('@/components/dashboard/WeatherWidget
 const MarketplaceWidget = dynamic(() => import('@/components/dashboard/MarketplaceWidget'), { ssr: false });
 
 export default function Index({ params: { locale } }: { params: { locale: string } }) {
-    const t = useTranslations('Index');
+    const tDashboard = useTranslations('Dashboard');
+    const tAuth = useTranslations('Auth');
+    const tGlobal = useTranslations('Global');
     const { isAuthenticated, loading, user } = useAuth();
 
     if (loading) {
@@ -35,24 +37,24 @@ export default function Index({ params: { locale } }: { params: { locale: string
 
                 <div className="z-10 max-w-4xl">
                     <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent mb-6 leading-tight">
-                        The Operating System for <span className="text-green-400">Modern Agriculture</span>
+                        {tDashboard('hero_title_part1')} <span className="text-green-400">{tDashboard('hero_title_part2')}</span>
                     </h1>
                     <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-                        Join the next generation of farming. Agri-OS connects farmers, experts, and markets in one unified platform using advanced AI.
+                        {tDashboard('hero_subtitle')}
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link href="/auth/login" className="px-8 py-4 bg-green-500 hover:bg-green-400 text-slate-950 font-bold rounded-xl transition-all hover:scale-105 flex items-center gap-2 justify-center">
-                            Login <ArrowRight className="w-5 h-5" />
+                            {tAuth('login_button')} <ArrowRight className="w-5 h-5" />
                         </Link>
                         <Link href="/auth/signup" className="px-8 py-4 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-xl border border-white/10 transition-all hover:scale-105 flex items-center gap-2 justify-center">
-                            Create Account
+                            {tAuth('signup_button')}
                         </Link>
                     </div>
                 </div>
 
                 <footer className="absolute bottom-6 text-center text-slate-500 text-sm z-10 w-full">
-                    &copy; 2024 Agri-OS. Building the future of food.
+                    {tDashboard('footer_copyright')}
                 </footer>
             </main>
         );
@@ -64,10 +66,10 @@ export default function Index({ params: { locale } }: { params: { locale: string
             <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
                 <header className="mb-8">
                     <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-                        {t('title')}
+                        {tGlobal('app_name')}
                     </h1>
                     <p className="text-slate-400 mt-2 text-lg">
-                        Welcome back, <span className="text-green-400">{user?.full_name || user?.email || 'Farmer'}</span>
+                        {tAuth('welcome_back')}, <span className="text-green-400">{user?.full_name || user?.email || tAuth('guest_user')}</span>
                     </p>
                 </header>
 
@@ -79,9 +81,9 @@ export default function Index({ params: { locale } }: { params: { locale: string
 
                     {/* 2. Farm Map (Small Widget) */}
                     <div className="col-span-1 row-span-1 rounded-2xl bg-slate-900 border border-white/10 p-6 flex flex-col group hover:border-blue-500/50 transition-colors">
-                        <h2 className="text-lg font-semibold mb-2 text-blue-400">My Farm</h2>
+                        <h2 className="text-lg font-semibold mb-2 text-blue-400">{tDashboard('widget_my_farm')}</h2>
                         <div className="flex-1 rounded bg-slate-800 flex items-center justify-center border border-white/5">
-                            <span className="text-slate-600 text-sm">{user?.location_name || 'No Location Set'}</span>
+                            <span className="text-slate-600 text-sm">{user?.location_name || tDashboard('widget_no_location')}</span>
                         </div>
                     </div>
 
@@ -91,10 +93,10 @@ export default function Index({ params: { locale } }: { params: { locale: string
                     {/* 4. Action Center (Wide) */}
                     <div className="col-span-1 md:col-span-2 row-span-1 rounded-2xl bg-slate-900 border border-white/10 p-6 flex items-center justify-between">
                         <div>
-                            <h2 className="text-lg font-semibold text-purple-400">Quick Actions</h2>
+                            <h2 className="text-lg font-semibold text-purple-400">{tDashboard('widget_quick_actions')}</h2>
                             <div className="flex gap-2 mt-3">
-                                <Link href="/crops" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm border border-white/5 transition-colors">Register Crop</Link>
-                                <Link href="/marketplace" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm border border-white/5 transition-colors">Book Drone</Link>
+                                <Link href="/crops" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm border border-white/5 transition-colors">{tDashboard('action_register_crop')}</Link>
+                                <Link href="/marketplace" className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-sm border border-white/5 transition-colors">{tDashboard('action_book_drone')}</Link>
                             </div>
                         </div>
                     </div>

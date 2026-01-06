@@ -6,8 +6,10 @@ import { Card } from '@/components/ui/Card';
 import { Search, Trash2, Pencil, BarChart3 } from 'lucide-react';
 import { EditCropModal } from '@/components/crops/EditCropModal';
 import { CropAnalyticsDashboard } from '@/components/crops/CropAnalyticsDashboard';
+import { useTranslations } from 'next-intl';
 
 export default function CropsPage() {
+    const t = useTranslations('Crops');
     const [registry, setRegistry] = useState<any[]>([]);
     const [myCrops, setMyCrops] = useState<any[]>([]);
     const [farms, setFarms] = useState<any[]>([]);
@@ -23,8 +25,6 @@ export default function CropsPage() {
     const [selectedFarmId, setSelectedFarmId] = useState<string>("");
     const [selectedCropId, setSelectedCropId] = useState<string>("");
     const [sowingDate, setSowingDate] = useState<string>(new Date().toISOString().split('T')[0]);
-
-    // ... (keep fetchMyCrops, useEffect, handlePlant, handleDelete, getCropName same) ...
 
     const fetchMyCrops = () => {
         if (farms.length > 0) {
@@ -72,7 +72,7 @@ export default function CropsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this crop cycle?")) return;
+        if (!confirm(t('confirm_delete') || "Are you sure?")) return;
         try {
             await api.crops.delete(id);
             fetchMyCrops();
@@ -87,19 +87,33 @@ export default function CropsPage() {
         return item ? item.name : `Unknown Crop #${regId}`;
     };
 
+    // Helper to get localized stage name if possible (or default to backend string)
+    const getStageName = (backendStage: string) => {
+        // Simple mapping attempt, fallback to original
+        const key = `crop_stage_${backendStage.toLowerCase().replace(' ', '_')}`;
+        // Since we can't easily check if key exists in 't', we might just return the backend string 
+        // or try to match known keys. For now, let's keep it simple or user lowercase match.
+        if (backendStage === "Harvest Ready") return t('crop_stage_harvest_ready');
+        if (backendStage === "Germination") return t('crop_stage_germination');
+        if (backendStage === "Vegetative") return t('crop_stage_vegetative');
+        if (backendStage === "Flowering") return t('crop_stage_flowering');
+        if (backendStage === "Fruiting") return t('crop_stage_fruiting');
+        return backendStage;
+    };
+
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-6 relative">
             <header className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">Crops</h1>
-                    <p className="text-slate-400">Manage your planting schedules and browse the crop registry.</p>
+                    <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">{t('page_title')}</h1>
+                    <p className="text-slate-400">{t('page_subtitle')}</p>
                 </div>
                 <button
                     onClick={() => setShowPlantModal(true)}
                     className="bg-green-600 hover:bg-green-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
                 >
                     <Search className="w-4 h-4" />
-                    Plant New Crop
+                    {t('button_plant_new')}
                 </button>
             </header>
 
@@ -109,13 +123,13 @@ export default function CropsPage() {
                     onClick={() => setActiveTab('registry')}
                     className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'registry' ? 'border-green-500 text-green-400' : 'border-transparent text-slate-400'}`}
                 >
-                    Crop Registry (Universal)
+                    {t('tab_registry')}
                 </button>
                 <button
                     onClick={() => setActiveTab('my-crops')}
                     className={`pb-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'my-crops' ? 'border-green-500 text-green-400' : 'border-transparent text-slate-400'}`}
                 >
-                    My Active Crops
+                    {t('tab_my_crops')}
                 </button>
             </div>
 
@@ -124,7 +138,7 @@ export default function CropsPage() {
                     <div className="flex gap-2">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
-                            <input type="text" placeholder="Search registry..." className="w-full bg-slate-900 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-green-500/50" />
+                            <input type="text" placeholder={t('search_registry_placeholder')} className="w-full bg-slate-900 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-green-500/50" />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -139,8 +153,8 @@ export default function CropsPage() {
                                 <h3 className="font-semibold text-lg">{crop.name}</h3>
                                 {crop.definition && (
                                     <div className="mt-2 text-xs text-slate-400 space-y-1">
-                                        <p>🕐 Duration: {crop.definition.duration_days} days</p>
-                                        <p>💧 Water: {crop.definition.water_needs}</p>
+                                        <p>{t('card_duration_days', { days: crop.definition.duration_days })}</p>
+                                        <p>{t('card_water_needs', { water: crop.definition.water_needs })}</p>
                                     </div>
                                 )}
                                 <button
@@ -151,7 +165,7 @@ export default function CropsPage() {
                                     }}
                                     className="mt-4 w-full py-2 bg-slate-800 hover:bg-green-600 rounded text-sm font-medium transition-colors hidden group-hover:block animate-in fade-in"
                                 >
-                                    Plant This
+                                    {t('button_plant_this')}
                                 </button>
                             </Card>
                         ))}
@@ -163,7 +177,7 @@ export default function CropsPage() {
                 <div className="space-y-4">
                     {farms.length > 0 && (
                         <div className="flex items-center gap-2 mb-4">
-                            <span className="text-sm text-slate-400">Viewing Farm:</span>
+                            <span className="text-sm text-slate-400">{t('label_viewing_farm')}:</span>
                             <select
                                 value={selectedFarmId}
                                 onChange={(e) => setSelectedFarmId(e.target.value)}
@@ -177,8 +191,8 @@ export default function CropsPage() {
                     {myCrops.length === 0 ? (
                         <div className="text-center py-20 bg-slate-900/50 rounded-2xl border border-dashed border-white/10">
                             <span className="text-4xl block mb-4">🌱</span>
-                            <h3 className="text-xl font-semibold text-slate-300">No active crops</h3>
-                            <p className="text-slate-500 mt-2">Start a new season by planting a crop.</p>
+                            <h3 className="text-xl font-semibold text-slate-300">{t('empty_state_title')}</h3>
+                            <p className="text-slate-500 mt-2">{t('empty_state_desc')}</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -211,10 +225,10 @@ export default function CropsPage() {
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="font-bold text-lg">{getCropName(cycle.registry_id)}</h3>
-                                            <p className="text-xs text-slate-400">Sown on: {cycle.sowing_date}</p>
+                                            <p className="text-xs text-slate-400">{t('crop_sown_on', { date: cycle.sowing_date })}</p>
                                         </div>
                                         <span className="bg-green-500/10 text-green-400 px-2 py-1 rounded text-xs font-bold uppercase border border-green-500/20">
-                                            {cycle.current_stage || 'Germination'}
+                                            {getStageName(cycle.current_stage || 'Germination')}
                                         </span>
                                     </div>
                                     <div className="mt-4 bg-slate-800 rounded-full h-2 overflow-hidden">
@@ -224,15 +238,15 @@ export default function CropsPage() {
                                         ></div>
                                     </div>
                                     <div className="mt-2 flex justify-between text-xs text-slate-500">
-                                        <span className="flex items-center gap-1">Health: <strong className="text-white">{cycle.health_score ?? 'N/A'}%</strong></span>
-                                        <span>Est. Harvest: {cycle.harvest_date_estimated || 'Calculating...'}</span>
+                                        <span className="flex items-center gap-1">{t('label_health')}: <strong className="text-white">{cycle.health_score ?? 'N/A'}%</strong></span>
+                                        <span>{t('label_est_harvest')}: {cycle.harvest_date_estimated || 'Calculating...'}</span>
                                     </div>
 
                                     <button
                                         onClick={() => setViewingAnalytics({ ...cycle, registry_name: getCropName(cycle.registry_id) })}
                                         className="w-full mt-4 py-2 bg-slate-800/50 hover:bg-slate-800 text-slate-300 text-xs font-medium rounded transition-colors flex items-center justify-center gap-2"
                                     >
-                                        <BarChart3 className="w-3 h-3" /> View Full Analytics
+                                        <BarChart3 className="w-3 h-3" /> {t('button_view_analytics')}
                                     </button>
                                 </Card>
                             ))}
@@ -246,34 +260,34 @@ export default function CropsPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
                     <Card className="w-full max-w-md bg-slate-950 border-slate-800 shadow-2xl">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold">Plant New Crop</h2>
+                            <h2 className="text-xl font-bold">{t('modal_plant_title')}</h2>
                             <button onClick={() => setShowPlantModal(false)} className="text-slate-500 hover:text-white">✕</button>
                         </div>
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Select Farm</label>
+                                <label className="block text-sm text-slate-400 mb-1">{t('modal_label_farm')}</label>
                                 <select
                                     className="w-full bg-slate-900 border border-white/10 rounded p-2 text-sm"
                                     value={selectedFarmId}
                                     onChange={(e) => setSelectedFarmId(e.target.value)}
                                 >
-                                    <option value="">-- Choose Farm --</option>
+                                    <option value="">{t('modal_select_default')}</option>
                                     {farms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Select Crop Type</label>
+                                <label className="block text-sm text-slate-400 mb-1">{t('modal_label_crop')}</label>
                                 <select
                                     className="w-full bg-slate-900 border border-white/10 rounded p-2 text-sm"
                                     value={selectedCropId}
                                     onChange={(e) => setSelectedCropId(e.target.value)}
                                 >
-                                    <option value="">-- Choose Crop --</option>
+                                    <option value="">{t('modal_select_default')}</option>
                                     {registry.map(r => <option key={r.id} value={r.id}>{r.name} ({r.category})</option>)}
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm text-slate-400 mb-1">Sowing Date</label>
+                                <label className="block text-sm text-slate-400 mb-1">{t('modal_label_sowing_date')}</label>
                                 <input
                                     type="date"
                                     className="w-full bg-slate-900 border border-white/10 rounded p-2 text-sm text-white"
@@ -286,7 +300,7 @@ export default function CropsPage() {
                                 disabled={isPlanting}
                                 className="w-full bg-green-600 hover:bg-green-500 py-3 rounded-lg font-bold mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {isPlanting ? 'Planting...' : 'Confirm Planting'}
+                                {isPlanting ? t('modal_button_planting') : t('modal_button_confirm')}
                             </button>
                         </div>
                     </Card>

@@ -55,33 +55,34 @@ export const EditListingModal: React.FC<EditListingProps> = ({ isOpen, onClose, 
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Edit Listing">
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Product Name</label>
+            <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-semibold text-slate-300 ml-1">Product Name</label>
                     <input
                         type="text"
                         required
-                        className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
+                        className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-600 focus:outline-none focus:border-green-500/50 focus:ring-4 focus:ring-green-500/10 transition-all duration-200"
+                        placeholder="e.g. Organic Tomatoes"
                         value={formData.product_name}
                         onChange={e => setFormData({ ...formData, product_name: e.target.value })}
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Quantity</label>
+                <div className="grid grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-slate-300 ml-1">Quantity</label>
                         <input
                             type="number"
                             required
-                            className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
+                            className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-500/50 focus:ring-4 focus:ring-green-500/10 transition-all duration-200"
                             value={formData.quantity}
                             onChange={e => setFormData({ ...formData, quantity: e.target.value })}
                         />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Unit</label>
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-slate-300 ml-1">Unit</label>
                         <select
-                            className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
+                            className="w-full bg-slate-950/50 border border-white/10 rounded-xl px-4 py-3 text-white appearance-none focus:outline-none focus:border-green-500/50 focus:ring-4 focus:ring-green-500/10 transition-all duration-200"
                             value={formData.unit}
                             onChange={e => setFormData({ ...formData, unit: e.target.value })}
                         >
@@ -93,30 +94,44 @@ export const EditListingModal: React.FC<EditListingProps> = ({ isOpen, onClose, 
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Price</label>
-                        <input
-                            type="number"
-                            required
-                            className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                            value={formData.price}
-                            onChange={e => setFormData({ ...formData, price: e.target.value })}
-                        />
+                <div className="grid grid-cols-2 gap-5">
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-slate-300 ml-1">Price</label>
+                        <div className="relative">
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500">$</span>
+                            <input
+                                type="number"
+                                required
+                                className="w-full bg-slate-950/50 border border-white/10 rounded-xl pl-8 pr-4 py-3 text-white focus:outline-none focus:border-green-500/50 focus:ring-4 focus:ring-green-500/10 transition-all duration-200"
+                                value={formData.price}
+                                onChange={e => setFormData({ ...formData, price: e.target.value })}
+                            />
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Per Unit</label>
-                        <p className="p-2 text-slate-400">/{formData.unit}</p>
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-slate-300 ml-1">Per Unit</label>
+                        <div className="w-full px-4 py-3 bg-slate-900/30 rounded-xl border border-white/5 text-slate-400">
+                            /{formData.unit}
+                        </div>
                     </div>
                 </div>
 
-                <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full bg-orange-600 hover:bg-orange-500 text-white font-bold py-2 rounded-lg mt-4 flex justify-center items-center gap-2"
-                >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save Changes'}
-                </button>
+                <div className="pt-2">
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-orange-900/20 active:scale-[0.98] transition-all duration-200 flex justify-center items-center gap-2"
+                    >
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Changes'}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="w-full mt-3 text-slate-500 hover:text-slate-300 font-medium text-sm py-2 transition-colors"
+                    >
+                        Cancel
+                    </button>
+                </div>
             </form>
         </Modal>
     );

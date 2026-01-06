@@ -120,6 +120,11 @@ def log_activity(activity: schemas.FarmActivityCreate, db: Session = Depends(get
     db.refresh(db_act)
     return db_act
 
+@router.get("/timeline/")
+def get_all_timeline(farm_id: int = 1, db: Session = Depends(get_db)):
+    svc = services.FarmManagementService(db)
+    return svc.get_farm_timeline(farm_id)
+
 @router.get("/timeline/{crop_cycle_id}")
 def get_timeline(crop_cycle_id: int, db: Session = Depends(get_db)):
     svc = services.FarmManagementService(db)
