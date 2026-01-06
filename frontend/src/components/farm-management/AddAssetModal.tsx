@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '@/lib/api';
+import { trackEvent } from '@/lib/analytics';
 import { Modal } from '@/components/ui/Modal';
 import { Loader2 } from 'lucide-react';
 
@@ -33,6 +34,7 @@ export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSucces
                 is_iot_enabled: formData.is_iot_enabled
             });
             onSuccess();
+            trackEvent("Farm Management", "Add Asset", formData.name);
             onClose();
         } catch (error) {
             console.error("Failed to add asset", error);

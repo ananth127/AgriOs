@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { API_BASE_URL } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
+import { trackSidebarClick, trackAuthEvent } from '@/lib/analytics';
 
 const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
 
@@ -110,6 +111,7 @@ export function Sidebar({ locale }: SidebarProps) {
                         <Link
                             key={link.href}
                             href={link.href}
+                            onClick={() => trackSidebarClick(link.label, link.href)}
                             className={cn(
                                 "flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group relative overflow-hidden",
                                 isActive
@@ -219,6 +221,7 @@ export function Sidebar({ locale }: SidebarProps) {
                                             </button>
                                             <button
                                                 onClick={() => {
+                                                    trackAuthEvent('logout');
                                                     logout();
                                                     setIsProfileOpen(false);
                                                 }}
@@ -236,9 +239,9 @@ export function Sidebar({ locale }: SidebarProps) {
                         <LocationSelector
                             isOpen={isLocationSelectorOpen}
                             onClose={() => setIsLocationSelectorOpen(false)}
-                            onSelect={(lat, lng, name) => {
+                            onSelect={(lat, lng, name, method) => {
                                 setEditLocation({ lat, lng, name });
-                                setIsLocationSelectorOpen(false); // Close selector after choice
+                                setIsLocationSelectorOpen(false);
                             }}
                         />
                     </>

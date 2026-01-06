@@ -133,8 +133,13 @@ def get_timeline(crop_cycle_id: int, db: Session = Depends(get_db)):
 # --- Financials ---
 @router.get("/financials/{farm_id}")
 def get_financials(farm_id: int, db: Session = Depends(get_db)):
-    svc = services.FarmManagementService(db)
-    return svc.get_financial_summary(farm_id)
+    try:
+        svc = services.FarmManagementService(db)
+        return svc.get_financial_summary(farm_id)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 # --- Marketplace (Product Listings) ---
 # Note: Basic listing creation, full marketplace logic might be in marketplace module

@@ -43,32 +43,28 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
         const fetchDetails = async () => {
             if (!cropCycle) return;
             setLoading(true);
+
+            // 1. Fetch Timeline (Attempt)
             try {
-                // Fetch Timeline
                 const events = await api.farmManagement.getTimeline(cropCycle.id) as any;
                 setTimeline(events);
-
-                // Ideally we'd have a specific `getAnalytics` endpoint 
-                // but for now we'll aggregate local data or mock rich data
-                // based on what we have + some mock "AI" returns.
-
-                // MOCK aggregation of "Expenses" (Water, Fertilizers)
-                // In real app, we'd query /financials filtered by this crop cycle id.
-
-                setStats({
-                    waterUsageLitres: Math.floor(Math.random() * 50000) + 10000,
-                    fertilizerCost: Math.floor(Math.random() * 5000) + 1000,
-                    laborCost: Math.floor(Math.random() * 8000) + 2000,
-                    projectedYieldKg: Math.floor(Math.random() * 2000) + 500,
-                    soilHealthTrend: [6.5, 6.6, 6.5, 6.7, 6.8, 6.8], // pH over weeks
-                    moistureTrend: [40, 35, 30, 60, 55, 50] // % over weeks
-                });
-
             } catch (err) {
-                console.error(err);
-            } finally {
-                setLoading(false);
+                console.error("Failed to fetch timeline:", err);
+                // Fallback to empty
+                setTimeline([]);
             }
+
+            // 2. Set Stats (Mock or separate fetch) - Ensure this ALWAYS runs
+            setStats({
+                waterUsageLitres: Math.floor(Math.random() * 50000) + 10000,
+                fertilizerCost: Math.floor(Math.random() * 5000) + 1000,
+                laborCost: Math.floor(Math.random() * 8000) + 2000,
+                projectedYieldKg: Math.floor(Math.random() * 2000) + 500,
+                soilHealthTrend: [6.5, 6.6, 6.5, 6.7, 6.8, 6.8], // pH over weeks
+                moistureTrend: [40, 35, 30, 60, 55, 50] // % over weeks
+            });
+
+            setLoading(false);
         };
 
         fetchDetails();
@@ -76,7 +72,7 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
 
     if (!cropCycle) return null;
 
-    if (loading) {
+    if (loading || !stats) {
         return (
             <div className="flex justify-center items-center h-96">
                 <Loader2 className="w-8 h-8 animate-spin text-green-500" />

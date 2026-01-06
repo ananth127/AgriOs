@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '@/lib/api';
+import { trackEvent } from '@/lib/analytics';
 import { Modal } from '@/components/ui/Modal';
 import { Loader2 } from 'lucide-react';
 
@@ -37,6 +38,7 @@ export const RegisterAnimalModal: React.FC<RegisterAnimalProps> = ({ isOpen, onC
                 last_vaccination_date: formData.last_vaccination_date || null
             });
             onSuccess();
+            trackEvent("Livestock", "Register Animal", formData.tag_id);
             onClose();
         } catch (error) {
             console.error("Failed to register animal", error);

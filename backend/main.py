@@ -58,6 +58,36 @@ app.include_router(livestock_router.router, prefix="/api/v1/livestock", tags=["l
 app.include_router(supply_router.router, prefix="/api/v1/supply-chain", tags=["supply_chain"])
 app.include_router(farm_mgmt_router.router, prefix="/api/v1/farm-management", tags=["farm_management"])
 
+# Trigger Reload: Fixed Services Import
+
+# Trigger Reload: Added exception handling to routers
+
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Agri-OS Universal Backend"}
+
+from sqlalchemy import text
+from app.core import database
+import traceback
+
+@app.get("/fix-db")
+def fix_db():
+    try:
+        with database.engine.connect() as connection:
+            # 1. Add filled_count to labor_jobs
+            connection.execute(text("ALTER TABLE labor_jobs ADD COLUMN IF NOT EXISTS filled_count INTEGER DEFAULT 0;"))
+            connection.commit()
+            return {"status": "success", "message": "Database schema updated (labor_jobs.filled_count added)."}
+    except Exception as e:
+        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
+
+@app.get("/debug-financials-error")
+def debug_financials_error():
+    try:
+        from app.modules.farm_management import services
+        db = database.SessionLocal()
+        svc = services.FarmManagementService(db)
+        # Attempt to get financials for farm 1
+        return svc.get_financial_summary(1)
+    except Exception as e:
+        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}

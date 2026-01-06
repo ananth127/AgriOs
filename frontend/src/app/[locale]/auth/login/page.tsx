@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 import { User, Lock, Mail, Loader2, Phone } from 'lucide-react';
 import { Link } from '@/navigation';
 import { API_BASE_URL } from '@/lib/constants';
+import { trackAuthEvent } from '@/lib/analytics';
 
 export default function LoginPage() {
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -58,6 +59,9 @@ export default function LoginPage() {
 
             // 3. Update Auth Context
             login(token, userData);
+
+            // Analytics
+            trackAuthEvent('login', 'phone_password');
 
         } catch (err: any) {
             setError(err.message);

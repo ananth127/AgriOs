@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from app.modules.farm_management import models, schemas
 from app.modules.crops.models import CropCycle
 from app.modules.farms.models import FarmTable
+from app.modules.marketplace import models as market_models
 
 class FarmManagementService:
     def __init__(self, db: Session):
@@ -12,9 +13,9 @@ class FarmManagementService:
     def get_financial_summary(self, farm_id: int):
         loans = self.db.query(func.sum(models.FarmLoan.amount)).filter(models.FarmLoan.farm_id == farm_id).scalar() or 0.0
         expenses = self.db.query(func.sum(models.FarmActivity.cost)).filter(models.FarmActivity.farm_id == farm_id).scalar() or 0.0
-        revenue = self.db.query(func.sum(models.ProductListing.price * models.ProductListing.quantity)).filter(
-            models.ProductListing.seller_id == 1, # Placeholder for user_id logic
-            models.ProductListing.is_active == False # Assuming sold items are inactive or have a "status"
+        revenue = self.db.query(func.sum(market_models.ProductListing.price * market_models.ProductListing.quantity)).filter(
+            market_models.ProductListing.seller_id == 1, # Placeholder for user_id logic
+            market_models.ProductListing.is_active == False # Assuming sold items are inactive or have a "status"
         ).scalar() or 0.0
         
         return {

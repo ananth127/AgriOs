@@ -1,5 +1,6 @@
 
 'use client';
+import { trackLocationSelect, trackCurrentLocation } from '@/lib/analytics';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -24,7 +25,9 @@ function LocationMarker({ position, setPosition, setLocationName }: any) {
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.display_name) {
-                        setLocationName(data.address.city || data.address.town || data.address.village || "Unknown Location");
+                        const name = data.address.city || data.address.town || data.address.village || "Unknown Location";
+                        setLocationName(name);
+                        trackLocationSelect(e.latlng.lat, e.latlng.lng, name);
                     }
                 })
                 .catch(err => console.error("Geocoding failed", err));
@@ -67,6 +70,7 @@ export default function LocationPicker({ onLocationSelect }: { onLocationSelect:
                         if (data && data.display_name) {
                             const name = data.address.city || data.address.town || data.address.village || "Current Location";
                             setLocationName(name);
+                            trackCurrentLocation(pos.coords.latitude, pos.coords.longitude, name);
                         }
                     });
             });

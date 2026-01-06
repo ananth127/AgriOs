@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { User, Lock, Mail, Loader2, Sprout, Briefcase, MapPin, Search, Phone } from 'lucide-react';
 import { Link } from '@/navigation';
 import { API_BASE_URL } from '@/lib/constants';
+import { trackAuthEvent, trackUserAction } from '@/lib/analytics';
 import dynamic from 'next/dynamic';
 
 const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
@@ -19,7 +20,7 @@ export default function SignupPage() {
     const [role, setRole] = useState('farmer');
 
     // Location State
-    const [location, setLocation] = useState<{ lat: number, lng: number, name: string } | null>(null);
+    const [location, setLocation] = useState<{ lat: number, lng: number, name: string, method?: string } | null>(null);
     const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
 
     const [error, setError] = useState('');
@@ -90,6 +91,10 @@ export default function SignupPage() {
             }
 
             // On success, redirect to login
+            trackAuthEvent('signup', role);
+            if (location) {
+                trackUserAction('set_location_signup', 'User Profile', { location_name: location.name });
+            }
             router.push('/auth/login');
 
         } catch (err: any) {
@@ -223,7 +228,7 @@ export default function SignupPage() {
                         <LocationSelector
                             isOpen={isLocationModalOpen}
                             onClose={() => setIsLocationModalOpen(false)}
-                            onSelect={(lat, lng, name) => setLocation({ lat, lng, name })}
+                            onSelect={(lat, lng, name, method) => setLocation({ lat, lng, name, method })}
                         />
                     </div>
 

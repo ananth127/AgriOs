@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '@/lib/api';
+import { trackEvent } from '@/lib/analytics';
 import { Modal } from '@/components/ui/Modal';
 import { Loader2 } from 'lucide-react';
 
@@ -32,6 +33,7 @@ export const CreateListingModal: React.FC<CreateListingProps> = ({ isOpen, onClo
                 price: parseFloat(formData.price)
             });
             onSuccess();
+            trackEvent("Marketplace", "Create Listing", formData.product_name);
             onClose();
         } catch (error) {
             console.error("Failed to create listing", error);

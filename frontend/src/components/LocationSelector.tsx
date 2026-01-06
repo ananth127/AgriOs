@@ -1,5 +1,6 @@
 
 'use client';
+import { trackLocationSelect, trackCurrentLocation } from '@/lib/analytics';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -43,7 +44,7 @@ function LocationMarker({ position, onPositionChange }: { position: L.LatLng | n
 interface LocationSelectorProps {
     isOpen: boolean;
     onClose: () => void;
-    onSelect: (lat: number, lng: number, name: string) => void;
+    onSelect: (lat: number, lng: number, name: string, method: 'manual' | 'gps') => void;
 }
 
 export default function LocationSelector({ isOpen, onClose, onSelect }: LocationSelectorProps) {
@@ -88,19 +89,36 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
             const data = await res.json();
             const displayName = data.display_name ? data.address.city || data.address.town || data.address.village || data.display_name.split(',')[0] : "Custom Location";
 
-            onSelect(position.lat, position.lng, displayName);
+            onSelect(position.lat, position.lng, displayName, 'manual');
+            trackLocationSelect(position.lat, position.lng, displayName);
             onClose();
         } catch (e) {
-            onSelect(position.lat, position.lng, "Custom Location");
+            onSelect(position.lat, position.lng, "Custom Location", 'manual');
             onClose();
         }
     };
 
     const handleGetCurrentLocation = () => {
         if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const latlng = new L.LatLng(pos.coords.latitude, pos.coords.longitude);
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const latlng = new L.LatLng(lat, lng);
                 setPosition(latlng);
+
+                // Fetch name for accurate tracking
+                let locationName = "Current Location";
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                    const data = await res.json();
+                    locationName = data.display_name ? data.address.city || data.address.town || data.address.village || data.display_name.split(',')[0] : "Current Location";
+                } catch (e) {
+                    console.error("Failed to reverse geocode current location", e);
+                }
+
+                trackCurrentLocation(lat, lng, locationName);
+                onSelect(lat, lng, locationName, 'gps');
+                onClose();
             });
         }
     };
