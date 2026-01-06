@@ -14,7 +14,7 @@ export const LaborManager: React.FC = () => {
         setLoading(true);
         try {
             const data = await api.farmManagement.getJobs(farmId);
-            setJobs(data);
+            setJobs(data as any);
         } catch (error) {
             console.error("Failed to fetch jobs", error);
         } finally {

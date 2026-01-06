@@ -31,7 +31,7 @@ export default function CropsPage() {
             const farmId = selectedFarmId || farms[0].id;
             api.crops.list(farmId)
                 .then((data: any) => {
-                    if (Array.isArray(data)) setMyCrops(data);
+                    if (Array.isArray(data)) setMyCrops(data as any[]);
                 })
                 .catch(err => console.error("Failed to fetch crops", err));
         }
@@ -41,7 +41,7 @@ export default function CropsPage() {
         api.registry.list().then((data: any) => { if (Array.isArray(data)) setRegistry(data); });
         api.farms.list().then((data: any) => {
             if (Array.isArray(data)) {
-                setFarms(data);
+                setFarms(data as any[]);
                 if (data.length > 0) setSelectedFarmId(data[0].id.toString());
             }
         });

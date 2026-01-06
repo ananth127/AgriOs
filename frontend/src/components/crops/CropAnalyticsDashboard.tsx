@@ -45,7 +45,7 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
             setLoading(true);
             try {
                 // Fetch Timeline
-                const events = await api.farmManagement.getTimeline(cropCycle.id);
+                const events = await api.farmManagement.getTimeline(cropCycle.id) as any;
                 setTimeline(events);
 
                 // Ideally we'd have a specific `getAnalytics` endpoint 

@@ -15,7 +15,7 @@ export const InventoryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
         setLoading(true);
         try {
             const data = await api.farmManagement.getInventory(farmId);
-            setItems(data);
+            setItems(data as any);
         } catch (error) {
             console.error("Failed to fetch inventory", error);
         } finally {

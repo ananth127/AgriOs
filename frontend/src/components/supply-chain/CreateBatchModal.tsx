@@ -32,7 +32,7 @@ export const CreateBatchModal: React.FC<CreateBatchProps> = ({ isOpen, onClose, 
                 initial_quantity: parseFloat(formData.quantity)
             });
             // Assume res returns the created object or ID
-            onSuccess(res?.batch_number || "NEW-BATCH");
+            onSuccess((res as any)?.batch_number || "NEW-BATCH");
             onClose();
         } catch (error) {
             console.error("Failed to create batch", error);

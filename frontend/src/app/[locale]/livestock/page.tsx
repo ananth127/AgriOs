@@ -15,7 +15,7 @@ export default function LivestockPage() {
 
     const fetchAnimals = () => {
         api.livestock.list(farmId)
-            .then((data: any) => setAnimals(data))
+            .then((data: any) => setAnimals(data as any[]))
             .catch(err => console.error("Failed to fetch livestock", err));
     };
 

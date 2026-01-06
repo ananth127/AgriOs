@@ -15,7 +15,7 @@ export const MachineryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
         setLoading(true);
         try {
             const data = await api.farmManagement.getAssets(farmId);
-            setAssets(data);
+            setAssets(data as any);
         } catch (error) {
             console.error("Failed to fetch assets", error);
         } finally {

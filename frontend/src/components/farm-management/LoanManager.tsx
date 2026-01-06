@@ -21,7 +21,7 @@ export const LoanManager: React.FC<{ farmId: number }> = ({ farmId }) => {
         setLoading(true);
         try {
             const data = await api.farmManagement.getLoans(farmId);
-            setLoans(data);
+            setLoans(data as any);
         } catch (error) {
             console.error("Failed to fetch loans", error);
         } finally {

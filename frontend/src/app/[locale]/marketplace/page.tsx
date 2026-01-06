@@ -16,7 +16,7 @@ export default function MarketplacePage() {
 
     const fetchListings = () => {
         api.marketplace.products.list()
-            .then((data: any) => setListings(data))
+            .then((data: any) => setListings(data as any))
             .catch(err => console.error("Failed to fetch listings", err));
     };
 

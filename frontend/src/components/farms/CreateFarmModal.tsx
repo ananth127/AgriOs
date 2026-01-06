@@ -95,7 +95,7 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
                 </div>
 
                 <div className="text-xs text-slate-500">
-                    * Tip: You can get coordinates from Google Maps (Right click > What's here?)
+                    * Tip: You can get coordinates from Google Maps (Right click &gt; What&apos;s here?)
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

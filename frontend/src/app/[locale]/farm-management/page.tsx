@@ -32,7 +32,7 @@ export default function FarmManagementPage() {
     const refreshData = async () => {
         try {
             // 1. Fetch Financials
-            const financials = await api.farmManagement.getFinancials(farmId);
+            const financials = await api.farmManagement.getFinancials(farmId) as any;
             setFinancialStats({
                 totalInvestment: financials.total_investment,
                 totalRevenue: financials.estimated_revenue,
@@ -41,7 +41,7 @@ export default function FarmManagementPage() {
             });
 
             // 2. Fetch Timeline (Using crop cycle 1 for demo)
-            const timeline = await api.farmManagement.getTimeline(1);
+            const timeline = await api.farmManagement.getTimeline(1) as any;
             setTimelineEvents(timeline);
 
             // 3. Fetch Suggestions based on Active Crops
@@ -63,14 +63,14 @@ export default function FarmManagementPage() {
                 // if we don't want to fetch the registry here.
                 // Or better: The backend service for suggestions takes a string.
 
-                for (const crop of activeCrops.slice(0, 3)) { // Limit to 3 calls
+                for (const crop of (activeCrops as any[]).slice(0, 3)) { // Limit to 3 calls
                     // Fetch Fertilizer Suggestion
-                    const fertParams = await api.farmManagement.getFertilizerSuggestion(farmId, "Wheat"); // Mock Name if not in object
+                    const fertParams = await api.farmManagement.getFertilizerSuggestion(farmId, "Wheat") as any; // Mock Name if not in object
                     newSuggestions.push({ ...fertParams, type: 'Fertilizer' });
 
                     // Randomly add a pesticide suggestion
                     if (Math.random() > 0.5) {
-                        const pestParams = await api.farmManagement.getPesticideSuggestion(farmId, "Wheat", potentialDiseases[Math.floor(Math.random() * potentialDiseases.length)]);
+                        const pestParams = await api.farmManagement.getPesticideSuggestion(farmId, "Wheat", potentialDiseases[Math.floor(Math.random() * potentialDiseases.length)]) as any;
                         newSuggestions.push({ ...pestParams, type: 'Pesticide' });
                     }
                 }
