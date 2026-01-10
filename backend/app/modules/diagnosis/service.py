@@ -41,6 +41,9 @@ class DiagnosisService:
             local_path = image_url
             
         try:
+            # Initialize result to empty dict to prevent scope errors
+            result = {}
+            
             # This now returns a JSON string from the Hybrid Vision system
             json_response = self.hf_service.analyze_image(local_path, crop)
             
@@ -84,17 +87,36 @@ class DiagnosisService:
             print(f"❌ Vision diagnosis failed: {e}. Falling back to basic check.")
             disease_name = "Analysis Failed"
             confidence = 0.0
+            result = {}
         
-        # Get treatment recommendation
+        # Get treatment recommendation from KG
+        kg_recommendation = ""
         if disease_name.lower() == "healthy":
-            recommendation = "No action needed. Crop looks healthy."
+            kg_recommendation = "No action needed. Crop looks healthy."
         else:
-            recommendation = self.kg_service.get_treatment_for_pest(disease_name)
-            
-            if "No specific data" in recommendation:
+            kg_recommendation = self.kg_service.get_treatment_for_pest(disease_name)
+            if "No specific data" in kg_recommendation:
                 self.kg_service.seed_initial_data()
-                recommendation = self.kg_service.get_treatment_for_pest(disease_name)
+                kg_recommendation = self.kg_service.get_treatment_for_pest(disease_name)
         
+        # Determine final recommendation (Prefer LLM detailed info if KG is empty)
+        final_recommendation = kg_recommendation
+        
+        # Check for Healthy/Fresh status
+        is_healthy = False
+        if "healthy" in disease_name.lower() or "fresh" in disease_name.lower():
+            is_healthy = True
+            disease_name = "Healthy / Fresh"
+            final_recommendation = "✅ The crop appears to be fresh and healthy. No diseases detected."
+            # Clear detailed fields for healthy crops
+            result['cause'] = None
+            result['prevention'] = "Maintain current good practices."
+            result['treatment_organic'] = None
+            result['treatment_chemical'] = None
+        
+        elif "No specific data" in kg_recommendation and result and "treatment_organic" in result:
+             final_recommendation = f"Organic: {result.get('treatment_organic')}\nChemical: {result.get('treatment_chemical')}"
+
         print(f"✅ Success with Hugging Face! Disease: {disease_name}")
         
         # Create Log Entry
@@ -103,7 +125,12 @@ class DiagnosisService:
             crop_name=crop,
             disease_detected=disease_name,
             confidence_score=confidence,
-            recommendation=recommendation
+            recommendation=final_recommendation,
+            cause=result.get("cause"),
+            prevention=result.get("prevention"),
+            treatment_organic=result.get("treatment_organic"),
+            treatment_chemical=result.get("treatment_chemical"),
+            identified_crop=result.get("identified_crop")
         )
         
         self.db.add(diagnosis_entry)

@@ -13,6 +13,13 @@ interface DiagnosisResult {
     confidence_score: number;
     recommendation: string;
     image_url: string;
+    // New fields
+    cause?: string;
+    prevention?: string;
+    treatment_organic?: string;
+    treatment_chemical?: string;
+    identified_crop?: string;
+    crop_name?: string; // Add this too as it's used in the logic
 }
 
 export default function DiagnosisUploader() {
@@ -207,6 +214,13 @@ export default function DiagnosisUploader() {
                         </div>
 
                         <div className="space-y-6">
+                            {(result.identified_crop || result.crop_name) && (
+                                <div className="bg-slate-950/30 rounded-lg p-3 border border-white/5 flex items-center gap-2">
+                                    <span className="text-slate-400 text-sm">Identified Crop:</span>
+                                    <span className="text-green-400 font-semibold">{result.identified_crop || result.crop_name}</span>
+                                </div>
+                            )}
+
                             <div className="bg-slate-950/50 rounded-xl p-4 border border-white/5">
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-slate-400 text-sm">{t('confidence')}</span>
@@ -220,12 +234,55 @@ export default function DiagnosisUploader() {
                                 </div>
                             </div>
 
-                            <div>
-                                <h4 className="text-lg font-semibold text-white mb-3">{t('recommendation')}</h4>
-                                <div className="p-4 bg-slate-800/30 rounded-xl border-l-4 border-green-500 text-slate-300 leading-relaxed">
-                                    {result.recommendation}
+                            {/* Cause Section */}
+                            {result.cause && (
+                                <div>
+                                    <h4 className="text-sm font-semibold text-slate-500 mb-2 uppercase tracking-wider">Cause</h4>
+                                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-slate-300 text-sm">
+                                        {result.cause}
+                                    </div>
                                 </div>
+                            )}
+
+                            {/* Treatments */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {result.treatment_organic && (
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-green-400 mb-2 uppercase tracking-wider">Organic Cure</h4>
+                                        <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-slate-300 text-sm">
+                                            {result.treatment_organic}
+                                        </div>
+                                    </div>
+                                )}
+                                {result.treatment_chemical && (
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-blue-400 mb-2 uppercase tracking-wider">Chemical Cure</h4>
+                                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-slate-300 text-sm">
+                                            {result.treatment_chemical}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
+
+                            {/* Fallback Recommendation if detailed info missing */}
+                            {!result.treatment_organic && !result.treatment_chemical && (
+                                <div>
+                                    <h4 className="text-lg font-semibold text-white mb-3">{t('recommendation')}</h4>
+                                    <div className="p-4 bg-slate-800/30 rounded-xl border-l-4 border-green-500 text-slate-300 leading-relaxed">
+                                        {result.recommendation}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Prevention */}
+                            {result.prevention && (
+                                <div>
+                                    <h4 className="text-sm font-semibold text-yellow-500 mb-2 uppercase tracking-wider">Prevention</h4>
+                                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-slate-300 text-sm">
+                                        {result.prevention}
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="pt-4">
                                 <h4 className="text-sm font-semibold text-slate-500 mb-3 uppercase tracking-wider">Suggested Actions</h4>

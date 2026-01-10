@@ -16,6 +16,11 @@ class DiagnosisResponse(DiagnosisBase):
     disease_detected: str
     confidence_score: float
     recommendation: Optional[str]
+    cause: Optional[str] = None
+    prevention: Optional[str] = None
+    treatment_organic: Optional[str] = None
+    treatment_chemical: Optional[str] = None
+    identified_crop: Optional[str] = None
     created_at: datetime
 
     class Config:

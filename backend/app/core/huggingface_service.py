@@ -109,7 +109,8 @@ class HuggingFaceService:
         print(f"🔬 Analyzing image with Hugging Face Vision AI")
         
         # Strategy 0: Crop Validation (General ViT)
-        is_crop = False
+        is_val_passed = False
+        validation_warning = ""
         detected_generics = []
         
         try:
@@ -122,7 +123,7 @@ class HuggingFaceService:
                 model=val_model
             )
             
-            # Keywords indicating valid crop/plant
+            # Expanded Keywords indicating valid crop/plant
             plant_keywords = [
                 'plant', 'tree', 'flower', 'vegetable', 'fruit', 'crop', 'leaf', 
                 'agriculture', 'garden', 'grass', 'herb', 'shrub', 'wheat', 'corn', 
@@ -130,7 +131,8 @@ class HuggingFaceService:
                 'broccoli', 'cabbage', 'carrot', 'cucumber', 'eggplant', 'lettuce', 
                 'onion', 'spinach', 'squash', 'zucchini', 'apple', 'banana', 'grape', 
                 'lemon', 'lime', 'orange', 'peach', 'pear', 'strawberry', 'watermelon',
-                'pod', 'seed', 'grain', 'bean', 'soy', 'nut', 'berry', 'food'
+                'pod', 'seed', 'grain', 'bean', 'soy', 'nut', 'berry', 'food',
+                'fungus', 'mushroom', 'bark', 'forest', 'wild', 'nature'
             ]
             
             # Check top 5 labels
@@ -139,21 +141,24 @@ class HuggingFaceService:
                 detected_generics.append(f"{item.label}")
                 
                 if any(kw in label_lower for kw in plant_keywords):
-                    is_crop = True
+                    is_val_passed = True
                     break
             
-            print(f"✅ Crop Validation: {'PASSED' if is_crop else 'FAILED'}")
-            print(f"   Detected: {', '.join(detected_generics)}")
+            if not is_val_passed:
+                validation_warning = f"Generic model detected: {', '.join(detected_generics[:3])}"
+                print(f"⚠️ Validation Warning: {validation_warning}")
+            else:
+                print(f"✅ Crop Validation: PASSED ({detected_generics[0]})")
             
         except Exception as e:
             print(f"⚠️ Validation failed: {e}. Proceeding cautiously.")
-            is_crop = True # Fail open
+            is_val_passed = True # Fail open checked later
             
-        if not is_crop:
-             return f"NOT_A_CROP_ERROR: The image does not appear to be a crop or plant. Detected: {', '.join(detected_generics[:3])}. Please upload a clear image of a plant."
-
-        vision_context = ""
+        # We DO NOT return here anymore. We let the specialized model verify.
         
+        vision_context = ""
+        max_disease_conf = 0.0
+
         # Strategy 1: Plant Disease Classification (Specialized Model)
         try:
             class_model = "linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification"
@@ -165,9 +170,20 @@ class HuggingFaceService:
             )
             
             # Extract top labels
-            labels = [f"{item.label} ({item.score:.2f})" for item in response if item.score > 0.1]
+            labels = []
+            for item in response:
+                 if item.score > 0.05:
+                      labels.append(f"{item.label} ({item.score:.2f})")
+                      if item.score > max_disease_conf:
+                           max_disease_conf = item.score
+
             vision_context = f"Detected Disease: {', '.join(labels)}"
             print(f"✅ Classification success: {labels}")
+            
+            # FINAL VALIDATION CHECK
+            # If generic validation failed AND specialized model is also unsure (< 0.2), then it's not a crop.
+            if not is_val_passed and max_disease_conf < 0.2:
+                 return f"NOT_A_CROP_ERROR: The image does not appear to be a crop. {validation_warning}. Specialized model confidence low ({max_disease_conf:.2f})."
             
         except Exception as e:
             print(f"❌ Classification failed: {e}")
@@ -178,19 +194,30 @@ class HuggingFaceService:
         You are an expert Plant Pathologist.
         
         INPUT DATA:
-        - Crop Name: {question}
+        - Crop Name provided by user: {question} (Verify if this matches visual analysis)
         - Visual Analysis: "{vision_context}"
         
         TASK:
-        Based on the Visual Analysis and Crop Name, diagnose the issue.
-        If the visual analysis mentions "leaf", "rot", "spots", "yellow", or specific disease names, use that.
-        If the visual analysis is generic (e.g. just "plant"), describe common issues for this crop.
+        Diagnose the issue and provide a DETAILED report.
+        1. Identify the crop part and name: (e.g. "Leaf of Tomato", "Fruit of Apple", "Stem of Wheat").
+        2. Identify the disease/pest/deficiency.
+           - IF THE CROP LOOKS FRESH AND HEALTHY: Diagnose as "Healthy".
+           - IF IT HAS ISSUES: Identify specific disease (Blight, Rot, Spot, etc).
+        3. Explain the Cause (or "N/A" if healthy).
+        4. Provide organic/natural remedies (or "N/A" if healthy).
+        5. Provide chemical/artificial remedies (or "N/A" if healthy).
+        6. Explain prevention.
         
-        OUTPUT FORMAT (JSON ONLY):
+        OUTPUT FORMAT (JSON ONLY - NO MARKDOWN):
         {{
-            "disease": "Disease Name" (or "Healthy"),
-            "confidence": 0.0 to 1.0,
-            "symptoms": "Detailed description matching the visual analysis",
+            "disease": "Disease Name" (or "Healthy" / "Fresh"),
+            "confidence": 0.95,
+            "identified_crop": "Leaf of Tomato / Fruit of Lemon",
+            "symptoms": "Detailed visual description",
+            "cause": "Fungal infection caused by..." (or null if healthy),
+            "prevention": "Crop rotation, avoid overhead watering...",
+            "treatment_organic": "Neem oil..." (or null if healthy),
+            "treatment_chemical": "Mancozeb..." (or null if healthy),
             "affected_parts": ["leaves", "stem", "fruit"],
             "severity": "Mild/Moderate/Severe"
         }}

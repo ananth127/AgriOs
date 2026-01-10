@@ -2,3 +2,4 @@ start : wsl
 stop : wsl --shutdown
 🤖 Trying model: meta-llama/Llama-3.1-8B-Instruct
 ✅ Success with model: meta-llama/Llama-3.1-8B-Instruct
+curl http://127.0.0.1:8000/fix-db

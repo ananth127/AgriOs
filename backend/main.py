@@ -87,9 +87,31 @@ def fix_db():
     try:
         with database.engine.connect() as connection:
             # 1. Add filled_count to labor_jobs
-            connection.execute(text("ALTER TABLE labor_jobs ADD COLUMN IF NOT EXISTS filled_count INTEGER DEFAULT 0;"))
-            connection.commit()
-            return {"status": "success", "message": "Database schema updated (labor_jobs.filled_count added)."}
+            try:
+                connection.execute(text("ALTER TABLE labor_jobs ADD COLUMN IF NOT EXISTS filled_count INTEGER DEFAULT 0;"))
+                connection.commit()
+            except Exception as e:
+                connection.rollback()
+                print(f"Labor jobs update skipped: {e}")
+            
+            # 2. Add diagnosis detailed columns
+            columns = [
+                "cause TEXT", 
+                "prevention TEXT", 
+                "treatment_organic TEXT", 
+                "treatment_chemical TEXT", 
+                "identified_crop VARCHAR"
+            ]
+            
+            for col_def in columns:
+                try:
+                    connection.execute(text(f"ALTER TABLE diagnosis_logs ADD COLUMN {col_def};"))
+                    connection.commit()
+                except Exception as db_err:
+                    connection.rollback()
+                    print(f"Column likely exists or error adding {col_def}: {db_err}")
+
+            return {"status": "success", "message": "Database schema updated."}
     except Exception as e:
         return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
 

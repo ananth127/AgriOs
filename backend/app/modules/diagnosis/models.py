@@ -14,6 +14,13 @@ class DiagnosisLog(Base):
     confidence_score = Column(Float)                   # e.g., 0.95
     recommendation = Column(Text)                      # e.g., "Apply Fungicide X..."
     
+    # Detailed Info (Added for v2)
+    cause = Column(Text, nullable=True)
+    prevention = Column(Text, nullable=True)
+    treatment_organic = Column(Text, nullable=True)
+    treatment_chemical = Column(Text, nullable=True)
+    identified_crop = Column(String, nullable=True)
+    
     # Metadata
     location_lat = Column(Float, nullable=True)
     location_lng = Column(Float, nullable=True)
