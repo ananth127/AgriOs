@@ -67,3 +67,48 @@ def search_providers(db: Session, lat: float, lon: float, radius_km: float = 50)
     # For this scaffold, we return all as strict Geo query requires PostGIS runtime.
     # We will assume logic is correct for future.
     return db.query(models.ServiceProvider).all()
+
+def search_commercial_products(db: Session, ingredient: str) -> list[models.CommercialProduct]:
+    """
+    Find commercial products that contain the given active ingredient.
+    """
+    return db.query(models.CommercialProduct).filter(
+        models.CommercialProduct.active_ingredient_name.ilike(f"%{ingredient}%")
+    ).all()
+
+def seed_commercial_products(db: Session):
+    """
+    Seed some sample chemical products for the demo.
+    """
+    if db.query(models.CommercialProduct).first():
+        return
+
+    products = [
+        models.CommercialProduct(
+            brand_name="Dithane M-45",
+            manufacturer="UPL",
+            active_ingredient_name="Mancozeb",
+            description="Broad spectrum contact fungicide",
+            unit_price=450.0,
+            image_url="https://example.com/dithane.jpg"
+        ),
+        models.CommercialProduct(
+            brand_name="Ridomil Gold",
+            manufacturer="Syngenta",
+            active_ingredient_name="Metalaxyl",
+            description="Systemic and contact fungicide for Late Blight",
+            unit_price=1200.0,
+            image_url="https://example.com/ridomil.jpg"
+        ),
+        models.CommercialProduct(
+            brand_name="Confidor",
+            manufacturer="Bayer",
+            active_ingredient_name="Imidacloprid",
+            description="Systemic insecticide for sucking pests",
+            unit_price=850.0,
+            image_url="https://example.com/confidor.jpg"
+        )
+    ]
+    
+    db.add_all(products)
+    db.commit()

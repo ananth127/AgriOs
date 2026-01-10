@@ -67,4 +67,21 @@ def delete_product_listing(product_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Product not found")
     db.delete(product)
     db.commit()
+    db.delete(product)
+    db.commit()
     return {"message": "Product deleted"}
+
+# --- Commercial Products (Contextual Commerce) ---
+@router.get("/commercial-products", response_model=List[schemas.CommercialProductDTO])
+def search_commercial_products(
+    ingredient: str, 
+    db: Session = Depends(get_db)
+):
+    """
+    Search for commercial products containing a specific active ingredient (Chemical).
+    Used to bridge Diagnosis -> Purchase.
+    """
+    # Auto-seed if empty (Demo)
+    service.seed_commercial_products(db)
+    
+    return service.search_commercial_products(db, ingredient)

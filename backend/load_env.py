@@ -37,7 +37,7 @@ def is_dev_mode() -> bool:
     Returns:
         True if DEV=true (development), False otherwise (production)
     """
-    dev = os.getenv('DEV', 'true').lower()
+    dev = os.getenv('DEV', 'false').lower()
     
     # Render automatically sets RENDER=true
     if os.getenv('RENDER'):

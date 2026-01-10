@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link, usePathname } from '@/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Calculator, LogOut, LogIn, X, MapPin, Briefcase, Loader2 } from 'lucide-react';
+import { LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Calculator, LogOut, LogIn, X, MapPin, Briefcase, Loader2, Stethoscope, Activity, BookOpen } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { API_BASE_URL } from '@/lib/constants';
 import dynamic from 'next/dynamic';
@@ -86,6 +86,8 @@ export function Sidebar({ locale }: SidebarProps) {
         { href: '/farms', label: t('menu_my_farms'), icon: Tractor },
         { href: '/crops', label: t('menu_crops_registry'), icon: Sprout },
         { href: '/farm-management', label: t('menu_management'), icon: Briefcase },
+        { href: '/crop-doctor', label: t('menu_crop_doctor'), icon: Stethoscope },
+        { href: '/library', label: t('menu_library'), icon: BookOpen },
         { href: '/livestock', label: t('menu_livestock'), icon: Users },
         { href: '/supply-chain', label: t('menu_track_trace'), icon: ScrollText },
         { href: '/marketplace', label: t('menu_marketplace'), icon: ShoppingBag },

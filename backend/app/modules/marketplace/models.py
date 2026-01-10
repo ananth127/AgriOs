@@ -48,5 +48,24 @@ class ProductListing(Base):
     available_date = Column(Date, nullable=True) # For future harvest selling
     is_active = Column(Boolean, default=True)
     
+    available_date = Column(Date, nullable=True) # For future harvest selling
+    is_active = Column(Boolean, default=True)
+    
     location = Column(get_geo_column('POINT', srid=4326), nullable=True)
+
+class CommercialProduct(Base):
+    __tablename__ = "commercial_products"
+
+    id = Column(Integer, primary_key=True, index=True)
+    brand_name = Column(String, index=True)      # e.g., "Dithane M-45"
+    manufacturer = Column(String, index=True)    # e.g., "UPL"
+    active_ingredient_id = Column(Integer, index=True) # Links to KGPest/KGChemical (Logical Link)
+    active_ingredient_name = Column(String, index=True) # e.g., "Mancozeb" (easier lookup)
+    
+    description = Column(String)
+    image_url = Column(String, nullable=True)
+    unit_price = Column(Float) # MSRP
+    
+    # In a full system, this would link to Retailer Inventory
+
 

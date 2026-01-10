@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 🧠 The Brain (FastAPI)
   backend:
@@ -9,8 +7,10 @@ services:
     volumes:
       - ./backend:/app
     environment:
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/agrios
+      - DATABASE_URL=postgresql://postgres.uhqjgahpxhcenzpmgjrr:2c%UH5-sQukJLMN@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres
+      - GEMINI_API_KEY=AIzaSyCxEGQZLvkFv1kgftRgomt_yK_1GE8peS4
       - REDIS_URL=redis://redis:6379/0
+      - DEV=false
     depends_on:
       - db
       - redis

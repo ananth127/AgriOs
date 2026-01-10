@@ -12,63 +12,84 @@ try:
     # Load model once on startup
     whisper_model = whisper.load_model("base")  # Good balance of speed/accuracy
     print("✅ Whisper loaded successfully")
-except ImportError:
+except (ImportError, OSError, Exception) as e:
     WHISPER_AVAILABLE = False
-    print("⚠️ Whisper not installed. Install with: pip install openai-whisper")
+    print(f"⚠️ Whisper not available: {e}")
 
-# Gemini API for NLU and Response Generation (Free tier: 15 req/min)
+# Initialize Vertex AI
 try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
-    gemini_api_key = os.getenv("GEMINI_API_KEY")
-    if gemini_api_key:
-        genai.configure(api_key=gemini_api_key)
-        gemini_model = genai.GenerativeModel('gemini-1.5-flash')
-        print("✅ Gemini API configured successfully")
-    else:
-        GEMINI_AVAILABLE = False
-        print("⚠️ GEMINI_API_KEY not found in environment variables")
+    import vertexai
+    from vertexai.generative_models import GenerativeModel
+    VERTEX_AVAILABLE = True
 except ImportError:
-    GEMINI_AVAILABLE = False
-    print("⚠️ Gemini not installed. Install with: pip install google-generativeai")
+    VERTEX_AVAILABLE = False
+    print("⚠️ Vertex AI not installed. Install with: pip install google-cloud-aiplatform")
 
+# Speech-to-Text using Google Cloud Speech (part of Vertex AI ecosystem)
+try:
+    from google.cloud import speech
+    GOOGLE_SPEECH_AVAILABLE = True
+except ImportError:
+    GOOGLE_SPEECH_AVAILABLE = False
+    print("⚠️ Google Cloud Speech not available")
 
-def transcribe_audio_whisper(audio_bytes: bytes) -> Tuple[str, str]:
+def transcribe_audio_google_speech(audio_bytes: bytes) -> Tuple[str, str]:
     """
-    Transcribe audio using Whisper (FREE, self-hosted)
+    Transcribe audio using Google Cloud Speech-to-Text (Vertex AI ecosystem)
     """
-    if not WHISPER_AVAILABLE:
-        return "Whisper not available", "en"
-    
-    # Save bytes to temporary file
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
-        temp_audio.write(audio_bytes)
-        temp_path = temp_audio.name
+    if not GOOGLE_SPEECH_AVAILABLE:
+        return "Google Speech not available", "en"
     
     try:
-        # Transcribe with Whisper
-        result = whisper_model.transcribe(
-            temp_path,
-            language=None,  # Auto-detect language
-            task="transcribe"
+        # Handle credentials (same as Vertex AI)
+        credentials_file = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+        if credentials_file and os.path.exists(credentials_file):
+            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_file
+        
+        credentials_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+        if credentials_json and not credentials_file:
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                f.write(credentials_json)
+                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = f.name
+        
+        client = speech.SpeechClient()
+        
+        audio = speech.RecognitionAudio(content=audio_bytes)
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            language_code="en-IN",  # Indian English
+            alternative_language_codes=["hi-IN", "kn-IN", "ta-IN"],  # Multilingual
+            enable_automatic_punctuation=True,
         )
         
-        return result["text"], result.get("language", "en")
-    
-    finally:
-        # Clean up temp file
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-
+        response = client.recognize(config=config, audio=audio)
+        
+        if response.results:
+            transcript = response.results[0].alternatives[0].transcript
+            language = response.results[0].language_code or "en"
+            return transcript, language
+        else:
+            return "No speech detected", "en"
+            
+    except Exception as e:
+        print(f"Google Speech error: {e}")
+        return "Speech recognition failed", "en"
 
 def classify_intent_gemini(text: str) -> Dict:
     """
-    Classify intent and extract parameters using Gemini API (FREE)
+    Classify intent using Vertex AI
     """
-    if not GEMINI_AVAILABLE:
+    if not VERTEX_AVAILABLE:
         return classify_intent_simple(text)
     
     try:
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "your-project-id")
+        location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+        
+        vertexai.init(project=project_id, location=location)
+        model = GenerativeModel("gemini-1.5-pro-preview-0409")
+
         prompt = f"""
 You are an agricultural assistant AI. Analyze this farmer's query and extract:
 
@@ -89,69 +110,29 @@ Query: "{text}"
 Return ONLY valid JSON in this exact format:
 {{"intent": "check_price", "parameters": {{"crop": "Onion", "location": "Nasik"}}}}
 """
+        response = model.generate_content(prompt)
+        result_text = response.text.strip().replace("```json", "").replace("```", "").strip()
         
-        response = gemini_model.generate_content(prompt)
-        result_text = response.text.strip()
-        
-        # Extract JSON from response
-        if "```json" in result_text:
-            result_text = result_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in result_text:
-            result_text = result_text.split("```")[1].split("```")[0].strip()
-        
-        result = json.loads(result_text)
-        return result
+        return json.loads(result_text)
     
     except Exception as e:
-        print(f"Gemini classification error: {e}")
+        print(f"Vertex classification error: {e}")
         return classify_intent_simple(text)
-
-
-def classify_intent_simple(text: str) -> Dict:
-    """
-    Simple keyword-based intent classification (Fallback)
-    """
-    lower_text = text.lower()
-    intent = "unknown"
-    params = {}
-    
-    # Check for price queries
-    if any(word in lower_text for word in ["price", "rate", "cost", "भाव", "ಬೆಲೆ", "விலை", "ధర", "വില", "दर"]):
-        intent = "check_price"
-        
-        # Extract crop name
-        crops = ["onion", "tomato", "potato", "rice", "wheat", "cotton", "sugarcane"]
-        for crop in crops:
-            if crop in lower_text:
-                params["crop"] = crop.capitalize()
-                break
-        
-        # Extract location
-        locations = ["nasik", "pune", "mumbai", "bangalore", "delhi", "kolkata"]
-        for loc in locations:
-            if loc in lower_text:
-                params["location"] = loc.capitalize()
-                break
-    
-    # Check for weather queries
-    elif any(word in lower_text for word in ["weather", "rain", "temperature", "मौसम", "ಹವಾಮಾನ"]):
-        intent = "weather"
-    
-    # Check for crop advice
-    elif any(word in lower_text for word in ["plant", "grow", "fertilizer", "pest", "disease", "सलाह"]):
-        intent = "crop_advice"
-    
-    return {"intent": intent, "parameters": params}
 
 
 def generate_response_gemini(intent: str, params: Dict, language: str = "en") -> str:
     """
-    Generate natural language response using Gemini (FREE)
+    Generate response using Vertex AI
     """
-    if not GEMINI_AVAILABLE:
+    if not VERTEX_AVAILABLE:
         return generate_response_simple(intent, params)
     
     try:
+        project_id = os.getenv("GOOGLE_CLOUD_PROJECT", "your-project-id")
+        location = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+        vertexai.init(project=project_id, location=location)
+        model = GenerativeModel("gemini-1.5-pro-preview-0409")
+
         # Map language codes
         lang_map = {
             "en": "English",
@@ -190,12 +171,11 @@ If intent is "unknown":
 - Politely say you didn't understand
 - Ask them to rephrase
 """
-        
-        response = gemini_model.generate_content(prompt)
+        response = model.generate_content(prompt)
         return response.text.strip()
     
     except Exception as e:
-        print(f"Gemini response generation error: {e}")
+        print(f"Vertex response error: {e}")
         return generate_response_simple(intent, params)
 
 
@@ -226,9 +206,19 @@ def process_audio(file_bytes: bytes) -> schemas.VoiceQueryResponse:
     3. Gemini for Response Generation (free API, same quota)
     """
     
-    # Step 1: Speech-to-Text using Whisper
-    # Skip Whisper for mock/small data (requires ffmpeg which may not be installed)
-    if WHISPER_AVAILABLE and len(file_bytes) > 1000:  # Real audio is larger
+    # Step 1: Speech-to-Text (Try Google Speech first, then Whisper)
+    if GOOGLE_SPEECH_AVAILABLE and len(file_bytes) > 1000:
+        try:
+            print("🎤 Using Google Cloud Speech-to-Text")
+            transcription, language = transcribe_audio_google_speech(file_bytes)
+        except Exception as e:
+            print(f"⚠️ Google Speech failed: {e}. Trying Whisper...")
+            if WHISPER_AVAILABLE:
+                transcription, language = transcribe_audio_whisper(file_bytes)
+            else:
+                transcription = "What is the price of Onion in Nasik?"
+                language = "en"
+    elif WHISPER_AVAILABLE and len(file_bytes) > 1000:
         try:
             transcription, language = transcribe_audio_whisper(file_bytes)
         except Exception as e:

@@ -57,3 +57,15 @@ class Provider(ProviderBase):
 
     class Config:
         from_attributes = True
+
+class CommercialProductDTO(BaseModel):
+    id: int
+    brand_name: str
+    manufacturer: str
+    active_ingredient_name: str
+    description: Optional[str]
+    image_url: Optional[str]
+    unit_price: float
+
+    class Config:
+        from_attributes = True

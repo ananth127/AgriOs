@@ -22,6 +22,8 @@ from app.modules.farm_management import routers as farm_mgmt_router
 
 from app.modules.auth import models as auth_models
 from app.modules.auth import router as auth_router
+from app.modules.knowledge_graph import models as kg_models
+from app.modules.diagnosis import models as diagnosis_models
 
 # Create tables (Registry, Auth, etc)
 # Using database.Base ensures all imported models are created
@@ -33,18 +35,24 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-        "https://agri-os.vercel.app",
-        "https://agri-os.vercel.app/",
-    ],
+    allow_origins=["*"],
+    # allow_origins=[
+    #     "http://localhost:3000",
+    #     "http://127.0.0.1:3000",
+    #     "http://localhost:8000",
+    #     "http://127.0.0.1:8000",
+    #     "https://agri-os.vercel.app",
+    #     "https://agri-os.vercel.app/",
+    # ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from fastapi.staticfiles import StaticFiles
+import os
+os.makedirs("static", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(auth_router.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(registry_router.router, prefix="/api/v1/registry", tags=["registry"])
@@ -57,6 +65,10 @@ app.include_router(crops_router.router, prefix="/api/v1/crops", tags=["crops"])
 app.include_router(livestock_router.router, prefix="/api/v1/livestock", tags=["livestock"])
 app.include_router(supply_router.router, prefix="/api/v1/supply-chain", tags=["supply_chain"])
 app.include_router(farm_mgmt_router.router, prefix="/api/v1/farm-management", tags=["farm_management"])
+from app.modules.diagnosis import router as diagnosis_router
+app.include_router(diagnosis_router.router, prefix="/api/v1/diagnosis", tags=["diagnosis"])
+from app.modules.knowledge_graph import router as kg_router
+app.include_router(kg_router.router, prefix="/api/v1/library", tags=["knowledge_graph"])
 
 # Trigger Reload: Fixed Services Import
 
@@ -91,3 +103,5 @@ def debug_financials_error():
         return svc.get_financial_summary(1)
     except Exception as e:
         return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
+
+# Trigger Reload: New Env VARS loaded

@@ -37,7 +37,29 @@
         "profile_role": "Role",
         "profile_farming_location": "Farming Location",
         "profile_set_location": "Set Location",
-        "profile_change_location": "Change"
+        "profile_change_location": "Change",
+        "menu_crop_doctor": "Crop Doctor",
+        "menu_library": "Disease Library"
+    },
+    "Library": {
+        "page_title": "Disease Library",
+        "page_subtitle": "Browse our encyclopedia of plant diseases and pests.",
+        "search_placeholder": "Search for a disease...",
+        "treatments": "Treatments / Chemicals",
+        "symptoms": "Symptoms",
+        "affected_crops": "Affected Crops"
+    },
+    "Diagnosis": {
+        "page_title": "Crop Doctor",
+        "page_subtitle": "AI-powered disease diagnosis and treatment recommendations.",
+        "upload_title": "Upload Leaf Image",
+        "upload_desc": "Take a photo or upload an image of the affected plant part.",
+        "analyzing": "Analyzing Image...",
+        "result_title": "Diagnosis Result",
+        "confidence": "Confidence Score",
+        "recommendation": "Treatment Recommendation",
+        "btn_analyze": "Analyze",
+        "select_crop": "Select Crop (Optional)"
     },
     "Dashboard": {
         "hero_title_part1": "The Operating System for",

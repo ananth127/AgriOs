@@ -8,7 +8,7 @@ import { Link, usePathname } from '@/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import {
-    LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Menu, X, Calculator, LogIn, LogOut, Briefcase
+    LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Menu, X, Calculator, LogIn, LogOut, Briefcase, Stethoscope, BookOpen
 } from 'lucide-react';
 
 
@@ -27,6 +27,8 @@ export default function NavBar({ locale }: { locale: string }) {
         { href: '/farms', label: tSidebar('menu_my_farms'), icon: Tractor },
         { href: '/crops', label: tSidebar('menu_crops_registry'), icon: Sprout },
         { href: '/farm-management', label: tSidebar('menu_management'), icon: Briefcase },
+        { href: '/crop-doctor', label: tSidebar('menu_crop_doctor'), icon: Stethoscope },
+        { href: '/library', label: tSidebar('menu_library'), icon: BookOpen },
         { href: '/livestock', label: tSidebar('menu_livestock'), icon: Users },
         { href: '/supply-chain', label: tSidebar('menu_track_trace'), icon: ScrollText },
         { href: '/marketplace', label: tSidebar('menu_marketplace'), icon: ShoppingBag },
@@ -36,7 +38,7 @@ export default function NavBar({ locale }: { locale: string }) {
     ];
 
     return (
-        <nav className="z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/10 text-white w-full">
+        <nav className="z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/10 text-white w-full md:hidden">
             <div className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-3">
                     {/* Mobile Menu Button */}

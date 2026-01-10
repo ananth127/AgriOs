@@ -18,9 +18,12 @@ opentelemetry-sdk
 python-multipart
 
 # Voice Search - Free AI Alternatives
-# openai-whisper
-# google-generativeai
-# google-cloud-texttospeech
+# Voice Search & AI
+openai-whisper
+google-generativeai
+google-cloud-aiplatform
+google-cloud-speech
+google-cloud-texttospeech
 
 # Security - .env encryption
 cryptography

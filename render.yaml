@@ -15,9 +15,18 @@ services:
     envVars:
       - key: DATABASE_URL
         sync: false
+      # Vertex AI Configuration (For Render.com deployment)
+      - key: GOOGLE_CLOUD_PROJECT
+        sync: false
+      - key: GOOGLE_CLOUD_LOCATION
+        value: us-central1
+      - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
+        sync: false
+      # Fallback: Gemini API Key (if not using Vertex AI)
       - key: GEMINI_API_KEY
         sync: false
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: PORT
         value: 10000
+
