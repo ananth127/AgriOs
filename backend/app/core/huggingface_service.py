@@ -44,7 +44,7 @@ class HuggingFaceService:
         
         # Model priority list
         models_to_try = [
-            "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+            # "meta-llama/Llama-4-Scout-17B-16E-Instruct", # Too large for free tier
             "meta-llama/Llama-3.1-8B-Instruct",
             "HuggingFaceH4/zephyr-7b-beta",
             "google/gemma-2-9b-it",
@@ -108,56 +108,70 @@ class HuggingFaceService:
             
         print(f"🔬 Analyzing image with Hugging Face Vision AI")
         
-        # Load image bytes
-        image_bytes = None
-        if image_path.startswith('http'):
-            import requests
-            response = requests.get(image_path)
-            image_bytes = response.content
-        else:
-            with open(image_path, 'rb') as img_file:
-                image_bytes = img_file.read()
+        # Strategy 0: Crop Validation (General ViT)
+        is_crop = False
+        detected_generics = []
         
-        vision_context = ""
-        
-        # Strategy 1: Image Captioning (BLIP Base)
-        # Salesforce/blip-image-captioning-base is smaller and more reliable on free tier than 'large'
         try:
-            caption_model = "Salesforce/blip-image-captioning-base"
-            print(f"🤖 Strategies 1: Captioning with {caption_model}")
+            val_model = "google/vit-base-patch16-224"
+            print(f"🔍 Validating image with {val_model}")
             
-            response = self.client.image_to_text(
-                image=image_bytes,
-                model=caption_model
+            # Pass image path/URL directly
+            response = self.client.image_classification(
+                image=image_path,
+                model=val_model
             )
             
-            caption = response if isinstance(response, str) else response.generated_text
-            vision_context = f"Image Description: {caption}"
-            print(f"✅ Caption success: {caption}")
+            # Keywords indicating valid crop/plant
+            plant_keywords = [
+                'plant', 'tree', 'flower', 'vegetable', 'fruit', 'crop', 'leaf', 
+                'agriculture', 'garden', 'grass', 'herb', 'shrub', 'wheat', 'corn', 
+                'rice', 'potato', 'tomato', 'pepper', 'stem', 'root', 'botanical',
+                'broccoli', 'cabbage', 'carrot', 'cucumber', 'eggplant', 'lettuce', 
+                'onion', 'spinach', 'squash', 'zucchini', 'apple', 'banana', 'grape', 
+                'lemon', 'lime', 'orange', 'peach', 'pear', 'strawberry', 'watermelon',
+                'pod', 'seed', 'grain', 'bean', 'soy', 'nut', 'berry', 'food'
+            ]
+            
+            # Check top 5 labels
+            for item in response[:5]:
+                label_lower = item.label.lower()
+                detected_generics.append(f"{item.label}")
+                
+                if any(kw in label_lower for kw in plant_keywords):
+                    is_crop = True
+                    break
+            
+            print(f"✅ Crop Validation: {'PASSED' if is_crop else 'FAILED'}")
+            print(f"   Detected: {', '.join(detected_generics)}")
             
         except Exception as e:
-            print(f"⚠️ Captioning failed: {e}")
+            print(f"⚠️ Validation failed: {e}. Proceeding cautiously.")
+            is_crop = True # Fail open
             
-            # Strategy 2: Image Classification (ViT)
-            # This is extremely reliable on free tier and gives us labels
-            try:
-                class_model = "google/vit-base-patch16-224"
-                print(f"🔄 Strategy 2: Classification with {class_model}")
-                
-                response = self.client.image_classification(
-                    image=image_bytes,
-                    model=class_model
-                )
-                
-                # Extract top labels
-                labels = [item.label for item in response if item.score > 0.1]
-                vision_context = f"Detected Objects/Patterns: {', '.join(labels)}"
-                print(f"✅ Classification success: {labels}")
-                
-            except Exception as e2:
-                print(f"❌ Classification also failed: {e2}")
-                # Fallback: Assume it's the crop provided by user
-                vision_context = f"Visual analysis failed. Assume standard visual symptoms for {question}."
+        if not is_crop:
+             return f"NOT_A_CROP_ERROR: The image does not appear to be a crop or plant. Detected: {', '.join(detected_generics[:3])}. Please upload a clear image of a plant."
+
+        vision_context = ""
+        
+        # Strategy 1: Plant Disease Classification (Specialized Model)
+        try:
+            class_model = "linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification"
+            print(f"🔄 Strategy 1: Classification with {class_model}")
+            
+            response = self.client.image_classification(
+                image=image_path,
+                model=class_model
+            )
+            
+            # Extract top labels
+            labels = [f"{item.label} ({item.score:.2f})" for item in response if item.score > 0.1]
+            vision_context = f"Detected Disease: {', '.join(labels)}"
+            print(f"✅ Classification success: {labels}")
+            
+        except Exception as e:
+            print(f"❌ Classification failed: {e}")
+            vision_context = f"Visual analysis failed. Assume standard visual symptoms for {question}."
 
         # Pass vision insights to LLM for diagnosis
         interpretation_prompt = f"""
@@ -220,15 +234,15 @@ Return ONLY valid JSON (no markdown):
         # Clean and parse JSON
         clean_response = response.replace("```json", "").replace("```", "").strip()
         
-        # Find JSON object
-        start_idx = clean_response.find('{')
-        end_idx = clean_response.rfind('}') + 1
-        
-        if start_idx != -1 and end_idx > start_idx:
-            json_str = clean_response[start_idx:end_idx]
-            return json.loads(json_str)
-        else:
-            return json.loads(clean_response)
+        try:
+            start_idx = clean_response.find('{')
+            if start_idx != -1:
+                result, _ = json.JSONDecoder().raw_decode(clean_response[start_idx:])
+                return result
+            else:
+                return json.loads(clean_response)
+        except Exception:
+             return json.loads(clean_response)
     
     def diagnose_plant_disease(self, image_path: str, crop: str) -> Dict[str, Any]:
         """Diagnose plant disease from image"""
@@ -253,6 +267,13 @@ Return as: Disease: [name], Confidence: [value], Parts: [list], Severity: [level
         }
         
         # Try to extract structured info from response
+        if "NOT_A_CROP_ERROR" in response:
+             result["disease"] = "Not a Crop"
+             result["confidence"] = 1.0
+             result["severity"] = "N/A"
+             result["symptoms"] = response.replace("NOT_A_CROP_ERROR: ", "")
+             return result
+
         if "disease:" in response.lower():
             parts = response.split(",")
             for part in parts:

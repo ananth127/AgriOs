@@ -113,7 +113,15 @@ Return ONLY valid JSON in this exact format:
         response = model.generate_content(prompt)
         result_text = response.text.strip().replace("```json", "").replace("```", "").strip()
         
-        return json.loads(result_text)
+        try:
+            start_idx = result_text.find('{')
+            if start_idx != -1:
+                result, _ = json.JSONDecoder().raw_decode(result_text[start_idx:])
+                return result
+            else:
+                return json.loads(result_text)
+        except Exception:
+             return json.loads(result_text)
     
     except Exception as e:
         print(f"Vertex classification error: {e}")

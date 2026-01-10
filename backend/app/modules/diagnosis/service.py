@@ -47,28 +47,38 @@ class DiagnosisService:
             # Clean and parse JSON
             clean_response = json_response.replace("```json", "").replace("```", "").strip()
             
-            try:
-                # Find first brace
-                start_idx = clean_response.find('{')
-                if start_idx != -1:
-                    # raw_decode stops once it parses a valid JSON object
-                    # This handles "Extra data" errors (e.g. text after JSON)
-                    json_str = clean_response[start_idx:]
-                    result, _ = json.JSONDecoder().raw_decode(json_str)
-                else:
-                    # No brace, try raw load
-                    result = json.loads(clean_response)
-            except Exception as parse_error:
-                print(f"⚠️ JSON Parse Error: {parse_error}. Trying strict substring strategy...")
-                # Fallback to strict substring if raw_decode fails (e.g. malformed JSON)
-                end_idx = clean_response.rfind('}') + 1
-                if start_idx != -1 and end_idx > start_idx:
-                    result = json.loads(clean_response[start_idx:end_idx])
-                else:
-                    raise parse_error
-            
-            disease_name = result.get("disease", "Unknown")
-            confidence = result.get("confidence", 0.0)
+            # Check for Crop Validation Error first
+            if "NOT_A_CROP_ERROR" in clean_response:
+                print(f"⚠️ {clean_response}")
+                disease_name = "Not a Crop"
+                confidence = 0.0
+                # Using the error message as part of the recommendation later if needed, 
+                # but for here we just set the disease state.
+            else:
+                try:
+                    # Find first brace
+                    start_idx = clean_response.find('{')
+                    if start_idx != -1:
+                        # raw_decode stops once it parses a valid JSON object
+                        # This handles "Extra data" errors (e.g. text after JSON)
+                        json_str = clean_response[start_idx:]
+                        result, _ = json.JSONDecoder().raw_decode(json_str)
+                    else:
+                        # No brace, try raw load
+                        result = json.loads(clean_response)
+                        
+                    disease_name = result.get("disease", "Unknown")
+                    confidence = result.get("confidence", 0.0)
+                except Exception as parse_error:
+                    print(f"⚠️ JSON Parse Error: {parse_error}. Trying strict substring strategy...")
+                    # Fallback to strict substring if raw_decode fails (e.g. malformed JSON)
+                    end_idx = clean_response.rfind('}') + 1
+                    if start_idx != -1 and end_idx > start_idx:
+                        result = json.loads(clean_response[start_idx:end_idx])
+                        disease_name = result.get("disease", "Unknown")
+                        confidence = result.get("confidence", 0.0)
+                    else:
+                        raise parse_error
             
         except Exception as e:
             print(f"❌ Vision diagnosis failed: {e}. Falling back to basic check.")
@@ -154,7 +164,15 @@ class DiagnosisService:
         response = model.generate_content([prompt, image])
         result_text = response.text.strip().replace("```json", "").replace("```", "").strip()
         
-        result = json.loads(result_text)
+        try:
+            start_idx = result_text.find('{')
+            if start_idx != -1:
+                result, _ = json.JSONDecoder().raw_decode(result_text[start_idx:])
+            else:
+                result = json.loads(result_text)
+        except Exception:
+             # Fallback
+             result = json.loads(result_text)
         
         disease_name = result.get("disease", "Unknown")
         confidence = result.get("confidence", 0.0)
@@ -282,7 +300,14 @@ class DiagnosisService:
                 response = model.generate_content([prompt, image_part])
                 result_text = response.text.strip().replace("```json", "").replace("```", "").strip()
                 
-                result = json.loads(result_text)
+                try:
+                    start_idx = result_text.find('{')
+                    if start_idx != -1:
+                        result, _ = json.JSONDecoder().raw_decode(result_text[start_idx:])
+                    else:
+                        result = json.loads(result_text)
+                except Exception:
+                     result = json.loads(result_text)
                 
                 disease_name = result.get("disease", "Unknown")
                 confidence = result.get("confidence", 0.0)
