@@ -2,22 +2,7 @@ import os
 import json
 from sqlalchemy.orm import Session
 from . import models, schemas
-
-# Initialize Providers
-try:
-    import vertexai
-    from vertexai.generative_models import GenerativeModel
-    VERTEX_AVAILABLE = True
-except ImportError:
-    VERTEX_AVAILABLE = False
-    print("⚠️ Vertex AI not installed. Install with: pip install google-cloud-aiplatform")
-
-try:
-    import google.generativeai as genai
-    GEMINI_AVAILABLE = True
-except ImportError:
-    GEMINI_AVAILABLE = False
-    print("⚠️ Gemini AI not installed. Install with: pip install google-generativeai")
+from app.core.huggingface_service import get_huggingface_service
 
 def create_registry_item(db: Session, item: schemas.RegistryCreate):
     db_item = models.RegistryTable(
@@ -35,34 +20,36 @@ def get_registry_item(db: Session, name: str):
 
 def search_or_create_crop(db: Session, crop_name: str):
     """
-    Search for a crop in Registry. If not found, use AI to generate it.
+    Search for a crop in Registry. If not found, use Hugging Face AI to generate it.
     """
     # 1. Search DB (Case-insensitive)
     existing = db.query(models.RegistryTable).filter(models.RegistryTable.name.ilike(crop_name)).first()
     if existing:
         return existing
     
-    # 2. Attempt Generation
-    # Strategy A: Gemini API (API Key)
-    api_key = os.getenv("GEMINI_API_KEY")
+    # 2. Generate with Hugging Face AI (FREE)
+    hf_service = get_huggingface_service()
     
-    if GEMINI_AVAILABLE and api_key:
-        try:
-            print(f"🤖 Generating crop profile for: {crop_name} (Via Gemini API)")
-            genai.configure(api_key=api_key)
+    if not hf_service.is_available():
+        print("❌ Hugging Face not configured. Cannot generate crop profile.")
+        return None
+    
+    try:
+        print(f"🤖 Generating crop profile for: {crop_name} (via Hugging Face)")
+        
+        # Generate crop profile using Hugging Face
+        data = hf_service.generate_crop_profile(crop_name)
+        
+        if data:
+            print(f"✅ Successfully generated crop profile for {crop_name}")
+            return _save_to_db(db, data, crop_name)
+        else:
+            print(f"❌ Failed to generate crop profile")
+            return None
             
-            # Use available model from list
-            model = genai.GenerativeModel('gemini-flash-latest')
-            
-            prompt = _get_crop_prompt(crop_name)
-            response = model.generate_content(prompt)
-            data = _parse_json_response(response.text)
-            
-            if data:
-                 return _save_to_db(db, data, crop_name)
-                 
-        except Exception as e:
-            print(f"⚠️ Gemini API failed: {e}. Falling back to Vertex AI...")
+    except Exception as e:
+        print(f"❌ Hugging Face crop generation failed: {e}")
+        return None
 
     # Strategy B: Vertex AI (Gcloud Auth or Service Account)
     if VERTEX_AVAILABLE:

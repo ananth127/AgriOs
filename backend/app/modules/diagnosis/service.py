@@ -3,50 +3,104 @@ import random
 from sqlalchemy.orm import Session
 from . import models, schemas
 from app.modules.knowledge_graph.service import KnowledgeGraphService
+from app.core.huggingface_service import get_huggingface_service
 import json
-
-# Vertex AI for Vision
-try:
-    import vertexai
-    from vertexai.generative_models import GenerativeModel, Part
-    VERTEX_AVAILABLE = True
-except ImportError:
-    VERTEX_AVAILABLE = False
-    print("⚠️ Vertex AI not available for image diagnosis")
 
 class DiagnosisService:
     def __init__(self, db: Session):
         self.db = db
         self.kg_service = KnowledgeGraphService(db)
+        self.hf_service = get_huggingface_service()
 
     def perform_diagnosis(self, image_url: str, crop: str = "Unknown") -> models.DiagnosisLog:
         """
-        Perform AI-powered image diagnosis.
-        Priority: Gemini API (free) → Vertex AI (paid) → Mock
+        Perform AI-powered image diagnosis using Hugging Face (FREE)
+        Falls back to mock if unavailable.
         """
         
-        # Try Gemini API first (FREE)
-        api_key = os.getenv("GEMINI_API_KEY")
-        if api_key:
+        if self.hf_service.is_available():
             try:
-                import google.generativeai as genai
-                return self._gemini_api_diagnosis(image_url, crop, api_key, genai)
+                return self._huggingface_diagnosis(image_url, crop)
             except Exception as e:
-                error_msg = str(e).lower()
-                if "quota" in error_msg or "429" in error_msg:
-                    print(f"⚠️ Gemini API quota exceeded: {e}. Trying Vertex AI...")
-                else:
-                    print(f"⚠️ Gemini API failed: {e}. Trying Vertex AI...")
-        
-        # Fallback to Vertex AI (if available)
-        if VERTEX_AVAILABLE:
-            try:
-                return self._vertex_ai_diagnosis(image_url, crop)
-            except Exception as e:
-                print(f"⚠️ Vertex AI diagnosis failed: {e}. Using mock.")
+                print(f"⚠️ Hugging Face diagnosis failed: {e}. Using mock.")
                 return self._mock_diagnosis(image_url, crop)
         else:
+            print("ℹ️ Hugging Face not configured. Using mock diagnosis.")
             return self._mock_diagnosis(image_url, crop)
+
+    def _huggingface_diagnosis(self, image_url: str, crop: str) -> models.DiagnosisLog:
+        """
+        Use Hugging Face Vision AI (Hybrid Strategy) for diagnosis
+        """
+        print(f"🔬 Analyzing image with Hugging Face Hybrid Vision: {image_url}")
+        
+        # Handle local image paths
+        if image_url.startswith('/static/'):
+            local_path = os.path.join('static', image_url.replace('/static/', ''))
+        else:
+            local_path = image_url
+            
+        try:
+            # This now returns a JSON string from the Hybrid Vision system
+            json_response = self.hf_service.analyze_image(local_path, crop)
+            
+            # Clean and parse JSON
+            clean_response = json_response.replace("```json", "").replace("```", "").strip()
+            
+            try:
+                # Find first brace
+                start_idx = clean_response.find('{')
+                if start_idx != -1:
+                    # raw_decode stops once it parses a valid JSON object
+                    # This handles "Extra data" errors (e.g. text after JSON)
+                    json_str = clean_response[start_idx:]
+                    result, _ = json.JSONDecoder().raw_decode(json_str)
+                else:
+                    # No brace, try raw load
+                    result = json.loads(clean_response)
+            except Exception as parse_error:
+                print(f"⚠️ JSON Parse Error: {parse_error}. Trying strict substring strategy...")
+                # Fallback to strict substring if raw_decode fails (e.g. malformed JSON)
+                end_idx = clean_response.rfind('}') + 1
+                if start_idx != -1 and end_idx > start_idx:
+                    result = json.loads(clean_response[start_idx:end_idx])
+                else:
+                    raise parse_error
+            
+            disease_name = result.get("disease", "Unknown")
+            confidence = result.get("confidence", 0.0)
+            
+        except Exception as e:
+            print(f"❌ Vision diagnosis failed: {e}. Falling back to basic check.")
+            disease_name = "Analysis Failed"
+            confidence = 0.0
+        
+        # Get treatment recommendation
+        if disease_name.lower() == "healthy":
+            recommendation = "No action needed. Crop looks healthy."
+        else:
+            recommendation = self.kg_service.get_treatment_for_pest(disease_name)
+            
+            if "No specific data" in recommendation:
+                self.kg_service.seed_initial_data()
+                recommendation = self.kg_service.get_treatment_for_pest(disease_name)
+        
+        print(f"✅ Success with Hugging Face! Disease: {disease_name}")
+        
+        # Create Log Entry
+        diagnosis_entry = models.DiagnosisLog(
+            image_url=image_url,
+            crop_name=crop,
+            disease_detected=disease_name,
+            confidence_score=confidence,
+            recommendation=recommendation
+        )
+        
+        self.db.add(diagnosis_entry)
+        self.db.commit()
+        self.db.refresh(diagnosis_entry)
+        
+        return diagnosis_entry
 
     def _gemini_api_diagnosis(self, image_url: str, crop: str, api_key: str, genai) -> models.DiagnosisLog:
         """

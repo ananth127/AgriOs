@@ -7,26 +7,19 @@ services:
     plan: free
     branch: main
     rootDir: backend
-    buildCommand: |
-      pip install -r requirements.txt
-      python -c "import whisper; whisper.load_model('base')"
-    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /docs
     envVars:
       - key: DATABASE_URL
         sync: false
-      # Vertex AI Configuration (For Render.com deployment)
-      - key: GOOGLE_CLOUD_PROJECT
+      - key: SECRET_KEY
         sync: false
-      - key: GOOGLE_CLOUD_LOCATION
-        value: us-central1
-      - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
+      # Hugging Face API (Primary AI)
+      - key: HUGGINGFACE_API_KEY
         sync: false
-      # Fallback: Gemini API Key (if not using Vertex AI)
+      # Legacy: Keep for backward compatibility
       - key: GEMINI_API_KEY
         sync: false
       - key: PYTHON_VERSION
         value: 3.10.0
-      - key: PORT
-        value: 10000
-

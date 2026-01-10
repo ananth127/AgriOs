@@ -22,8 +22,10 @@ python-multipart
 # Voice Search - Free AI Alternatives
 # Voice Search & AI
 openai-whisper
-google-generativeai
-google-cloud-aiplatform
+# google-generativeai
+# google-cloud-aiplatform
+
+huggingface_hub
 google-cloud-speech
 google-cloud-texttospeech
 
