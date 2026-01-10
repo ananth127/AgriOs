@@ -109,7 +109,7 @@ export default function CropLibrary() {
                     </button>
                 </form>
                 <p className="text-center text-slate-500 text-xs mt-2">
-                    Start typing or use voice. Our AI will generate a guide if it doesn't exist.
+                    Start typing or use voice. Our AI will generate a guide if it doesn&apos;t exist.
                 </p>
             </div>
 

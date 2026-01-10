@@ -133,7 +133,7 @@ export default function LibraryBrowser() {
 
                     {pests.length === 0 && (
                         <div className="col-span-full text-center py-20 text-slate-500">
-                            No diseases found matching "{search}"
+                            No diseases found matching &quot;{search}&quot;
                         </div>
                     )}
                 </div>
