@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 # Shared properties
@@ -11,6 +11,8 @@ class UserBase(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     location_name: Optional[str] = None
+    survey_number: Optional[str] = None
+    boundary: Optional[List[List[float]]] = None # [[lat, lng], ...]
 
 # Properties to receive via API on creation
 class UserCreate(UserBase):
@@ -28,6 +30,8 @@ class UserUpdate(BaseModel):
     latitude: Optional[float] = None
     longitude: Optional[float] = None
     location_name: Optional[str] = None
+    survey_number: Optional[str] = None
+    boundary: Optional[List[List[float]]] = None
 
 # Properties to return via API
 class User(UserBase):

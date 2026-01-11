@@ -8,6 +8,7 @@ import { LaborManager } from '@/components/farm-management/LaborManager';
 import { IoTControl } from '@/components/farm-management/IoTControl';
 import { LogActivityModal } from '@/components/farm-management/LogActivityModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { ContentLoader } from '@/components/ui/ContentLoader';
 import { api } from '@/lib/api';
 import { InventoryManager } from '@/components/farm-management/InventoryManager';
 import { MachineryManager } from '@/components/farm-management/MachineryManager';
@@ -27,9 +28,11 @@ export default function FarmManagementPage() {
     const [timelineEvents, setTimelineEvents] = useState<any[]>([]);
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     // Fetch initial data
     const refreshData = useCallback(async () => {
+        setLoading(true);
         try {
             // 1. Fetch Financials
             const financials = await api.farmManagement.getFinancials(farmId) as any;
@@ -80,6 +83,8 @@ export default function FarmManagementPage() {
 
         } catch (e) {
             console.error("Failed to load farm data", e);
+        } finally {
+            setLoading(false);
         }
     }, [farmId]);
 
@@ -116,83 +121,85 @@ export default function FarmManagementPage() {
 
             {/* Content Areas */}
             {activeTab === 'overview' && (
-                <div className="space-y-8 animate-in fade-in duration-500">
-                    <FinancialDashboard stats={financialStats} />
+                <ContentLoader loading={loading} text="Analyzing farm data...">
+                    <div className="space-y-8 animate-in fade-in duration-500">
+                        <FinancialDashboard stats={financialStats} />
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Quick Actions / Suggestions */}
-                        <Card>
-                            <CardHeader><CardTitle>Smart Suggestions</CardTitle></CardHeader>
-                            <CardContent>
-                                {suggestions.length > 0 ? (
-                                    <ul className="space-y-3">
-                                        {suggestions.map((suggestion, idx) => (
-                                            <li key={idx} className={`flex items-start space-x-3 p-3 rounded-lg ${suggestion.type === 'Pesticide' ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
-                                                <span className={`font-bold ${suggestion.type === 'Pesticide' ? 'text-yellow-600' : 'text-green-600'}`}>
-                                                    {suggestion.type === 'Pesticide' ? '⚠️' : '💧'}
-                                                </span>
-                                                <div>
-                                                    <p className="font-medium text-gray-900 dark:text-white">
-                                                        {suggestion.type === 'Pesticide' ? 'Pest Alert' : 'Fertilizer Logic'}
-                                                    </p>
-                                                    <p className="text-sm text-gray-500">
-                                                        {suggestion.reason} <br />
-                                                        <strong>Use: {suggestion.suggested_item || suggestion.suggested_pesticide}</strong>
-                                                        ({suggestion.quantity_per_acre_kg ? `${suggestion.quantity_per_acre_kg} kg/acre` : suggestion.dosage_per_acre})
-                                                    </p>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <div className="text-center py-8 text-gray-500">
-                                        <p>No immediate actions required.</p>
-                                        <p className="text-xs mt-1">Add crops to generate AI suggestions.</p>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Quick Actions / Suggestions */}
+                            <Card>
+                                <CardHeader><CardTitle>Smart Suggestions</CardTitle></CardHeader>
+                                <CardContent>
+                                    {suggestions.length > 0 ? (
+                                        <ul className="space-y-3">
+                                            {suggestions.map((suggestion, idx) => (
+                                                <li key={idx} className={`flex items-start space-x-3 p-3 rounded-lg ${suggestion.type === 'Pesticide' ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-green-50 dark:bg-green-900/20'}`}>
+                                                    <span className={`font-bold ${suggestion.type === 'Pesticide' ? 'text-yellow-600' : 'text-green-600'}`}>
+                                                        {suggestion.type === 'Pesticide' ? '⚠️' : '💧'}
+                                                    </span>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900 dark:text-white">
+                                                            {suggestion.type === 'Pesticide' ? 'Pest Alert' : 'Fertilizer Logic'}
+                                                        </p>
+                                                        <p className="text-sm text-gray-500">
+                                                            {suggestion.reason} <br />
+                                                            <strong>Use: {suggestion.suggested_item || suggestion.suggested_pesticide}</strong>
+                                                            ({suggestion.quantity_per_acre_kg ? `${suggestion.quantity_per_acre_kg} kg/acre` : suggestion.dosage_per_acre})
+                                                        </p>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p>No immediate actions required.</p>
+                                            <p className="text-xs mt-1">Add crops to generate AI suggestions.</p>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            {/* Recent Activity */}
+                            <Card>
+                                <CardHeader className="flex flex-row justify-between items-center">
+                                    <CardTitle>Recent Activity</CardTitle>
+                                    <button
+                                        onClick={() => setIsActivityModalOpen(true)}
+                                        className="text-sm text-green-400 hover:text-green-300 font-medium"
+                                    >
+                                        + Log Activity
+                                    </button>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="flow-root max-h-[300px] overflow-y-auto pr-2">
+                                        <ul className="mb-0">
+                                            {timelineEvents.slice(0, 5).map((item, idx) => (
+                                                <li key={idx} className="py-3 sm:py-4 border-b last:border-0 dark:border-gray-700">
+                                                    <div className="flex items-center space-x-4">
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-sm font-medium text-gray-900 truncate dark:text-white">
+                                                                {item.title}
+                                                            </p>
+                                                            <p className="text-sm text-gray-500 truncate dark:text-gray-400">
+                                                                {item.details}
+                                                            </p>
+                                                        </div>
+                                                        <div className="inline-flex items-center text-xs font-semibold text-gray-900 dark:text-gray-500">
+                                                            {new Date(item.date).toLocaleDateString()}
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                            ))}
+                                            {timelineEvents.length === 0 && (
+                                                <p className="text-center text-gray-500 py-4">No activities logged yet.</p>
+                                            )}
+                                        </ul>
                                     </div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Recent Activity */}
-                        <Card>
-                            <CardHeader className="flex flex-row justify-between items-center">
-                                <CardTitle>Recent Activity</CardTitle>
-                                <button
-                                    onClick={() => setIsActivityModalOpen(true)}
-                                    className="text-sm text-green-400 hover:text-green-300 font-medium"
-                                >
-                                    + Log Activity
-                                </button>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="flow-root max-h-[300px] overflow-y-auto pr-2">
-                                    <ul className="mb-0">
-                                        {timelineEvents.slice().reverse().slice(0, 5).map((item, idx) => (
-                                            <li key={idx} className="py-3 sm:py-4 border-b last:border-0 dark:border-gray-700">
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-gray-900 truncate dark:text-white">
-                                                            {item.title}
-                                                        </p>
-                                                        <p className="text-sm text-gray-500 truncate dark:text-gray-400">
-                                                            {item.details}
-                                                        </p>
-                                                    </div>
-                                                    <div className="inline-flex items-center text-xs font-semibold text-gray-900 dark:text-gray-500">
-                                                        {new Date(item.date).toLocaleDateString()}
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        ))}
-                                        {timelineEvents.length === 0 && (
-                                            <p className="text-center text-gray-500 py-4">No activities logged yet.</p>
-                                        )}
-                                    </ul>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        </div>
                     </div>
-                </div>
+                </ContentLoader>
             )}
 
             {activeTab === 'timeline' && (

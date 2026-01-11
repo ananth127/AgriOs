@@ -22,7 +22,8 @@ start "Agri-OS Backend" cmd /k "cd backend && title Backend (FastAPI) && uvicorn
 :: 3. Start Frontend in a new window
 echo Starting Frontend Server...
 echo Setting NEXT_PUBLIC_API_URL=http://%IP%:8000/api/v1
-start "Agri-OS Frontend" cmd /k "cd frontend && title Frontend (Next.js) && set HOST=0.0.0.0 && set NEXT_PUBLIC_API_URL=http://%IP%:8000/api/v1 && npm run dev -- -p 3000"
+:: Note: Use "set VAR=VAL" syntax with && immediately after to avoid trailing spaces
+start "Agri-OS Frontend" cmd /k "cd frontend && title Frontend (Next.js) && set HOST=0.0.0.0 && set NEXT_PUBLIC_API_URL=http://%IP%:8000/api/v1&& npm run dev -- -p 3000"
 
 echo.
 echo ==========================================

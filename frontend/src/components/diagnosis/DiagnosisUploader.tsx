@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
-import { Upload, X, Loader2, CheckCircle, AlertTriangle, Activity } from 'lucide-react';
+import { Upload, X, Loader2, CheckCircle, AlertTriangle, Activity, Camera } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/constants';
 import { useAuth } from '@/lib/auth-context';
 import Image from 'next/image';
@@ -34,6 +34,7 @@ export default function DiagnosisUploader() {
     const [cropName, setCropName] = useState("Unknown");
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const cameraInputRef = useRef<HTMLInputElement>(null);
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -120,31 +121,52 @@ export default function DiagnosisUploader() {
                 <p className="text-slate-400 text-sm mb-6">{t('upload_desc')}</p>
 
                 {!previewUrl ? (
-                    <div
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={handleDrop}
-                        onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-slate-700 hover:border-green-500/50 hover:bg-slate-800/50 rounded-xl aspect-[4/3] flex flex-col items-center justify-center cursor-pointer transition-all group"
-                    >
-                        <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                            <Upload className="w-8 h-8 text-slate-400 group-hover:text-green-400" />
+                    <div className="space-y-4">
+                        <div
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={handleDrop}
+                            onClick={() => fileInputRef.current?.click()}
+                            className="border-2 border-dashed border-slate-700 hover:border-green-500/50 hover:bg-slate-800/50 rounded-xl aspect-[4/3] flex flex-col items-center justify-center cursor-pointer transition-all group"
+                        >
+                            <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                                <Upload className="w-8 h-8 text-slate-400 group-hover:text-green-400" />
+                            </div>
+                            <p className="text-slate-300 font-medium">Click to upload or drag & drop</p>
+                            <p className="text-slate-500 text-sm mt-1">PG, PNG, JPEG (Max 5MB)</p>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleFileSelect}
+                            />
                         </div>
-                        <p className="text-slate-300 font-medium">Click to upload or drag & drop</p>
-                        <p className="text-slate-500 text-sm mt-1">PG, PNG, JPEG (Max 5MB)</p>
+
+                        {/* Camera Button */}
+                        <button
+                            onClick={() => cameraInputRef.current?.click()}
+                            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center gap-2 border border-white/5 transition-colors group"
+                        >
+                            <Camera className="w-5 h-5 text-green-400 group-hover:scale-110 transition-transform" />
+                            <span className="font-medium">Take Photo (Camera)</span>
+                        </button>
                         <input
                             type="file"
-                            ref={fileInputRef}
+                            ref={cameraInputRef}
                             className="hidden"
                             accept="image/*"
+                            capture="environment" // Forces rear camera on mobile
                             onChange={handleFileSelect}
                         />
                     </div>
                 ) : (
                     <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-black border border-slate-700">
-                        <img
+                        <Image
                             src={previewUrl}
                             alt="Preview"
-                            className="w-full h-full object-contain"
+                            fill
+                            className="object-contain"
+                            unoptimized
                         />
                         <button
                             onClick={reset}

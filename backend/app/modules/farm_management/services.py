@@ -29,11 +29,22 @@ class FarmManagementService:
     def generate_fertilizer_suggestion(self, farm_id: int, crop_name: str):
         # Enhanced logic suggestion
         # In a real app, this would use the `prophet` module or historical yield data.
+        
+        suggestion = "NPK 19-19-19"
+        qty = 50.0
+        
+        if "Wheat" in crop_name:
+            suggestion = "Urea (Nitrogen)"
+            qty = 110.0
+        elif "Corn" in crop_name or "Maize" in crop_name:
+            suggestion = "DAP (Diammonium Phosphate)"
+            qty = 85.0
+
         return {
             "crop": crop_name,
-            "suggested_item": "Urea + DAP",
-            "quantity_per_acre_kg": 120.0,
-            "reason": f"Based on '{crop_name}' nutrient uptake and standard soil profiles for this region."
+            "suggested_item": suggestion,
+            "quantity_per_acre_kg": qty,
+            "reason": f"Optimal nutrient balance for {crop_name} vegetative growth."
         }
     
     def generate_pesticide_suggestion(self, farm_id: int, crop_name: str, disease_detected: str):
@@ -68,7 +79,11 @@ class FarmManagementService:
         return timeline
 
     def get_farm_timeline(self, farm_id: int):
-        activities = self.db.query(models.FarmActivity).filter(models.FarmActivity.farm_id == farm_id).all()
+        activities = self.db.query(models.FarmActivity)\
+            .filter(models.FarmActivity.farm_id == farm_id)\
+            .order_by(models.FarmActivity.activity_date.desc())\
+            .limit(50)\
+            .all()
         
         timeline = []
         for act in activities:

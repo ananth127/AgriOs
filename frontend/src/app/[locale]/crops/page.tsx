@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
+import { ContentLoader } from '@/components/ui/ContentLoader';
 import { Search, Trash2, Pencil, BarChart3 } from 'lucide-react';
 import { EditCropModal } from '@/components/crops/EditCropModal';
 import { CropAnalyticsDashboard } from '@/components/crops/CropAnalyticsDashboard';
@@ -25,30 +26,46 @@ export default function CropsPage() {
     const [selectedFarmId, setSelectedFarmId] = useState<string>("");
     const [selectedCropId, setSelectedCropId] = useState<string>("");
     const [sowingDate, setSowingDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [loading, setLoading] = useState(true);
 
     const fetchMyCrops = useCallback(() => {
         if (farms.length > 0) {
+            setLoading(true);
             const farmId = selectedFarmId || farms[0].id;
             api.crops.list(farmId)
                 .then((data: any) => {
                     if (Array.isArray(data)) setMyCrops(data as any[]);
                 })
-                .catch(err => console.error("Failed to fetch crops", err));
+                .catch(err => console.error("Failed to fetch crops", err))
+                .finally(() => setLoading(false));
+        } else {
+            setLoading(false);
         }
     }, [farms, selectedFarmId]);
 
     useEffect(() => {
-        api.registry.list().then((data: any) => { if (Array.isArray(data)) setRegistry(data); });
-        api.farms.list().then((data: any) => {
-            if (Array.isArray(data)) {
-                setFarms(data as any[]);
-                if (data.length > 0) setSelectedFarmId(data[0].id.toString());
-            }
+        setLoading(true);
+        Promise.all([
+            api.registry.list().then((data: any) => { if (Array.isArray(data)) setRegistry(data); }),
+            api.farms.list().then((data: any) => {
+                if (Array.isArray(data)) {
+                    setFarms(data as any[]);
+                    if (data.length > 0) setSelectedFarmId(data[0].id.toString());
+                }
+            })
+        ]).finally(() => {
+            // If defaulting to my-crops, we might leave loading true, but here we default to registry so we are done.
+            setLoading(false);
         });
     }, []);
 
     useEffect(() => {
-        if (activeTab === 'my-crops') fetchMyCrops();
+        if (activeTab === 'my-crops') {
+            fetchMyCrops();
+        } else {
+            // If switching back to registry, we assume it's loaded from cache or state, so stop loading
+            setLoading(false);
+        }
     }, [activeTab, fetchMyCrops]);
 
     const handlePlant = async () => {
@@ -134,125 +151,129 @@ export default function CropsPage() {
             </div>
 
             {activeTab === 'registry' && (
-                <div className="space-y-4">
-                    <div className="flex gap-2">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
-                            <input type="text" placeholder={t('search_registry_placeholder')} className="w-full bg-slate-900 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-green-500/50" />
+                <ContentLoader loading={loading} text="Loading crop registry...">
+                    <div className="space-y-4">
+                        <div className="flex gap-2">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
+                                <input type="text" placeholder={t('search_registry_placeholder')} className="w-full bg-slate-900 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-green-500/50" />
+                            </div>
                         </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {registry.map((crop, i) => (
-                            <Card key={i} className="hover:border-green-500/20 cursor-pointer transition-colors group">
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="p-2 bg-green-500/10 rounded-lg group-hover:bg-green-500/20 transition-colors">
-                                        <span className="text-xl">🌾</span>
-                                    </div>
-                                    <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400 uppercase">{crop.category}</span>
-                                </div>
-                                <h3 className="font-semibold text-lg">{crop.name}</h3>
-                                {crop.definition && (
-                                    <div className="mt-2 text-xs text-slate-400 space-y-1">
-                                        <p>{t('card_duration_days', { days: crop.definition.duration_days })}</p>
-                                        <p>{t('card_water_needs', { water: crop.definition.water_needs })}</p>
-                                    </div>
-                                )}
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedCropId(crop.id.toString());
-                                        setShowPlantModal(true);
-                                    }}
-                                    className="mt-4 w-full py-2 bg-slate-800 hover:bg-green-600 rounded text-sm font-medium transition-colors hidden group-hover:block animate-in fade-in"
-                                >
-                                    {t('button_plant_this')}
-                                </button>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {activeTab === 'my-crops' && (
-                <div className="space-y-4">
-                    {farms.length > 0 && (
-                        <div className="flex items-center gap-2 mb-4">
-                            <span className="text-sm text-slate-400">{t('label_viewing_farm')}:</span>
-                            <select
-                                value={selectedFarmId}
-                                onChange={(e) => setSelectedFarmId(e.target.value)}
-                                className="bg-slate-900 border border-white/10 rounded px-3 py-1 text-sm focus:outline-none"
-                            >
-                                {farms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                            </select>
-                        </div>
-                    )}
-
-                    {myCrops.length === 0 ? (
-                        <div className="text-center py-20 bg-slate-900/50 rounded-2xl border border-dashed border-white/10">
-                            <span className="text-4xl block mb-4">🌱</span>
-                            <h3 className="text-xl font-semibold text-slate-300">{t('empty_state_title')}</h3>
-                            <p className="text-slate-500 mt-2">{t('empty_state_desc')}</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {myCrops.map((cycle, i) => (
-                                <Card key={i} className="border-l-4 border-l-green-500 relative group overflow-visible">
-                                    <div className="absolute -top-3 -right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                                        <button
-                                            onClick={() => setViewingAnalytics({ ...cycle, registry_name: getCropName(cycle.registry_id) })}
-                                            className="bg-slate-800 text-purple-400 hover:bg-purple-600 hover:text-white p-2 rounded-full shadow-lg border border-white/10 transition-all"
-                                            title="View Analysis"
-                                        >
-                                            <BarChart3 className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => setEditingCrop(cycle)}
-                                            className="bg-slate-800 text-blue-400 hover:bg-blue-600 hover:text-white p-2 rounded-full shadow-lg border border-white/10 transition-all"
-                                            title="Edit"
-                                        >
-                                            <Pencil className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(cycle.id)}
-                                            className="bg-slate-800 text-red-400 hover:bg-red-600 hover:text-white p-2 rounded-full shadow-lg border border-white/10 transition-all"
-                                            title="Delete"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-bold text-lg">{getCropName(cycle.registry_id)}</h3>
-                                            <p className="text-xs text-slate-400">{t('crop_sown_on', { date: cycle.sowing_date })}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {registry.map((crop, i) => (
+                                <Card key={i} className="hover:border-green-500/20 cursor-pointer transition-colors group">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div className="p-2 bg-green-500/10 rounded-lg group-hover:bg-green-500/20 transition-colors">
+                                            <span className="text-xl">🌾</span>
                                         </div>
-                                        <span className="bg-green-500/10 text-green-400 px-2 py-1 rounded text-xs font-bold uppercase border border-green-500/20">
-                                            {getStageName(cycle.current_stage || 'Germination')}
-                                        </span>
+                                        <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400 uppercase">{crop.category}</span>
                                     </div>
-                                    <div className="mt-4 bg-slate-800 rounded-full h-2 overflow-hidden">
-                                        <div
-                                            className="bg-green-500 h-full transition-all duration-1000"
-                                            style={{ width: `${Math.min(cycle.health_score || 10, 100)}%` }}
-                                        ></div>
-                                    </div>
-                                    <div className="mt-2 flex justify-between text-xs text-slate-500">
-                                        <span className="flex items-center gap-1">{t('label_health')}: <strong className="text-white">{cycle.health_score ?? 'N/A'}%</strong></span>
-                                        <span>{t('label_est_harvest')}: {cycle.harvest_date_estimated || 'Calculating...'}</span>
-                                    </div>
-
+                                    <h3 className="font-semibold text-lg">{crop.name}</h3>
+                                    {crop.definition && (
+                                        <div className="mt-2 text-xs text-slate-400 space-y-1">
+                                            <p>{t('card_duration_days', { days: crop.definition.duration_days })}</p>
+                                            <p>{t('card_water_needs', { water: crop.definition.water_needs })}</p>
+                                        </div>
+                                    )}
                                     <button
-                                        onClick={() => setViewingAnalytics({ ...cycle, registry_name: getCropName(cycle.registry_id) })}
-                                        className="w-full mt-4 py-2 bg-slate-800/50 hover:bg-slate-800 text-slate-300 text-xs font-medium rounded transition-colors flex items-center justify-center gap-2"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedCropId(crop.id.toString());
+                                            setShowPlantModal(true);
+                                        }}
+                                        className="mt-4 w-full py-2 bg-slate-800 hover:bg-green-600 rounded text-sm font-medium transition-colors hidden group-hover:block animate-in fade-in"
                                     >
-                                        <BarChart3 className="w-3 h-3" /> {t('button_view_analytics')}
+                                        {t('button_plant_this')}
                                     </button>
                                 </Card>
                             ))}
                         </div>
-                    )}
-                </div>
+                    </div>
+                </ContentLoader>
+            )}
+
+            {activeTab === 'my-crops' && (
+                <ContentLoader loading={loading} text="Loading your crops...">
+                    <div className="space-y-4">
+                        {farms.length > 0 && (
+                            <div className="flex items-center gap-2 mb-4">
+                                <span className="text-sm text-slate-400">{t('label_viewing_farm')}:</span>
+                                <select
+                                    value={selectedFarmId}
+                                    onChange={(e) => setSelectedFarmId(e.target.value)}
+                                    className="bg-slate-900 border border-white/10 rounded px-3 py-1 text-sm focus:outline-none"
+                                >
+                                    {farms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                </select>
+                            </div>
+                        )}
+
+                        {myCrops.length === 0 ? (
+                            <div className="text-center py-20 bg-slate-900/50 rounded-2xl border border-dashed border-white/10">
+                                <span className="text-4xl block mb-4">🌱</span>
+                                <h3 className="text-xl font-semibold text-slate-300">{t('empty_state_title')}</h3>
+                                <p className="text-slate-500 mt-2">{t('empty_state_desc')}</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {myCrops.map((cycle, i) => (
+                                    <Card key={i} className="border-l-4 border-l-green-500 relative group overflow-visible">
+                                        <div className="absolute -top-3 -right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                            <button
+                                                onClick={() => setViewingAnalytics({ ...cycle, registry_name: getCropName(cycle.registry_id) })}
+                                                className="bg-slate-800 text-purple-400 hover:bg-purple-600 hover:text-white p-2 rounded-full shadow-lg border border-white/10 transition-all"
+                                                title="View Analysis"
+                                            >
+                                                <BarChart3 className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => setEditingCrop(cycle)}
+                                                className="bg-slate-800 text-blue-400 hover:bg-blue-600 hover:text-white p-2 rounded-full shadow-lg border border-white/10 transition-all"
+                                                title="Edit"
+                                            >
+                                                <Pencil className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(cycle.id)}
+                                                className="bg-slate-800 text-red-400 hover:bg-red-600 hover:text-white p-2 rounded-full shadow-lg border border-white/10 transition-all"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <h3 className="font-bold text-lg">{getCropName(cycle.registry_id)}</h3>
+                                                <p className="text-xs text-slate-400">{t('crop_sown_on', { date: cycle.sowing_date })}</p>
+                                            </div>
+                                            <span className="bg-green-500/10 text-green-400 px-2 py-1 rounded text-xs font-bold uppercase border border-green-500/20">
+                                                {getStageName(cycle.current_stage || 'Germination')}
+                                            </span>
+                                        </div>
+                                        <div className="mt-4 bg-slate-800 rounded-full h-2 overflow-hidden">
+                                            <div
+                                                className="bg-green-500 h-full transition-all duration-1000"
+                                                style={{ width: `${Math.min(cycle.health_score || 10, 100)}%` }}
+                                            ></div>
+                                        </div>
+                                        <div className="mt-2 flex justify-between text-xs text-slate-500">
+                                            <span className="flex items-center gap-1">{t('label_health')}: <strong className="text-white">{cycle.health_score ?? 'N/A'}%</strong></span>
+                                            <span>{t('label_est_harvest')}: {cycle.harvest_date_estimated || 'Calculating...'}</span>
+                                        </div>
+
+                                        <button
+                                            onClick={() => setViewingAnalytics({ ...cycle, registry_name: getCropName(cycle.registry_id) })}
+                                            className="w-full mt-4 py-2 bg-slate-800/50 hover:bg-slate-800 text-slate-300 text-xs font-medium rounded transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <BarChart3 className="w-3 h-3" /> {t('button_view_analytics')}
+                                        </button>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </ContentLoader>
             )}
 
             {/* Modals */}

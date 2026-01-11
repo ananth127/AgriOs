@@ -11,23 +11,59 @@ interface CreateFarmProps {
 
 export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, onSuccess }) => {
     const [loading, setLoading] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        name: string;
+        location_lat: string;
+        location_lon: string;
+        area_acres: string;
+        soil_type: string;
+        survey_number?: string;
+        boundary?: [number, number][]; // Array of [lat, lon]
+    }>({
         name: '',
         location_lat: '',
         location_lon: '',
         area_acres: '',
-        soil_type: 'Loam'
+        soil_type: 'Loam',
+        survey_number: ''
     });
+
+    const handleFetchBoundary = async () => {
+        // MOCK API Call to Government Land Record Service
+        setLoading(true);
+        console.log(`Fetching boundary for Survey No: ${formData.survey_number}`);
+
+        // Simulate network delay
+        setTimeout(() => {
+            // Mock logic: Create a small square around the current location or a default
+            const centerLat = parseFloat(formData.location_lat) || 18.5204;
+            const centerLon = parseFloat(formData.location_lon) || 73.8567;
+
+            // Mock Polygon (approx 2 acres square)
+            const mockBoundary: [number, number][] = [
+                [centerLat - 0.001, centerLon - 0.001],
+                [centerLat + 0.001, centerLon - 0.001],
+                [centerLat + 0.001, centerLon + 0.001],
+                [centerLat - 0.001, centerLon + 0.001],
+            ];
+
+            setFormData(prev => ({
+                ...prev,
+                boundary: mockBoundary,
+                // Auto-fill lat/lon if empty
+                location_lat: !prev.location_lat ? centerLat.toString() : prev.location_lat,
+                location_lon: !prev.location_lon ? centerLon.toString() : prev.location_lon
+            }));
+
+            setLoading(false);
+            alert("Government Record Found! Boundary imported successfully.");
+        }, 1500);
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         try {
-            // Check api.ts for farms.create signature. 
-            // It expects { name, geometry: { type: "Point", coordinates: [lon, lat] }, soil_profile: { type: "..." } } usually
-            // but let's check what the backend expects.
-            // Backend `models.py` has `name`, `geometry`, `soil_profile`.
-
             const payload = {
                 name: formData.name,
                 geometry: {
@@ -38,7 +74,9 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
                     type: formData.soil_type,
                     ph: 7.0, // Default
                     nutrients: { N: "Medium", P: "Medium", K: "Medium" } // Default
-                }
+                },
+                boundary: formData.boundary || [], // Pass boundary to backend
+                survey_number: formData.survey_number
             };
 
             await api.farms.create(payload);
@@ -65,6 +103,28 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
                         value={formData.name}
                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                     />
+                </div>
+
+                {/* Survey Number Import Section */}
+                <div className="p-3 bg-slate-900 border border-white/5 rounded-lg mb-4">
+                    <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Import Government Record</label>
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            className="flex-1 bg-slate-950 border border-white/10 rounded-lg p-2 text-white text-sm"
+                            placeholder="Enter Survey / Patta Number"
+                            value={formData.survey_number || ''}
+                            onChange={e => setFormData({ ...formData, survey_number: e.target.value })}
+                        />
+                        <button
+                            type="button"
+                            onClick={handleFetchBoundary}
+                            disabled={!formData.survey_number}
+                            className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Fetch
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -95,7 +155,7 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
                 </div>
 
                 <div className="text-xs text-slate-500">
-                    * Tip: You can get coordinates from Google Maps (Right click &gt; What&apos;s here?)
+                    * Tip: You can get coordinates from Google Maps (Right click &gt; What&apos;s here?) or use the import above.
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

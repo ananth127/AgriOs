@@ -140,8 +140,8 @@ export default function CalculatorPage() {
                         <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
                             <TrendingUp className="w-5 h-5 text-blue-400" /> Historical Analysis (Past 4 Years)
                         </h3>
-                        <div className="h-[300px] w-full min-w-0">
-                            <ResponsiveContainer width="100%" height="100%">
+                        <div className="h-[300px] w-full min-w-0 relative">
+                            <ResponsiveContainer width="99%" height="100%">
                                 <LineChart data={historyData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
                                     <XAxis dataKey="year" stroke="#94a3b8" />

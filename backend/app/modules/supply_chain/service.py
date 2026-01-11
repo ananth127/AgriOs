@@ -25,3 +25,6 @@ def add_event(db: Session, batch_id: int, event: schemas.EventCreate):
 
 def get_batch(db: Session, batch_id: int):
     return db.query(models.ProductBatch).filter(models.ProductBatch.id == batch_id).first()
+
+def get_all_batches(db: Session):
+    return db.query(models.ProductBatch).order_by(models.ProductBatch.created_at.desc()).all()

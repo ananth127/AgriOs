@@ -7,7 +7,10 @@ import { Card } from '@/components/ui/Card';
 import { CreateFarmModal } from '@/components/farms/CreateFarmModal';
 import { Plus } from 'lucide-react';
 
+import { useAuth } from '@/lib/auth-context';
+
 export default function FarmsPage() {
+    const { user } = useAuth();
     const [farms, setFarms] = useState<any[]>([]);
     const [selectedFarmId, setSelectedFarmId] = useState<number | undefined>(undefined);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -26,14 +29,15 @@ export default function FarmsPage() {
             .then((data: any) => {
                 if (Array.isArray(data)) {
                     setFarms(data);
-                    if (data.length > 0 && !selectedFarmId) setSelectedFarmId(data[0].id);
+                    // Do not auto-select first farm; let map default to User Land Location
+                    // if (data.length > 0 && !selectedFarmId) setSelectedFarmId(data[0].id);
                 } else {
                     console.error("Farms API returned non-array:", data);
                     setFarms([]);
                 }
             })
             .catch(err => console.error("Failed to fetch farms", err));
-    }, [selectedFarmId]);
+    }, []);
 
     useEffect(() => {
         fetchFarms();
@@ -45,6 +49,10 @@ export default function FarmsPage() {
     const [viewCenter, setViewCenter] = useState<[number, number] | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [isZonesExpanded, setIsZonesExpanded] = useState(false); // Default collapsed on mobile
+
+    const userLocation: [number, number] | null = (user?.latitude && user?.longitude)
+        ? [user.latitude, user.longitude]
+        : null;
 
     const handleSearch = async () => {
         if (!searchQuery) return;
@@ -64,7 +72,7 @@ export default function FarmsPage() {
         <div className="flex h-full relative">
             {/* Map (Full background) */}
             <div className="absolute inset-0 bg-slate-950 z-0">
-                <FarmMap farms={farms} selectedFarmId={selectedFarmId} viewCenter={viewCenter} />
+                <FarmMap farms={farms} selectedFarmId={selectedFarmId} viewCenter={viewCenter} userLocation={userLocation} />
             </div>
 
             {/* Floating Overlay Panel - Dynamic Height */}
@@ -106,10 +114,11 @@ export default function FarmsPage() {
                         value={selectedFarmId ?? ''}
                         onChange={(e) => setSelectedFarmId(e.target.value ? parseInt(e.target.value) : undefined)}
                     >
+                        <option value="" className="bg-slate-900 text-slate-400">View All / My Location</option>
                         {farms.length > 0 ? (
                             farms.map(f => <option key={f.id} value={f.id} className="bg-slate-900">{f.name}</option>)
                         ) : (
-                            <option>No farms found</option>
+                            <option value="" disabled>No farms found</option>
                         )}
                     </select>
                     <div className="mt-3 flex gap-4 text-xs">

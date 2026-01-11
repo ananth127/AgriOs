@@ -9,6 +9,7 @@ import { API_BASE_URL } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { trackSidebarClick, trackAuthEvent } from '@/lib/analytics';
+import { useConnectionHealth } from '@/hooks/useConnectionHealth';
 
 const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
 
@@ -31,11 +32,19 @@ export function Sidebar({ locale }: SidebarProps) {
     // Edit State
     const [editRole, setEditRole] = useState(user?.role || 'farmer');
     const [editLocation, setEditLocation] = useState<{ name: string, lat: number, lng: number } | null>(null);
+    const [editSurveyNumber, setEditSurveyNumber] = useState(user?.survey_number || '');
+    const [editBoundary, setEditBoundary] = useState<[number, number][] | undefined>(user?.boundary);
+    const [fetchingBoundary, setFetchingBoundary] = useState(false);
 
-    // Sync state when user loads or modal opens
+    // Connection States from Hook
+    const { isOnline, frontendSignalStrength, isBackendHealthy, backendSignalStrength, connectionWarning } = useConnectionHealth();
+
+    // Sync state when user loads or modal opens (moved up for clarity)
     useEffect(() => {
         if (user) {
             setEditRole(user.role);
+            setEditSurveyNumber(user.survey_number || '');
+            setEditBoundary(user.boundary);
             if (user.location_name && user.latitude && user.longitude) {
                 setEditLocation({
                     name: user.location_name,
@@ -46,6 +55,32 @@ export function Sidebar({ locale }: SidebarProps) {
         }
     }, [user, isProfileOpen]);
 
+
+
+
+
+    const handleFetchBoundary = async () => {
+        setFetchingBoundary(true);
+        // Simulate API call
+        setTimeout(() => {
+            if (editLocation) {
+                const centerLat = editLocation.lat;
+                const centerLng = editLocation.lng;
+                const mockBoundary: [number, number][] = [
+                    [centerLat - 0.001, centerLng - 0.001],
+                    [centerLat + 0.001, centerLng - 0.001],
+                    [centerLat + 0.001, centerLng + 0.001],
+                    [centerLat - 0.001, centerLng + 0.001],
+                ];
+                setEditBoundary(mockBoundary);
+                alert(`Boundary found for survey no: ${editSurveyNumber}`);
+            } else {
+                alert("Please set a location first to simulate boundary fetch.");
+            }
+            setFetchingBoundary(false);
+        }, 1500);
+    };
+
     const handleSaveProfile = async () => {
         setSaving(true);
         try {
@@ -55,7 +90,9 @@ export function Sidebar({ locale }: SidebarProps) {
                     latitude: editLocation.lat,
                     longitude: editLocation.lng,
                     location_name: editLocation.name
-                })
+                }),
+                survey_number: editSurveyNumber,
+                boundary: editBoundary
             };
 
             const res = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -99,8 +136,37 @@ export function Sidebar({ locale }: SidebarProps) {
     return (
         <div className="w-72 bg-slate-950/80 backdrop-blur-xl border-r border-white/5 flex-col hidden md:flex h-full shadow-2xl relative z-40">
             <div className="p-8 pb-6">
-                <div className="text-3xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600 bg-clip-text text-transparent tracking-tight">
-                    {tGlobal('app_name')}
+                <div className="flex items-center gap-3">
+                    <div className="text-3xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600 bg-clip-text text-transparent tracking-tight">
+                        {tGlobal('app_name')}
+                    </div>
+                    {/* Status Indicators */}
+                    {/* Status Indicators */}
+                    <div className="flex flex-col justify-center gap-[2px] ml-2 mb-1">
+                        {/* Frontend Status */}
+                        <div className="flex items-center gap-1.5" title={`Frontend: ${isOnline ? 'Online' : 'Offline'} (${frontendSignalStrength}/5)`}>
+                            <span className="text-[9px] font-bold text-slate-500 w-3 text-right">F</span>
+                            <div className={cn("w-1.5 h-1.5 rounded-full transition-colors", isOnline ? "bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" : "bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]")} />
+                            {/* Bars */}
+                            <div className="flex items-end gap-[1px] h-2">
+                                {[1, 2, 3, 4, 5].map(bar => (
+                                    <div key={`f-${bar}`} className={cn("w-[2px] rounded-[1px] transition-all", frontendSignalStrength >= bar ? "bg-green-500" : "bg-slate-800")} style={{ height: `${bar * 20}%` }} />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Backend Status */}
+                        <div className="flex items-center gap-1.5" title={`Backend: ${isBackendHealthy ? 'Online' : 'Offline'} (${backendSignalStrength}/5)`}>
+                            <span className="text-[9px] font-bold text-slate-500 w-3 text-right">B</span>
+                            <div className={cn("w-1.5 h-1.5 rounded-full transition-colors", isBackendHealthy ? "bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" : "bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]")} />
+                            {/* Bars */}
+                            <div className="flex items-end gap-[1px] h-2">
+                                {[1, 2, 3, 4, 5].map(bar => (
+                                    <div key={`b-${bar}`} className={cn("w-[2px] rounded-[1px] transition-all", backendSignalStrength >= bar ? "bg-green-500" : "bg-slate-800")} style={{ height: `${bar * 20}%` }} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <p className="text-xs font-medium text-slate-500 mt-1.5 uppercase tracking-widest pl-0.5">{tGlobal('app_tagline')}</p>
             </div>
@@ -130,6 +196,13 @@ export function Sidebar({ locale }: SidebarProps) {
                     );
                 })}
             </nav>
+
+            {/* Connection Warning Toast */}
+            {connectionWarning && (
+                <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[90%] bg-red-500/90 text-white text-[10px] font-medium px-3 py-2 rounded-lg shadow-xl backdrop-blur-md z-50 text-center animate-in fade-in slide-in-from-top-2 border border-red-400/50">
+                    {connectionWarning}
+                </div>
+            )}
 
             <div className="p-4 border-t border-white/5 bg-slate-900/30">
                 {isAuthenticated ? (
@@ -211,6 +284,34 @@ export function Sidebar({ locale }: SidebarProps) {
                                                 </div>
                                                 <div className="text-xs text-green-400">{t('profile_change_location')}</div>
                                             </div>
+                                        </div>
+
+                                        {/* Survey Number / Patta */}
+                                        <div className="p-3 bg-slate-950/50 border border-white/5 rounded-lg">
+                                            <label className="block text-xs font-medium text-slate-400 mb-2">Government Record (Patta/Chitta)</label>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    className="flex-1 bg-slate-950 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-green-500/50 focus:outline-none"
+                                                    placeholder="Survey No"
+                                                    value={editSurveyNumber}
+                                                    onChange={(e) => setEditSurveyNumber(e.target.value)}
+                                                />
+                                                <button
+                                                    onClick={handleFetchBoundary}
+                                                    type="button" // Important to prevent form submit if inside form
+                                                    disabled={!editSurveyNumber || fetchingBoundary}
+                                                    className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/30 text-xs font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    {fetchingBoundary ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Fetch'}
+                                                </button>
+                                            </div>
+                                            {editBoundary && editBoundary.length > 0 && (
+                                                <div className="mt-2 text-[10px] text-green-500 flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                                    Boundary coordinates loaded
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="pt-4 flex gap-3">

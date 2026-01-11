@@ -14,7 +14,9 @@ def create_user(db: Session, user: schemas.UserCreate):
         phone_number=user.phone_number,
         latitude=user.latitude,
         longitude=user.longitude,
-        location_name=user.location_name
+        location_name=user.location_name,
+        survey_number=user.survey_number,
+        boundary=user.boundary
     )
     db.add(db_user)
     db.commit()

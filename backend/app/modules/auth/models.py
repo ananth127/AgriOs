@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, JSON
 from sqlalchemy.sql import func
 from app.core.database import Base
 
@@ -19,3 +19,7 @@ class User(Base):
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
     location_name = Column(String, nullable=True)
+    
+    # Government Record
+    survey_number = Column(String, nullable=True)
+    boundary = Column(JSON, nullable=True) # GeoJSON or Array of points

@@ -13,6 +13,8 @@ interface User {
     latitude?: number;
     longitude?: number;
     location_name?: string;
+    survey_number?: string;
+    boundary?: [number, number][];
 }
 
 interface AuthContextType {

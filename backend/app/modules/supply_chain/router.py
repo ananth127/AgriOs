@@ -26,3 +26,7 @@ def track_batch(batch_id: int, db: Session = Depends(get_db)):
     if not batch:
         raise HTTPException(status_code=404, detail="Batch not found")
     return batch
+
+@router.get("/batches", response_model=list[schemas.Batch])
+def get_all_batches(db: Session = Depends(get_db)):
+    return service.get_all_batches(db)

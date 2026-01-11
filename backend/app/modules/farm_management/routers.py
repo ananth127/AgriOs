@@ -158,8 +158,6 @@ def post_job(job: schemas.LaborJobCreate, db: Session = Depends(get_db)):
     db_job = models.LaborJob(**job.dict(), farm_id=1, status="Open")
     db.add(db_job)
     db.commit()
-    db.add(db_job)
-    db.commit()
     db.refresh(db_job)
     return db_job
 

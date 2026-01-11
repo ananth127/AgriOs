@@ -1,7 +1,14 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Date
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Date, DateTime, Text, Enum
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 from app.core.database import Base
 from app.core.db_compat import get_geo_column
+import enum
+
+class ListingType(str, enum.Enum):
+    SELL = "SELL"
+    BUY = "BUY"
+    RENT = "RENT"
 
 class ServiceProvider(Base):
     __tablename__ = "service_providers"
@@ -34,10 +41,13 @@ class ProductListing(Base):
     __tablename__ = "product_listings"
 
     id = Column(Integer, primary_key=True, index=True)
-    seller_id = Column(Integer, index=True) # User ID (Farmer)
+    seller_id = Column(Integer, index=True) # User ID (Farmer/Seller/Buyer)
     
+    listing_type = Column(String, default="SELL", index=True) # SELL, BUY, RENT
     product_name = Column(String, index=True)
-    category = Column(String) # Crop, Livestock, Seeds
+    category = Column(String, index=True) # Crop, Seeds, Fruit, Veg, Livestock, Machinery, etc.
+    description = Column(Text, nullable=True)
+    image_url = Column(String, nullable=True)
     
     quantity = Column(Float)
     unit = Column(String) # tons, kg, numbers
@@ -48,10 +58,8 @@ class ProductListing(Base):
     available_date = Column(Date, nullable=True) # For future harvest selling
     is_active = Column(Boolean, default=True)
     
-    available_date = Column(Date, nullable=True) # For future harvest selling
-    is_active = Column(Boolean, default=True)
-    
     location = Column(get_geo_column('POINT', srid=4326), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class CommercialProduct(Base):
     __tablename__ = "commercial_products"
@@ -59,13 +67,24 @@ class CommercialProduct(Base):
     id = Column(Integer, primary_key=True, index=True)
     brand_name = Column(String, index=True)      # e.g., "Dithane M-45"
     manufacturer = Column(String, index=True)    # e.g., "UPL"
-    active_ingredient_id = Column(Integer, index=True) # Links to KGPest/KGChemical (Logical Link)
-    active_ingredient_name = Column(String, index=True) # e.g., "Mancozeb" (easier lookup)
+    active_ingredient_id = Column(Integer, index=True) # Following KGPest/KGChemical structure
+    active_ingredient_name = Column(String, index=True) # e.g., "Mancozeb" 
     
+    category = Column(String, index=True) # Pesticide, Fertilizer, Seeds
     description = Column(String)
     image_url = Column(String, nullable=True)
     unit_price = Column(Float) # MSRP
     
-    # In a full system, this would link to Retailer Inventory
+class Order(Base):
+    __tablename__ = "marketplace_orders"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    buyer_id = Column(Integer, index=True)
+    listing_id = Column(Integer, ForeignKey("product_listings.id"))
+    
+    quantity = Column(Float)
+    total_price = Column(Float)
+    status = Column(String, default="PENDING") # PENDING, CONFIRMED, COMPLETED, CANCELLED
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 

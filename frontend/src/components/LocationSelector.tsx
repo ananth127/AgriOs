@@ -140,6 +140,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
             });
         }
     }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 
     if (!isOpen) return null;
 

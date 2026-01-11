@@ -42,6 +42,11 @@ def get_all_pests(
     """
     Get a searchable list of all pests/diseases in the Knowledge Bank.
     """
+    # Auto-seed if empty
+    from .service import KnowledgeGraphService
+    svc = KnowledgeGraphService(db)
+    svc.seed_initial_data()
+    
     query = db.query(models.KGPest)
     if search:
         query = query.filter(models.KGPest.name.ilike(f"%{search}%"))
@@ -54,6 +59,11 @@ def get_all_crops(
     """
     Get all crops and their associated pests.
     """
+    # Auto-seed if empty
+    from .service import KnowledgeGraphService
+    svc = KnowledgeGraphService(db)
+    svc.seed_initial_data()
+    
     return db.query(models.KGCrop).all()
 
 @router.get("/pests/{pest_id}", response_model=PestDTO)

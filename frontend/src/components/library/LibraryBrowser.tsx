@@ -168,7 +168,8 @@ export default function LibraryBrowser() {
                                         <div key={product.id} className="flex gap-4 p-4 bg-slate-950/50 border border-white/5 rounded-xl hover:border-green-500/30 transition-colors">
                                             <div className="w-20 h-20 bg-white rounded-lg p-2 flex items-center justify-center">
                                                 {/* Placeholder for real images */}
-                                                <img src="/icons/icon-192x192.png" alt={product.brand_name} className="w-full h-full object-contain" />
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img src={product.image_url || "/icons/icon-192x192.png"} alt={product.brand_name} className="w-full h-full object-contain" />
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex justify-between items-start">

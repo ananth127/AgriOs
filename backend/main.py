@@ -35,15 +35,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    # allow_origins=[
-    #     "http://localhost:3000",
-    #     "http://127.0.0.1:3000",
-    #     "http://localhost:8000",
-    #     "http://127.0.0.1:8000",
-    #     "https://agri-os.vercel.app",
-    #     "https://agri-os.vercel.app/",
-    # ],
+    # allow_origins=["*"], # Wildcard can be problematic with credentials
+    allow_origin_regex="https?://.*", # Better for dynamic local IPs (192.168.x.x)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -111,6 +104,44 @@ def fix_db():
                     connection.rollback()
                     print(f"Column likely exists or error adding {col_def}: {db_err}")
 
+            # 3. Add category and image_url to commercial_products
+            commercial_cols = ["category VARCHAR", "image_url VARCHAR"]
+            for col_def in commercial_cols:
+                try:
+                    connection.execute(text(f"ALTER TABLE commercial_products ADD COLUMN IF NOT EXISTS {col_def};"))
+                    connection.commit()
+                except Exception as e:
+                    connection.rollback()
+                    print(f"Commercial products update skipped for {col_def}: {e}")
+
+            # 4. Add listing_type, description, image_url to product_listings
+            listing_cols = ["listing_type VARCHAR DEFAULT 'SELL'", "description TEXT", "image_url VARCHAR", "category VARCHAR"]
+            for col_def in listing_cols:
+                try:
+                    connection.execute(text(f"ALTER TABLE product_listings ADD COLUMN IF NOT EXISTS {col_def};"))
+                    connection.commit()
+                except Exception as e:
+                    connection.rollback()
+                    print(f"Product listings update skipped for {col_def}: {e}")
+
+            # 5. Add created_at to product_listings
+            try:
+                connection.execute(text("ALTER TABLE product_listings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();"))
+                connection.commit()
+            except Exception as e:
+                connection.rollback()
+                print(f"Product listings update skipped for created_at: {e}")
+
+            # 6. Add survey_number and boundary to users
+            user_cols = ["survey_number VARCHAR", "boundary JSON"]
+            for col_def in user_cols:
+                try:
+                    connection.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_def};"))
+                    connection.commit()
+                except Exception as e:
+                    connection.rollback()
+                    print(f"Users update skipped for {col_def}: {e}")
+
             return {"status": "success", "message": "Database schema updated."}
     except Exception as e:
         return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
@@ -127,3 +158,9 @@ def debug_financials_error():
         return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
 
 # Trigger Reload: New Env VARS loaded
+
+@app.on_event("startup")
+def startup_event():
+    # Run DB Fixes
+    print("Running startup DB checks...")
+    fix_db()

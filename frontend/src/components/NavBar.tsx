@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth-context';
 import {
     LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Menu, X, Calculator, LogIn, LogOut, Briefcase, Stethoscope, BookOpen
 } from 'lucide-react';
+import { useConnectionHealth } from '@/hooks/useConnectionHealth';
 
 
 
@@ -21,6 +22,9 @@ export default function NavBar({ locale }: { locale: string }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const pathname = usePathname();
     const { isAuthenticated, user, logout } = useAuth();
+
+    // Connection Health
+    const { isOnline, frontendSignalStrength, isBackendHealthy, backendSignalStrength, connectionWarning } = useConnectionHealth();
 
     const links = [
         { href: '/', label: tSidebar('menu_overview'), icon: LayoutDashboard },
@@ -49,8 +53,30 @@ export default function NavBar({ locale }: { locale: string }) {
                         {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                     </button>
 
-                    <div className="text-xl font-bold bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">
-                        {tGlobal('app_name')}
+                    <div className="flex flex-col">
+                        <div className="text-xl font-bold bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent leading-none">
+                            {tGlobal('app_name')}
+                        </div>
+                        {/* Mobile Signal Indicators */}
+                        <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-1" title={`Frontend: ${isOnline ? 'Online' : 'Offline'}`}>
+                                <div className={cn("w-1.5 h-1.5 rounded-full", isOnline ? "bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
+                                <div className="flex items-end gap-[1px] h-1.5">
+                                    {[1, 2, 3, 4, 5].map(bar => (
+                                        <div key={`f-${bar}`} className={cn("w-[1.5px] rounded-[1px]", frontendSignalStrength >= bar ? "bg-green-500" : "bg-slate-800")} style={{ height: `${bar * 20}%` }} />
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="w-[1px] h-2 bg-slate-700 mx-0.5"></div>
+                            <div className="flex items-center gap-1" title={`Backend: ${isBackendHealthy ? 'Online' : 'Offline'}`}>
+                                <div className={cn("w-1.5 h-1.5 rounded-full", isBackendHealthy ? "bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
+                                <div className="flex items-end gap-[1px] h-1.5">
+                                    {[1, 2, 3, 4, 5].map(bar => (
+                                        <div key={`b-${bar}`} className={cn("w-[1.5px] rounded-[1px]", backendSignalStrength >= bar ? "bg-green-500" : "bg-slate-800")} style={{ height: `${bar * 20}%` }} />
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -121,6 +147,12 @@ export default function NavBar({ locale }: { locale: string }) {
                             )}
                         </div>
                     </div>
+                </div>
+            )}
+            {/* Mobile Connection Warning Toast */}
+            {connectionWarning && (
+                <div className="absolute top-[70px] left-1/2 -translate-x-1/2 w-[90%] bg-red-500/90 text-white text-[10px] font-medium px-3 py-2 rounded-lg shadow-xl backdrop-blur-md z-50 text-center animate-in fade-in slide-in-from-top-2 border border-red-400/50">
+                    {connectionWarning}
                 </div>
             )}
         </nav>
