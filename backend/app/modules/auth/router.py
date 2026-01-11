@@ -16,8 +16,23 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return service.create_user(db=db, user=user)
 
 @router.post("/login", response_model=schemas.Token)
-def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = service.authenticate_user(db, email=form_data.username, password=form_data.password)
+def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    login_data: schemas.LoginRequest = None,
+    db: Session = Depends(get_db)
+):
+    # Handle both Form Data (Swagger) and JSON (Frontend)
+    email = form_data.username if form_data else None
+    password = form_data.password if form_data else None
+
+    if not email and login_data:
+        email = login_data.email
+        password = login_data.password
+        
+    if not email or not password:
+         raise HTTPException(status_code=400, detail="Missing email or password")
+
+    user = service.authenticate_user(db, email=email, password=password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

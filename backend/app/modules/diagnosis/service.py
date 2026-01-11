@@ -55,15 +55,12 @@ class DiagnosisService:
                 print(f"⚠️ {clean_response}")
                 disease_name = "Not a Crop"
                 confidence = 0.0
-                # Using the error message as part of the recommendation later if needed, 
-                # but for here we just set the disease state.
             else:
                 try:
                     # Find first brace
                     start_idx = clean_response.find('{')
                     if start_idx != -1:
                         # raw_decode stops once it parses a valid JSON object
-                        # This handles "Extra data" errors (e.g. text after JSON)
                         json_str = clean_response[start_idx:]
                         result, _ = json.JSONDecoder().raw_decode(json_str)
                     else:
@@ -73,15 +70,39 @@ class DiagnosisService:
                     disease_name = result.get("disease", "Unknown")
                     confidence = result.get("confidence", 0.0)
                 except Exception as parse_error:
-                    print(f"⚠️ JSON Parse Error: {parse_error}. Trying strict substring strategy...")
-                    # Fallback to strict substring if raw_decode fails (e.g. malformed JSON)
-                    end_idx = clean_response.rfind('}') + 1
-                    if start_idx != -1 and end_idx > start_idx:
-                        result = json.loads(clean_response[start_idx:end_idx])
-                        disease_name = result.get("disease", "Unknown")
-                        confidence = result.get("confidence", 0.0)
-                    else:
-                        raise parse_error
+                    print(f"⚠️ JSON Parse Error: {parse_error}. Attempting Regex Fallback...")
+                    
+                    # Regex Fallback Strategy (Robust for LLM errors)
+                    import re
+                    
+                    # Extract Disease
+                    disease_match = re.search(r'"disease"\s*:\s*"([^"]+)"', clean_response, re.IGNORECASE)
+                    if disease_match:
+                        result["disease"] = disease_match.group(1)
+                    
+                    # Extract Confidence
+                    conf_match = re.search(r'"confidence"\s*:\s*([0-9.]+)', clean_response)
+                    if conf_match:
+                         try: result["confidence"] = float(conf_match.group(1))
+                         except: result["confidence"] = 0.85
+                    
+                    # Extract Other Fields
+                    for field in ["symptoms", "cause", "prevention", "treatment_organic", "treatment_chemical", "identified_crop"]:
+                        match = re.search(r'"' + field + r'"\s*:\s*"([^"]+)"', clean_response, re.IGNORECASE)
+                        if match:
+                             result[field] = match.group(1)
+                    
+                    disease_name = result.get("disease", "Unknown")
+                    confidence = result.get("confidence", 0.0)
+                    
+                    if disease_name == "Unknown": 
+                        print("❌ Regex failed too.")
+                        # Last resort: Simple keyword check
+                        if "healthy" in clean_response.lower():
+                             disease_name = "Healthy"
+                             confidence = 0.95
+                        else:
+                             raise parse_error
             
         except Exception as e:
             print(f"❌ Vision diagnosis failed: {e}. Falling back to basic check.")
