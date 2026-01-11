@@ -65,13 +65,13 @@ export default function Index({ params: { locale } }: { params: { locale: string
             <header className="px-6 pt-8 pb-6 bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-b border-white/5">
                 <div className="max-w-5xl mx-auto flex justify-between items-end">
                     <div>
-                        <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider font-medium">{dateFormat(new Date())}</p>
+                        <p className="text-slate-400 text-sm mb-1 uppercase tracking-wider font-medium">{dateFormat(new Date(), locale)}</p>
                         <h1 className="text-3xl font-bold text-white">
-                            Hello, <span className="text-green-400">{user?.full_name?.split(' ')[0] || 'Farmer'}!</span>
+                            {tDashboard('greeting_hello')} <span className="text-green-400">{user?.full_name?.split(' ')[0] || tDashboard('greeting_farmer')}!</span>
                         </h1>
                         <p className="text-slate-400 text-sm flex items-center gap-1 mt-1">
                             <Leaf className="w-3 h-3 text-green-500" />
-                            {user?.location_name || "Location not set"}
+                            {user?.location_name || tDashboard('location_not_set')}
                         </p>
                     </div>
                     {/* User Profile Avatar or similar could go here */}
@@ -97,8 +97,8 @@ export default function Index({ params: { locale } }: { params: { locale: string
                         <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                         <div className="flex justify-between items-start relative z-10">
                             <div>
-                                <h2 className="text-xl font-bold text-white mb-2 group-hover:text-green-400 transition-colors">Heal your crop</h2>
-                                <p className="text-slate-400 text-sm max-w-[200px]">Take a picture of your crop to detect diseases instantly.</p>
+                                <h2 className="text-xl font-bold text-white mb-2 group-hover:text-green-400 transition-colors">{tDashboard('crop_doctor_title')}</h2>
+                                <p className="text-slate-400 text-sm max-w-[200px]">{tDashboard('crop_doctor_desc')}</p>
                             </div>
                             <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 group-hover:bg-green-500 group-hover:text-black transition-all">
                                 <ScanLine className="w-6 h-6" />
@@ -106,7 +106,7 @@ export default function Index({ params: { locale } }: { params: { locale: string
                         </div>
                         <div className="mt-6">
                             <div className="inline-flex items-center gap-2 text-sm font-bold text-green-400 group-hover:translate-x-1 transition-transform">
-                                Start Diagnosis <ArrowRight className="w-4 h-4" />
+                                {tDashboard('start_diagnosis')} <ArrowRight className="w-4 h-4" />
                             </div>
                         </div>
                     </Link>
@@ -114,37 +114,37 @@ export default function Index({ params: { locale } }: { params: { locale: string
 
                 {/* 2. Quick Services Grid */}
                 <div>
-                    <h3 className="text-lg font-bold text-white mb-4 px-1">Services</h3>
+                    <h3 className="text-lg font-bold text-white mb-4 px-1">{tDashboard('services_title')}</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <ServiceCard
                             href="/calculator"
                             icon={<Calculator className="w-6 h-6" />}
-                            label="Calculator"
-                            desc="Fertilizer costs"
+                            label={tDashboard('service_calculator')}
+                            desc={tDashboard('service_calculator_desc')}
                             color="text-orange-400"
                             bg="bg-orange-500/10 hover:bg-orange-500/20"
                         />
                         <ServiceCard
                             href="/library"
                             icon={<BookOpen className="w-6 h-6" />}
-                            label="Disease Lib"
-                            desc="Learn treatments"
+                            label={tDashboard('service_library')}
+                            desc={tDashboard('service_library_desc')}
                             color="text-blue-400"
                             bg="bg-blue-500/10 hover:bg-blue-500/20"
                         />
                         <ServiceCard
                             href="/marketplace"
                             icon={<ShoppingBag className="w-6 h-6" />}
-                            label="Shop"
-                            desc="Buy seeds & tools"
+                            label={tDashboard('service_shop')}
+                            desc={tDashboard('service_shop_desc')}
                             color="text-purple-400"
                             bg="bg-purple-500/10 hover:bg-purple-500/20"
                         />
                         <ServiceCard
                             href="/community"
                             icon={<Users className="w-6 h-6" />}
-                            label="Community"
-                            desc="Ask experts"
+                            label={tDashboard('service_community')}
+                            desc={tDashboard('service_community_desc')}
                             color="text-pink-400"
                             bg="bg-pink-500/10 hover:bg-pink-500/20"
                         />
@@ -154,28 +154,29 @@ export default function Index({ params: { locale } }: { params: { locale: string
                 {/* 3. My Crops Section */}
                 <div className="bg-slate-900 border border-white/5 rounded-2xl p-6">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 className="text-lg font-bold text-white">My Crops</h3>
-                        <Link href="/crops" className="text-xs font-bold text-green-400 hover:text-green-300">VIEW ALL</Link>
+                        <h3 className="text-lg font-bold text-white">{tDashboard('my_crops_title')}</h3>
+                        <Link href="/crops" className="text-xs font-bold text-green-400 hover:text-green-300">{tDashboard('view_all')}</Link>
                     </div>
 
                     <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
-                        {/* Mock Crop Cards */}
-                        <CropCard name="Potato" stage="Flowering" health="Good" days={45} image="/crops/potato.jpg" />
-                        <CropCard name="Tomato" stage="Vegetative" health="Risk" days={22} image="/crops/tomato.jpg" />
+                        {/* Mock Crop Cards - Pass tDashboard to them component or hardcode? 
+                            This is mock data. I'll leave crop names as is or use tCrops if I had it. */}
+                        <CropCard name="Potato" stage="Flowering" health="Good" days={45} image="/crops/potato.jpg" labelDay={tDashboard('day_count', { days: 45 })} />
+                        <CropCard name="Tomato" stage="Vegetative" health="Risk" days={22} image="/crops/tomato.jpg" labelDay={tDashboard('day_count', { days: 22 })} />
 
                         {/* Add New Crop */}
                         <Link href="/crops/new" className="min-w-[140px] h-[160px] rounded-xl border-2 border-dashed border-slate-700 hover:border-green-500/50 flex flex-col items-center justify-center gap-3 group transition-colors">
                             <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-400 group-hover:bg-green-500/20 group-hover:text-green-400 transition-colors">
                                 <span className="text-2xl">+</span>
                             </div>
-                            <span className="text-sm font-medium text-slate-500 group-hover:text-slate-300">Add Crop</span>
+                            <span className="text-sm font-medium text-slate-500 group-hover:text-slate-300">{tDashboard('add_crop')}</span>
                         </Link>
                     </div>
                 </div>
 
                 {/* 4. Insights / Prophet */}
                 <div>
-                    <h3 className="text-lg font-bold text-white mb-4 px-1">Market Insights</h3>
+                    <h3 className="text-lg font-bold text-white mb-4 px-1">{tDashboard('market_insights')}</h3>
                     <ProphetWidget locationName={user?.location_name} />
                 </div>
 
@@ -195,13 +196,13 @@ function ServiceCard({ href, icon, label, desc, color, bg }: any) {
     );
 }
 
-function CropCard({ name, stage, health, days, image }: any) {
+function CropCard({ name, stage, health, days, image, labelDay }: any) {
     const isRisk = health === 'Risk';
     return (
         <div className="min-w-[140px] bg-slate-950 border border-white/10 rounded-xl p-3 flex flex-col gap-3 hover:border-white/20 transition-colors">
             <div className="w-full h-24 bg-slate-800 rounded-lg relative overflow-hidden">
                 <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded bg-black/60 text-[10px] font-bold text-white backdrop-blur-md">
-                    Day {days}
+                    {labelDay || `Day ${days}`}
                 </div>
                 {/* Placeholder for crop image */}
                 <div className="w-full h-full flex items-center justify-center text-slate-600">
@@ -219,6 +220,6 @@ function CropCard({ name, stage, health, days, image }: any) {
     );
 }
 
-function dateFormat(date: Date) {
-    return new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
+function dateFormat(date: Date, locale: string) {
+    return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
 }

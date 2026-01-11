@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 import { Modal } from '@/components/ui/Modal';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface CreateProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface CreateProps {
 }
 
 export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSuccess, farmId }) => {
+    const t = useTranslations('FarmManagement');
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -38,45 +40,45 @@ export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSucces
             onClose();
         } catch (error) {
             console.error("Failed to add asset", error);
-            alert("Failed to add asset");
+            alert(t('error_add_asset'));
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Add New Asset">
+        <Modal isOpen={isOpen} onClose={onClose} title={t('modal_new_asset_title')}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Asset Name</label>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">{t('label_asset_name')}</label>
                     <input
                         type="text"
                         required
                         className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                        placeholder="e.g. John Deere 5310, Kirloskar Pump"
+                        placeholder={t('ph_asset_name')}
                         value={formData.name}
                         onChange={e => setFormData({ ...formData, name: e.target.value })}
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Type</label>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">{t('label_type')}</label>
                     <select
                         className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
                         value={formData.asset_type}
                         onChange={e => setFormData({ ...formData, asset_type: e.target.value })}
                     >
-                        <option value="Tractor">Tractor</option>
-                        <option value="Pump">Irrigation Pump</option>
-                        <option value="DripSystem">Drip System</option>
-                        <option value="Harvester">Harvester</option>
-                        <option value="Sprayer">Sprayer</option>
-                        <option value="IoT Device">IoT Sensor/Controller</option>
+                        <option value="Tractor">{t('type_tractor')}</option>
+                        <option value="Pump">{t('type_pump')}</option>
+                        <option value="DripSystem">{t('type_dripsystem')}</option>
+                        <option value="Harvester">{t('type_harvester')}</option>
+                        <option value="Sprayer">{t('type_sprayer')}</option>
+                        <option value="IoT Device">{t('type_iot_device')}</option>
                     </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Purchase Date</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('label_purchase_date')}</label>
                         <input
                             type="date"
                             required
@@ -86,7 +88,7 @@ export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSucces
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Cost (₹)</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('label_cost_rs')}</label>
                         <input
                             type="number"
                             required
@@ -105,7 +107,7 @@ export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSucces
                         checked={formData.is_iot_enabled}
                         onChange={e => setFormData({ ...formData, is_iot_enabled: e.target.checked })}
                     />
-                    <label htmlFor="iot_check" className="text-sm font-medium text-slate-300">This is an IoT Enabled Device</label>
+                    <label htmlFor="iot_check" className="text-sm font-medium text-slate-300">{t('label_iot_enabled_long')}</label>
                 </div>
 
                 <button
@@ -113,7 +115,7 @@ export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSucces
                     disabled={loading}
                     className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg mt-4 flex justify-center items-center gap-2"
                 >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Asset'}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('btn_add_asset')}
                 </button>
             </form>
         </Modal>

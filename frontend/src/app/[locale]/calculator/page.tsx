@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
+import { useTranslations } from 'next-intl';
 import { Sprout, Calculator, DollarSign, Droplets, TrendingUp } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
@@ -15,6 +16,8 @@ const CROP_DATA: Record<string, any> = {
 };
 
 export default function CalculatorPage() {
+    const t = useTranslations('Calculator');
+    const tCrops = useTranslations('Crops');
     const [crop, setCrop] = useState('Wheat');
     const [acres, setAcres] = useState(1);
     const [pricePerQuintal, setPricePerQuintal] = useState(2200);
@@ -53,9 +56,9 @@ export default function CalculatorPage() {
             <header className="mb-8">
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-yellow-400 bg-clip-text text-transparent flex items-center gap-3">
                     <Calculator className="w-8 h-8 text-yellow-400" />
-                    Farming ROI Calculator
+                    {t('title')}
                 </h1>
-                <p className="text-slate-400 mt-2">Estimate yields, costs, and profits based on current market rates.</p>
+                <p className="text-slate-400 mt-2">{t('subtitle')}</p>
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -63,23 +66,23 @@ export default function CalculatorPage() {
                 {/* Inputs */}
                 <Card className="col-span-1 border-white/10 bg-slate-900/50">
                     <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                        <Sprout className="w-5 h-5 text-green-400" /> Farm Inputs
+                        <Sprout className="w-5 h-5 text-green-400" /> {t('farm_inputs')}
                     </h3>
 
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm text-slate-500 mb-1">Select Crop</label>
+                            <label className="block text-sm text-slate-500 mb-1">{t('select_crop')}</label>
                             <select
                                 className="w-full bg-slate-800 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-green-500"
                                 value={crop}
                                 onChange={(e) => setCrop(e.target.value)}
                             >
-                                {Object.keys(CROP_DATA).map(c => <option key={c} value={c}>{c}</option>)}
+                                {Object.keys(CROP_DATA).map(c => <option key={c} value={c}>{tCrops(c.toLowerCase())}</option>)}
                             </select>
                         </div>
 
                         <div>
-                            <label className="block text-sm text-slate-500 mb-1">Area (Acres)</label>
+                            <label className="block text-sm text-slate-500 mb-1">{t('area_acres')}</label>
                             <input
                                 type="number"
                                 min="0.1"
@@ -90,7 +93,7 @@ export default function CalculatorPage() {
                         </div>
 
                         <div>
-                            <label className="block text-sm text-slate-500 mb-1">Market Price (₹ / Quintal)</label>
+                            <label className="block text-sm text-slate-500 mb-1">{t('market_price')}</label>
                             <input
                                 type="number"
                                 className="w-full bg-slate-800 border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-green-500"
@@ -101,14 +104,14 @@ export default function CalculatorPage() {
                     </div>
 
                     <div className="mt-8 p-4 bg-slate-800 rounded-lg">
-                        <div className="text-sm text-slate-500 mb-2">Cost Breakdown</div>
+                        <div className="text-sm text-slate-500 mb-2">{t('cost_breakdown')}</div>
                         <div className="space-y-2 text-sm">
-                            <div className="flex justify-between"><span>🌱 Seeds</span> <span>₹{calculation.costs.seed.toLocaleString()}</span></div>
-                            <div className="flex justify-between"><span>🧪 Fertilizer</span> <span>₹{calculation.costs.fertilizer.toLocaleString()}</span></div>
-                            <div className="flex justify-between"><span>👨‍🌾 Labor</span> <span>₹{calculation.costs.labor.toLocaleString()}</span></div>
-                            <div className="flex justify-between"><span>💧 Water</span> <span>₹{calculation.costs.water.toLocaleString()}</span></div>
+                            <div className="flex justify-between"><span>🌱 {t('seeds')}</span> <span>₹{calculation.costs.seed.toLocaleString()}</span></div>
+                            <div className="flex justify-between"><span>🧪 {t('fertilizer')}</span> <span>₹{calculation.costs.fertilizer.toLocaleString()}</span></div>
+                            <div className="flex justify-between"><span>👨‍🌾 {t('labor')}</span> <span>₹{calculation.costs.labor.toLocaleString()}</span></div>
+                            <div className="flex justify-between"><span>💧 {t('water')}</span> <span>₹{calculation.costs.water.toLocaleString()}</span></div>
                             <div className="border-t border-white/10 pt-2 flex justify-between font-bold text-white">
-                                <span>Total Input</span>
+                                <span>{t('total_input')}</span>
                                 <span>₹{calculation.totalCost.toLocaleString()}</span>
                             </div>
                         </div>
@@ -119,26 +122,26 @@ export default function CalculatorPage() {
                 <div className="col-span-1 md:col-span-2 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <Card className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-green-500/30 flex flex-col justify-center items-center py-8">
-                            <h4 className="text-slate-400 text-sm font-medium mb-1">Expected Yield</h4>
-                            <div className="text-3xl font-bold text-white">{calculation.totalYield.toLocaleString()} <span className="text-sm font-normal text-slate-400">Quintals</span></div>
+                            <h4 className="text-slate-400 text-sm font-medium mb-1">{t('expected_yield')}</h4>
+                            <div className="text-3xl font-bold text-white">{calculation.totalYield.toLocaleString()} <span className="text-sm font-normal text-slate-400">{t('quintals')}</span></div>
                         </Card>
                         <Card className="bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border-blue-500/30 flex flex-col justify-center items-center py-8">
-                            <h4 className="text-slate-400 text-sm font-medium mb-1">Est. Revenue</h4>
+                            <h4 className="text-slate-400 text-sm font-medium mb-1">{t('est_revenue')}</h4>
                             <div className="text-3xl font-bold text-white">₹{calculation.totalRevenue.toLocaleString()}</div>
                         </Card>
                         <Card className={`bg-gradient-to-br border flex flex-col justify-center items-center py-8 ${calculation.netProfit >= 0 ? 'from-yellow-500/20 to-orange-500/20 border-yellow-500/30' : 'from-red-500/20 to-pink-500/20 border-red-500/30'}`}>
-                            <h4 className="text-slate-400 text-sm font-medium mb-1">Net Profit</h4>
+                            <h4 className="text-slate-400 text-sm font-medium mb-1">{t('net_profit')}</h4>
                             <div className={`text-3xl font-bold ${calculation.netProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                 ₹{calculation.netProfit.toLocaleString()}
                             </div>
-                            <div className="text-xs text-slate-500 mt-1">ROI: {calculation.roi.toFixed(1)}%</div>
+                            <div className="text-xs text-slate-500 mt-1">{t('roi')}: {calculation.roi.toFixed(1)}%</div>
                         </Card>
                     </div>
 
                     {/* Historical Analysis Chart */}
                     <Card className="border-white/10 bg-slate-900/50 p-6">
                         <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-blue-400" /> Historical Analysis (Past 4 Years)
+                            <TrendingUp className="w-5 h-5 text-blue-400" /> {t('historical_analysis', { years: 4 })}
                         </h3>
                         <div className="h-[300px] w-full min-w-0 relative">
                             <ResponsiveContainer width="99%" height="100%">
@@ -150,13 +153,13 @@ export default function CalculatorPage() {
                                         contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#fff' }}
                                         itemStyle={{ color: '#fff' }}
                                     />
-                                    <Line type="monotone" dataKey="yield" name="Yield (Q)" stroke="#10b981" strokeWidth={2} />
-                                    <Line type="monotone" dataKey="price" name="Price/Q (₹)" stroke="#f59e0b" strokeWidth={2} />
+                                    <Line type="monotone" dataKey="yield" name={t('chart_yield')} stroke="#10b981" strokeWidth={2} />
+                                    <Line type="monotone" dataKey="price" name={t('chart_price')} stroke="#f59e0b" strokeWidth={2} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
                         <p className="text-xs text-slate-500 mt-4 text-center">
-                            * Historical data is simulated based on regional averages.
+                            {t('disclaimer')}
                         </p>
                     </Card>
                 </div>

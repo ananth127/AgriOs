@@ -4,8 +4,10 @@ import { AddInventoryModal } from './AddInventoryModal';
 import { EditInventoryModal } from './EditInventoryModal';
 import { api } from '@/lib/api';
 import { Pencil, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export const InventoryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
+    const t = useTranslations('FarmManagement');
     const [items, setItems] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -24,13 +26,13 @@ export const InventoryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
     }, [farmId]);
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this item?")) return;
+        if (!confirm(t('confirm_delete_item'))) return;
         try {
             await api.farmManagement.deleteInventory(id);
             fetchInventory();
         } catch (error) {
             console.error("Delete failed", error);
-            alert("Failed to delete item");
+            alert(t('error_delete_item'));
         }
     };
 
@@ -42,19 +44,19 @@ export const InventoryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
         <>
             <Card className="w-full">
                 <CardHeader className="flex flex-row justify-between items-center">
-                    <CardTitle>Inventory Management</CardTitle>
+                    <CardTitle>{t('inventory_title')}</CardTitle>
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
-                        + Add Stock
+                        {t('btn_add_stock')}
                     </button>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
-                        <div className="p-8 text-center text-slate-500">Loading inventory...</div>
+                        <div className="p-8 text-center text-slate-500">{t('loading_inventory')}</div>
                     ) : items.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500">Inventory is empty. Add fertilizers, seeds, etc.</div>
+                        <div className="p-8 text-center text-slate-500">{t('empty_inventory')}</div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {items.map((item) => (

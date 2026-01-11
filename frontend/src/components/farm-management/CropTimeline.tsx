@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { format } from "date-fns";
+import { useTranslations } from 'next-intl';
 
 interface TimelineEvent {
     date: string;
@@ -15,10 +16,11 @@ interface CropTimelineProps {
 }
 
 export const CropTimeline: React.FC<CropTimelineProps> = ({ cropName, events }) => {
+    const t = useTranslations('FarmManagement');
     return (
         <Card className="w-full">
             <CardHeader>
-                <CardTitle>{cropName} Timeline</CardTitle>
+                <CardTitle>{cropName} {t('timeline_suffix')}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="relative border-l border-gray-200 dark:border-gray-700 ml-3">
@@ -32,7 +34,7 @@ export const CropTimeline: React.FC<CropTimelineProps> = ({ cropName, events }) 
                             <h3 className="flex items-center mb-1 text-lg font-semibold text-gray-900 dark:text-white">
                                 {event.title}
                                 <span className="bg-blue-100 text-blue-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300 ml-3">
-                                    {event.type}
+                                    {event.type === 'Milestone' ? t('type_milestone') : t('type_activity')}
                                 </span>
                             </h3>
                             <time className="block mb-2 text-sm font-normal leading-none text-gray-400 dark:text-gray-500">

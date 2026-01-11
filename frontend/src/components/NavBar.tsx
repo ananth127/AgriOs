@@ -59,7 +59,7 @@ export default function NavBar({ locale }: { locale: string }) {
                         </div>
                         {/* Mobile Signal Indicators */}
                         <div className="flex items-center gap-2 mt-1">
-                            <div className="flex items-center gap-1" title={`Frontend: ${isOnline ? 'Online' : 'Offline'}`}>
+                            <div className="flex items-center gap-1" title={`${tGlobal('frontend')}: ${isOnline ? tGlobal('online') : tGlobal('offline')}`}>
                                 <div className={cn("w-1.5 h-1.5 rounded-full", isOnline ? "bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
                                 <div className="flex items-end gap-[1px] h-1.5">
                                     {[1, 2, 3, 4, 5].map(bar => (
@@ -68,7 +68,7 @@ export default function NavBar({ locale }: { locale: string }) {
                                 </div>
                             </div>
                             <div className="w-[1px] h-2 bg-slate-700 mx-0.5"></div>
-                            <div className="flex items-center gap-1" title={`Backend: ${isBackendHealthy ? 'Online' : 'Offline'}`}>
+                            <div className="flex items-center gap-1" title={`${tGlobal('backend')}: ${isBackendHealthy ? tGlobal('online') : tGlobal('offline')}`}>
                                 <div className={cn("w-1.5 h-1.5 rounded-full", isBackendHealthy ? "bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" : "bg-red-500")} />
                                 <div className="flex items-end gap-[1px] h-1.5">
                                     {[1, 2, 3, 4, 5].map(bar => (

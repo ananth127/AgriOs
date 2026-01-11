@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '@/lib/api';
+import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/Card';
 import { ContentLoader } from '@/components/ui/ContentLoader';
 import { ShoppingBag, Search, Filter, Pencil, Trash2, Tag, Tractor, Sprout, Wheat, ShoppingCart, RefreshCw } from 'lucide-react';
@@ -13,6 +14,7 @@ type ViewMode = 'market' | 'store'; // Market = P2P, Store = Commercial (B2B)
 type ListingType = 'SELL' | 'BUY' | 'RENT' | 'ALL';
 
 export default function MarketplacePage() {
+    const t = useTranslations('Marketplace');
     /* State: View & Data */
     const [viewMode, setViewMode] = useState<ViewMode>('market');
     const [listings, setListings] = useState<any[]>([]);
@@ -73,27 +75,27 @@ export default function MarketplacePage() {
 
     /* Handlers */
     const handleDelete = async (id: number) => {
-        if (!confirm("Remove this listing from the marketplace?")) return;
+        if (!confirm(t('confirm_delete'))) return;
         try {
             await api.marketplace.products.delete(id);
             fetchListings();
         } catch (error) {
             console.error("Delete failed", error);
-            alert("Failed to delete listing");
+            alert(t('error_delete'));
         }
     };
 
     const handleBuy = async (item: any) => {
-        if (!confirm(`Confirm order for ${item.product_name}? Total: ₹${item.price}`)) return;
+        if (!confirm(t('confirm_order', { product: item.product_name, price: `₹${item.price}` }))) return;
         try {
             await api.marketplace.orders.create({
                 listing_id: item.id,
                 quantity: 1 // Default 1 unit for now
             });
-            alert("Order placed successfully! The seller will contact you.");
+            alert(t('success_order'));
         } catch (error) {
             console.error("Order failed", error);
-            alert("Failed to place order.");
+            alert(t('error_order'));
         }
     };
 
@@ -104,12 +106,12 @@ export default function MarketplacePage() {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
-                        Agri-OS Marketplace
+                        {t('title')}
                     </h1>
                     <p className="text-slate-400">
                         {viewMode === 'market'
-                            ? "Farmer-to-Farmer Exchange: Buy, Sell, Rent"
-                            : "Commercial Store: Best Prices on Seeds & Inputs"}
+                            ? t('subtitle_market')
+                            : t('subtitle_store')}
                     </p>
                 </div>
 
@@ -119,13 +121,13 @@ export default function MarketplacePage() {
                         onClick={() => setViewMode('market')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'market' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                     >
-                        Farmer Market
+                        {t('view_market')}
                     </button>
                     <button
                         onClick={() => setViewMode('store')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'store' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
                     >
-                        Buy Inputs
+                        {t('view_store')}
                     </button>
                 </div>
             </div>
@@ -139,16 +141,16 @@ export default function MarketplacePage() {
                         {/* Tabs (Browse / Mine) */}
                         <div className="flex gap-4 border-b md:border-b-0 border-white/10 w-full md:w-auto pb-2 md:pb-0 items-center">
                             <button onClick={() => setActiveTab('browse')} className={`text-sm font-medium transition-colors ${activeTab === 'browse' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-400'}`}>
-                                Browse All
+                                {t('tab_browse')}
                             </button>
                             <button onClick={() => setActiveTab('my-listings')} className={`text-sm font-medium transition-colors ${activeTab === 'my-listings' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-400'}`}>
-                                My Listings
+                                {t('tab_my_listings')}
                             </button>
                             <div className="h-4 w-px bg-white/10 mx-2 hidden md:block"></div>
                             <button
                                 onClick={() => fetchListings(true)}
                                 className="text-slate-400 hover:text-white transition-colors p-1"
-                                title="Refresh Listings"
+                                title={t('refresh_tooltip')}
                             >
                                 <RefreshCw className="w-4 h-4" />
                             </button>
@@ -161,7 +163,7 @@ export default function MarketplacePage() {
                                 <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                                 <input
                                     type="text"
-                                    placeholder="Search..."
+                                    placeholder={t('search_placeholder')}
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
                                     className="bg-slate-950 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm w-40 focus:w-60 transition-all focus:outline-none focus:border-emerald-500/50"
@@ -173,14 +175,14 @@ export default function MarketplacePage() {
                                 onChange={e => setCategoryFilter(e.target.value)}
                                 className="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none"
                             >
-                                <option value="">All Categories</option>
-                                <option value="Crop Grown">Crops</option>
-                                <option value="Fruit">Fruits</option>
-                                <option value="Vegetable">Vegetables</option>
-                                <option value="Livestock">Livestock</option>
-                                <option value="Meat">Meat / Poultry</option>
-                                <option value="Dairy">Dairy Products</option>
-                                <option value="Machinery">Machinery</option>
+                                <option value="">{t('filter_category_all')}</option>
+                                <option value="Crop Grown">{t('cat_crops')}</option>
+                                <option value="Fruit">{t('cat_fruits')}</option>
+                                <option value="Vegetable">{t('cat_veg')}</option>
+                                <option value="Livestock">{t('cat_livestock')}</option>
+                                <option value="Meat">{t('cat_meat')}</option>
+                                <option value="Dairy">{t('cat_dairy')}</option>
+                                <option value="Machinery">{t('cat_machinery')}</option>
                             </select>
 
                             <select
@@ -188,10 +190,10 @@ export default function MarketplacePage() {
                                 onChange={e => setListingType(e.target.value as ListingType)}
                                 className="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none"
                             >
-                                <option value="ALL">All Types</option>
-                                <option value="SELL">For Sale</option>
-                                <option value="BUY">Wanted (Buy)</option>
-                                <option value="RENT">For Rent</option>
+                                <option value="ALL">{t('filter_type_all')}</option>
+                                <option value="SELL">{t('type_sell')}</option>
+                                <option value="BUY">{t('type_buy')}</option>
+                                <option value="RENT">{t('type_rent')}</option>
                             </select>
                         </div>
 
@@ -199,17 +201,17 @@ export default function MarketplacePage() {
                             onClick={() => setIsCreateModalOpen(true)}
                             className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center gap-2 whitespace-nowrap"
                         >
-                            + Post Ad
+                            {t('btn_post_ad')}
                         </button>
                     </div>
 
                     {/* Listings Grid */}
-                    <ContentLoader loading={loading} text="Loading marketplace listings...">
+                    <ContentLoader loading={loading} text={t('loading_listings')}>
                         {displayedListings.length === 0 ? (
                             <div className="text-center py-20 text-slate-500 bg-slate-900/50 rounded-xl border border-white/5 border-dashed">
                                 <ShoppingBag className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                <p className="text-lg">No active listings found.</p>
-                                <p className="text-sm">Try adjusting your filters or post a new ad.</p>
+                                <p className="text-lg">{t('no_listings_title')}</p>
+                                <p className="text-sm">{t('no_listings_desc')}</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -251,7 +253,7 @@ export default function MarketplacePage() {
                                                 </div>
                                             </div>
 
-                                            <p className="text-xs text-slate-400 line-clamp-2 min-h-[2.5em]">{item.description || "No description provided."}</p>
+                                            <p className="text-xs text-slate-400 line-clamp-2 min-h-[2.5em]">{item.description || t('no_description')}</p>
 
                                             <div className="pt-3 mt-2 border-t border-white/5 flex justify-between items-end">
                                                 <div>
@@ -259,13 +261,13 @@ export default function MarketplacePage() {
                                                     <p className="text-[10px] text-slate-500">per {item.price_unit.replace('per_', '')}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-xs text-slate-400">{item.quantity} {item.unit} available</p>
+                                                    <p className="text-xs text-slate-400">{t('available', { qty: item.quantity, unit: item.unit })}</p>
                                                     {item.seller_id !== myUserId && (
                                                         <button
                                                             onClick={() => handleBuy(item)}
                                                             className="mt-1 bg-white/5 hover:bg-emerald-600 text-slate-300 hover:text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1"
                                                         >
-                                                            Details
+                                                            {t('btn_details')}
                                                         </button>
                                                     )}
                                                 </div>
@@ -288,29 +290,29 @@ export default function MarketplacePage() {
                             onClick={() => setCategoryFilter('')}
                             className={`px-4 py-2 rounded-full border border-white/10 text-sm whitespace-nowrap transition-colors ${!categoryFilter ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
                         >
-                            All Products
+                            {t('store_cat_all')}
                         </button>
                         <button
                             onClick={() => setCategoryFilter('Seeds')}
                             className={`px-4 py-2 rounded-full border border-white/10 text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${categoryFilter === 'Seeds' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
                         >
-                            <Sprout className="w-4 h-4" /> Seeds
+                            <Sprout className="w-4 h-4" /> {t('store_cat_seeds')}
                         </button>
                         <button
                             onClick={() => setCategoryFilter('Pesticides')}
                             className={`px-4 py-2 rounded-full border border-white/10 text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${categoryFilter === 'Pesticides' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
                         >
-                            <Tag className="w-4 h-4" /> Pesticides
+                            <Tag className="w-4 h-4" /> {t('store_cat_pesticides')}
                         </button>
                         <button
                             onClick={() => setCategoryFilter('Fertilizers')}
                             className={`px-4 py-2 rounded-full border border-white/10 text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${categoryFilter === 'Fertilizers' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
                         >
-                            <Wheat className="w-4 h-4" /> Fertilizers
+                            <Wheat className="w-4 h-4" /> {t('store_cat_fertilizers')}
                         </button>
                     </div>
 
-                    <ContentLoader loading={loading} text="Loading store products...">
+                    <ContentLoader loading={loading} text={t('loading_store')}>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                             {commercialProducts.map((prod, i) => (
                                 <Card key={i} className="group overflow-hidden border-white/5 bg-slate-900/40 hover:bg-slate-900/80 transition-all hover:border-blue-500/30">

@@ -121,14 +121,14 @@ export default function FarmManagementPage() {
 
             {/* Content Areas */}
             {activeTab === 'overview' && (
-                <ContentLoader loading={loading} text="Analyzing farm data...">
+                <ContentLoader loading={loading} text={t('overview_loader')}>
                     <div className="space-y-8 animate-in fade-in duration-500">
                         <FinancialDashboard stats={financialStats} />
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                             {/* Quick Actions / Suggestions */}
                             <Card>
-                                <CardHeader><CardTitle>Smart Suggestions</CardTitle></CardHeader>
+                                <CardHeader><CardTitle>{t('smart_suggestions')}</CardTitle></CardHeader>
                                 <CardContent>
                                     {suggestions.length > 0 ? (
                                         <ul className="space-y-3">
@@ -139,11 +139,11 @@ export default function FarmManagementPage() {
                                                     </span>
                                                     <div>
                                                         <p className="font-medium text-gray-900 dark:text-white">
-                                                            {suggestion.type === 'Pesticide' ? 'Pest Alert' : 'Fertilizer Logic'}
+                                                            {suggestion.type === 'Pesticide' ? t('pest_alert') : t('fert_logic')}
                                                         </p>
                                                         <p className="text-sm text-gray-500">
                                                             {suggestion.reason} <br />
-                                                            <strong>Use: {suggestion.suggested_item || suggestion.suggested_pesticide}</strong>
+                                                            <strong>{t('suggestion_use', { item: suggestion.suggested_item || suggestion.suggested_pesticide })}</strong>
                                                             ({suggestion.quantity_per_acre_kg ? `${suggestion.quantity_per_acre_kg} kg/acre` : suggestion.dosage_per_acre})
                                                         </p>
                                                     </div>
@@ -152,8 +152,8 @@ export default function FarmManagementPage() {
                                         </ul>
                                     ) : (
                                         <div className="text-center py-8 text-gray-500">
-                                            <p>No immediate actions required.</p>
-                                            <p className="text-xs mt-1">Add crops to generate AI suggestions.</p>
+                                            <p>{t('no_suggestions')}</p>
+                                            <p className="text-xs mt-1">{t('add_crops_hint')}</p>
                                         </div>
                                     )}
                                 </CardContent>
@@ -162,12 +162,12 @@ export default function FarmManagementPage() {
                             {/* Recent Activity */}
                             <Card>
                                 <CardHeader className="flex flex-row justify-between items-center">
-                                    <CardTitle>Recent Activity</CardTitle>
+                                    <CardTitle>{t('recent_activity')}</CardTitle>
                                     <button
                                         onClick={() => setIsActivityModalOpen(true)}
                                         className="text-sm text-green-400 hover:text-green-300 font-medium"
                                     >
-                                        + Log Activity
+                                        {t('btn_log_activity')}
                                     </button>
                                 </CardHeader>
                                 <CardContent>
@@ -191,7 +191,7 @@ export default function FarmManagementPage() {
                                                 </li>
                                             ))}
                                             {timelineEvents.length === 0 && (
-                                                <p className="text-center text-gray-500 py-4">No activities logged yet.</p>
+                                                <p className="text-center text-gray-500 py-4">{t('no_activity')}</p>
                                             )}
                                         </ul>
                                     </div>
@@ -209,7 +209,7 @@ export default function FarmManagementPage() {
                             onClick={() => setIsActivityModalOpen(true)}
                             className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium"
                         >
-                            + Add Event
+                            {t('btn_add_event')}
                         </button>
                     </div>
                     <CropTimeline cropName="Current Crop Cycle" events={timelineEvents} />

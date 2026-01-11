@@ -73,9 +73,9 @@ export function Sidebar({ locale }: SidebarProps) {
                     [centerLat - 0.001, centerLng + 0.001],
                 ];
                 setEditBoundary(mockBoundary);
-                alert(`Boundary found for survey no: ${editSurveyNumber}`);
+                alert(tGlobal('boundary_found', { no: editSurveyNumber }));
             } else {
-                alert("Please set a location first to simulate boundary fetch.");
+                alert(tGlobal('set_location_first'));
             }
             setFetchingBoundary(false);
         }, 1500);
@@ -112,7 +112,7 @@ export function Sidebar({ locale }: SidebarProps) {
 
         } catch (err) {
             console.error(err);
-            alert("Failed to save profile");
+            alert(tGlobal('error_save_profile'));
         } finally {
             setSaving(false);
         }
@@ -144,7 +144,7 @@ export function Sidebar({ locale }: SidebarProps) {
                     {/* Status Indicators */}
                     <div className="flex flex-col justify-center gap-[2px] ml-2 mb-1">
                         {/* Frontend Status */}
-                        <div className="flex items-center gap-1.5" title={`Frontend: ${isOnline ? 'Online' : 'Offline'} (${frontendSignalStrength}/5)`}>
+                        <div className="flex items-center gap-1.5" title={`${tGlobal('frontend')}: ${isOnline ? tGlobal('online') : tGlobal('offline')} (${frontendSignalStrength}/5)`}>
                             <span className="text-[9px] font-bold text-slate-500 w-3 text-right">F</span>
                             <div className={cn("w-1.5 h-1.5 rounded-full transition-colors", isOnline ? "bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" : "bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]")} />
                             {/* Bars */}
@@ -156,7 +156,7 @@ export function Sidebar({ locale }: SidebarProps) {
                         </div>
 
                         {/* Backend Status */}
-                        <div className="flex items-center gap-1.5" title={`Backend: ${isBackendHealthy ? 'Online' : 'Offline'} (${backendSignalStrength}/5)`}>
+                        <div className="flex items-center gap-1.5" title={`${tGlobal('backend')}: ${isBackendHealthy ? tGlobal('online') : tGlobal('offline')} (${backendSignalStrength}/5)`}>
                             <span className="text-[9px] font-bold text-slate-500 w-3 text-right">B</span>
                             <div className={cn("w-1.5 h-1.5 rounded-full transition-colors", isBackendHealthy ? "bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]" : "bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]")} />
                             {/* Bars */}
@@ -260,11 +260,11 @@ export function Sidebar({ locale }: SidebarProps) {
                                                     onChange={(e) => setEditRole(e.target.value)}
                                                     className="w-full bg-slate-950/50 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-white appearance-none focus:outline-none focus:border-green-500/50"
                                                 >
-                                                    <option value="farmer">Farmer</option>
-                                                    <option value="agri_officer">Agri Officer</option>
-                                                    <option value="broker">Broker</option>
-                                                    <option value="buyer">Buyer</option>
-                                                    <option value="logistics">Logistics</option>
+                                                    <option value="farmer">{t('role_farmer')}</option>
+                                                    <option value="agri_officer">{t('role_officer')}</option>
+                                                    <option value="broker">{t('role_broker')}</option>
+                                                    <option value="buyer">{t('role_buyer')}</option>
+                                                    <option value="logistics">{t('role_logistics')}</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -288,12 +288,12 @@ export function Sidebar({ locale }: SidebarProps) {
 
                                         {/* Survey Number / Patta */}
                                         <div className="p-3 bg-slate-950/50 border border-white/5 rounded-lg">
-                                            <label className="block text-xs font-medium text-slate-400 mb-2">Government Record (Patta/Chitta)</label>
+                                            <label className="block text-xs font-medium text-slate-400 mb-2">{t('govt_record_label')}</label>
                                             <div className="flex gap-2">
                                                 <input
                                                     type="text"
                                                     className="flex-1 bg-slate-950 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-green-500/50 focus:outline-none"
-                                                    placeholder="Survey No"
+                                                    placeholder={t('survey_no_placeholder')}
                                                     value={editSurveyNumber}
                                                     onChange={(e) => setEditSurveyNumber(e.target.value)}
                                                 />
@@ -303,13 +303,13 @@ export function Sidebar({ locale }: SidebarProps) {
                                                     disabled={!editSurveyNumber || fetchingBoundary}
                                                     className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/30 text-xs font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                 >
-                                                    {fetchingBoundary ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Fetch'}
+                                                    {fetchingBoundary ? <Loader2 className="w-3 h-3 animate-spin" /> : t('fetch_btn')}
                                                 </button>
                                             </div>
                                             {editBoundary && editBoundary.length > 0 && (
                                                 <div className="mt-2 text-[10px] text-green-500 flex items-center gap-1">
                                                     <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                                    Boundary coordinates loaded
+                                                    {t('boundary_loaded')}
                                                 </div>
                                             )}
                                         </div>

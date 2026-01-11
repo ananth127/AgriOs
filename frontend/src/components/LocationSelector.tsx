@@ -1,6 +1,7 @@
 
 'use client';
 import { trackLocationSelect, trackCurrentLocation } from '@/lib/analytics';
+import { useTranslations } from 'next-intl';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -28,6 +29,7 @@ function MapController({ center }: { center: L.LatLng | null }) {
 }
 
 function LocationMarker({ position, onPositionChange }: { position: L.LatLng | null, onPositionChange: (latlng: L.LatLng) => void }) {
+    const t = useTranslations('LocationSelector');
     useMapEvents({
         click(e) {
             onPositionChange(e.latlng);
@@ -36,7 +38,7 @@ function LocationMarker({ position, onPositionChange }: { position: L.LatLng | n
 
     return position === null ? null : (
         <Marker position={position} icon={icon}>
-            <Popup>Selected Location</Popup>
+            <Popup>{t('selected_location')}</Popup>
         </Marker>
     );
 }
@@ -48,6 +50,8 @@ interface LocationSelectorProps {
 }
 
 export default function LocationSelector({ isOpen, onClose, onSelect }: LocationSelectorProps) {
+    const t = useTranslations('LocationSelector');
+    const tGlobal = useTranslations('Global');
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [position, setPosition] = useState<L.LatLng | null>(null);
@@ -87,13 +91,13 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.lat}&lon=${position.lng}`);
             const data = await res.json();
-            const displayName = data.display_name ? data.address.city || data.address.town || data.address.village || data.display_name.split(',')[0] : "Custom Location";
+            const displayName = data.display_name ? data.address.city || data.address.town || data.address.village || data.display_name.split(',')[0] : t('custom_location');
 
             onSelect(position.lat, position.lng, displayName, 'manual');
             trackLocationSelect(position.lat, position.lng, displayName);
             onClose();
         } catch (e) {
-            onSelect(position.lat, position.lng, "Custom Location", 'manual');
+            onSelect(position.lat, position.lng, t('custom_location'), 'manual');
             onClose();
         }
     };
@@ -107,11 +111,11 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
                 setPosition(latlng);
 
                 // Fetch name for accurate tracking
-                let locationName = "Current Location";
+                let locationName = t('current_location');
                 try {
                     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
                     const data = await res.json();
-                    locationName = data.display_name ? data.address.city || data.address.town || data.address.village || data.display_name.split(',')[0] : "Current Location";
+                    locationName = data.display_name ? data.address.city || data.address.town || data.address.village || data.display_name.split(',')[0] : t('current_location');
                 } catch (e) {
                     console.error("Failed to reverse geocode current location", e);
                 }
@@ -148,7 +152,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
         <div className="fixed inset-0 z-[9999] flex flex-col bg-slate-950 animate-in fade-in">
             {/* Header - Fixed Top */}
             <div className="flex-none p-4 border-b border-white/10 flex justify-between items-center bg-slate-900/90 backdrop-blur-md z-[1002]">
-                <h2 className="text-lg font-semibold text-white">Choose Farming Location</h2>
+                <h2 className="text-lg font-semibold text-white">{t('title')}</h2>
                 <button onClick={onClose} className="bg-white/10 p-2 rounded-full text-white hover:bg-white/20 transition-colors">
                     <X className="w-5 h-5" />
                 </button>
@@ -163,7 +167,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-green-400 transition-colors" />
                         <input
                             type="text"
-                            placeholder="Search town or village..."
+                            placeholder={t('search_placeholder')}
                             className="w-full bg-slate-900/90 backdrop-blur-xl border border-white/20 rounded-xl py-3.5 pl-12 pr-10 text-white text-base focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/50 shadow-black/50 transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -230,7 +234,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
                         <button
                             onClick={() => handleGetCurrentLocation('manual')}
                             className="bg-slate-900 border border-white/20 text-white p-3 rounded-full shadow-lg hover:bg-green-600 transition-all active:scale-95"
-                            title="Use Current Location"
+                            title={t('use_current_location')}
                         >
                             <MapPin className="w-6 h-6" />
                         </button>
@@ -242,7 +246,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
                             onClick={onClose}
                             className="px-6 py-2.5 text-slate-300 hover:text-white font-medium hover:bg-white/5 rounded-full transition-colors"
                         >
-                            Cancel
+                            {tGlobal('cancel')}
                         </button>
                         <div className="h-6 w-px bg-white/10"></div>
                         <button
@@ -251,7 +255,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
                             className="px-6 py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-semibold rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg flex items-center gap-2"
                         >
                             <MapPin className="w-4 h-4 fill-current" />
-                            {position ? 'Confirm Location' : 'Tap on Map'}
+                            {position ? t('confirm_location') : t('tap_on_map')}
                         </button>
                     </div>
                 </div>

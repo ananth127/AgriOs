@@ -123,7 +123,7 @@ export default function LibraryBrowser() {
                                             </button>
                                         ))}
                                         {pest.chemicals.length === 0 && (
-                                            <span className="text-slate-600 text-xs italic">No data</span>
+                                            <span className="text-slate-600 text-xs italic">{t('no_data')}</span>
                                         )}
                                     </div>
                                 </div>
@@ -133,7 +133,7 @@ export default function LibraryBrowser() {
 
                     {pests.length === 0 && (
                         <div className="col-span-full text-center py-20 text-slate-500">
-                            No diseases found matching &quot;{search}&quot;
+                            {t('no_diseases_found', { search })}
                         </div>
                     )}
                 </div>
@@ -149,8 +149,8 @@ export default function LibraryBrowser() {
                     <div className="bg-slate-900 border border-white/10 w-full max-w-lg sm:rounded-2xl rounded-t-2xl p-6 relative pointer-events-auto shadow-2xl animate-in slide-in-from-bottom-4">
                         <div className="flex justify-between items-center mb-6">
                             <div>
-                                <h3 className="text-lg font-bold text-white">Buy {selectedChemical}</h3>
-                                <p className="text-slate-400 text-sm">Recommended products matching this ingredient</p>
+                                <h3 className="text-lg font-bold text-white">{t('buy_chemical', { chem: selectedChemical })}</h3>
+                                <p className="text-slate-400 text-sm">{t('recommended_products')}</p>
                             </div>
                             <button onClick={() => setSelectedChemical(null)} className="p-2 hover:bg-white/10 rounded-full text-slate-400">
                                 <X className="w-5 h-5" />
@@ -183,7 +183,7 @@ export default function LibraryBrowser() {
                                                 </div>
                                                 <div className="mt-3 flex justify-end">
                                                     <button className="text-sm bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2">
-                                                        Add to Cart <ExternalLink className="w-3 h-3" />
+                                                        {t('add_to_cart')} <ExternalLink className="w-3 h-3" />
                                                     </button>
                                                 </div>
                                             </div>
@@ -191,7 +191,7 @@ export default function LibraryBrowser() {
                                     ))
                                 ) : (
                                     <div className="text-center py-10 text-slate-500">
-                                        No commercial products found for this chemical near you.
+                                        {t('no_products_found')}
                                     </div>
                                 )}
                             </div>

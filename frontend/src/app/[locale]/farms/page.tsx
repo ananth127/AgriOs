@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { useTranslations } from 'next-intl';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { CreateFarmModal } from '@/components/farms/CreateFarmModal';
@@ -10,6 +11,8 @@ import { Plus } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 export default function FarmsPage() {
+    const t = useTranslations('Farms');
+    const tGlobal = useTranslations('Global');
     const { user } = useAuth();
     const [farms, setFarms] = useState<any[]>([]);
     const [selectedFarmId, setSelectedFarmId] = useState<number | undefined>(undefined);
@@ -19,10 +22,10 @@ export default function FarmsPage() {
     const FarmMap = useMemo(() => dynamic(
         () => import('@/components/FarmMap'),
         {
-            loading: () => <div className="flex items-center justify-center h-full text-slate-500 bg-slate-900">Loading Satellite Data...</div>,
+            loading: () => <div className="flex items-center justify-center h-full text-slate-500 bg-slate-900">{t('loading_satellite')}</div>,
             ssr: false
         }
-    ), []);
+    ), [t]);
 
     const fetchFarms = useCallback(() => {
         api.farms.list()
@@ -83,7 +86,7 @@ export default function FarmsPage() {
                     <div className="relative flex-1">
                         <input
                             type="text"
-                            placeholder="Search location..."
+                            placeholder={t('search_location')}
                             className="w-full bg-slate-900/95 backdrop-blur text-white border border-white/20 rounded-xl px-4 py-3 shadow-2xl focus:outline-none focus:border-green-500 text-sm pl-11"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -100,7 +103,7 @@ export default function FarmsPage() {
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="bg-green-600 hover:bg-green-500 text-white rounded-xl px-4 flex items-center justify-center shadow-xl"
-                        title="Add New Farm"
+                        title={t('add_new_farm')}
                     >
                         <Plus className="w-5 h-5" />
                     </button>
@@ -108,28 +111,28 @@ export default function FarmsPage() {
 
                 {/* 2. Farm Selector (Compact) */}
                 <Card className="p-4 bg-slate-900/95 backdrop-blur border-white/10 shadow-xl pointer-events-auto shrink-0">
-                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Current Farm</label>
+                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{t('current_farm')}</label>
                     <select
                         className="w-full bg-transparent font-bold text-lg mt-0.5 focus:outline-none cursor-pointer appearance-none text-white truncate pr-4"
                         value={selectedFarmId ?? ''}
                         onChange={(e) => setSelectedFarmId(e.target.value ? parseInt(e.target.value) : undefined)}
                     >
-                        <option value="" className="bg-slate-900 text-slate-400">View All / My Location</option>
+                        <option value="" className="bg-slate-900 text-slate-400">{t('view_all_location')}</option>
                         {farms.length > 0 ? (
                             farms.map(f => <option key={f.id} value={f.id} className="bg-slate-900">{f.name}</option>)
                         ) : (
-                            <option value="" disabled>No farms found</option>
+                            <option value="" disabled>{t('no_farms')}</option>
                         )}
                     </select>
                     <div className="mt-3 flex gap-4 text-xs">
                         <div>
-                            <div className="text-slate-500">Owners</div>
-                            <div className="font-mono text-white">Self</div>
+                            <div className="text-slate-500">{t('owners')}</div>
+                            <div className="font-mono text-white">{t('self')}</div>
                         </div>
                         <div>
-                            <div className="text-slate-500">Soil Type</div>
+                            <div className="text-slate-500">{t('soil_type')}</div>
                             <div className="font-mono text-green-400">
-                                {currentFarm?.soil_profile?.type || 'Unknown'}
+                                {currentFarm?.soil_profile?.type || tGlobal('unknown')}
                             </div>
                         </div>
                     </div>
@@ -141,7 +144,7 @@ export default function FarmsPage() {
                         className="p-3 border-b border-white/10 flex justify-between items-center cursor-pointer hover:bg-white/5 bg-slate-800/50"
                         onClick={() => setIsZonesExpanded(!isZonesExpanded)}
                     >
-                        <h3 className="font-semibold text-sm text-slate-300">Active Zones</h3>
+                        <h3 className="font-semibold text-sm text-slate-300">{t('active_zones')}</h3>
                         <span className={`text-slate-500 text-xs transition-transform ${isZonesExpanded ? 'rotate-180' : ''}`}>
                             ▼
                         </span>
@@ -152,17 +155,17 @@ export default function FarmsPage() {
                         <div className="divide-y divide-white/5">
                             <div className="p-3 hover:bg-white/5 cursor-pointer transition-colors">
                                 <div className="flex justify-between items-center">
-                                    <span className="font-medium text-green-400 text-sm">Zone A - Wheat</span>
+                                    <span className="font-medium text-green-400 text-sm">{t('mock_zone_a')}</span>
                                     <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-1">Irrigation in 2 days</p>
+                                <p className="text-[10px] text-slate-400 mt-1">{t('mock_status_irrigation')}</p>
                             </div>
                             <div className="p-3 hover:bg-white/5 cursor-pointer transition-colors">
                                 <div className="flex justify-between items-center">
-                                    <span className="font-medium text-orange-400 text-sm">Zone B - Fallow</span>
+                                    <span className="font-medium text-orange-400 text-sm">{t('mock_zone_b')}</span>
                                     <div className="h-1.5 w-1.5 rounded-full bg-orange-500"></div>
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-1">Ready for sowing</p>
+                                <p className="text-[10px] text-slate-400 mt-1">{t('mock_status_sowing')}</p>
                             </div>
                         </div>
                     </div>
@@ -170,7 +173,7 @@ export default function FarmsPage() {
                     {/* Preview (Shown when collapsed) */}
                     {!isZonesExpanded && (
                         <div className="p-3 text-xs text-slate-500 text-center cursor-pointer" onClick={() => setIsZonesExpanded(true)}>
-                            2 Zones Active • Tap to view
+                            {t('zones_tap_view_other', { count: 2 })}
                         </div>
                     )}
                 </Card>

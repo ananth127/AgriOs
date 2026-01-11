@@ -3,6 +3,7 @@
 import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import L from 'leaflet';
 
 // Fix for default marker icon in Leaflet + Next.js
@@ -41,6 +42,7 @@ const userIcon = L.icon({
 });
 
 export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocation }: FarmMapProps) {
+    const t = useTranslations('FarmMap');
     // Priority:
     // 1. View Center (Search Result)
     // 2. Selected Farm
@@ -139,7 +141,7 @@ export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocatio
                             });
                         }
                     }}
-                    title="Use My Location"
+                    title={t('use_my_location')}
                 >
                     <span className="text-xl">📍</span>
                 </button>
@@ -148,7 +150,7 @@ export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocatio
             {/* User Land Location Marker */}
             {userLocation && (
                 <Marker position={userLocation} icon={userIcon}>
-                    <Popup>My Land Location</Popup>
+                    <Popup>{t('my_land_location')}</Popup>
                 </Marker>
             )}
 
@@ -167,7 +169,7 @@ export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocatio
                                 <Popup>
                                     <div className="text-center">
                                         <div className="font-bold">{farm.name}</div>
-                                        {farm.survey_number && <div className="text-xs text-gray-500">Survey No: {farm.survey_number}</div>}
+                                        {farm.survey_number && <div className="text-xs text-gray-500">{t('survey_no')}: {farm.survey_number}</div>}
                                     </div>
                                 </Popup>
                             </Marker>
@@ -186,7 +188,7 @@ export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocatio
                                 }}
                             >
                                 <Popup>
-                                    <span className="font-semibold text-xs">Correction Boundary: {farm.name}</span>
+                                    <span className="font-semibold text-xs">{t('correction_boundary')}: {farm.name}</span>
                                 </Popup>
                             </Polygon>
                         )}
@@ -205,7 +207,7 @@ export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocatio
                     ]}
                     pathOptions={{ color: 'white', weight: 2, fillOpacity: 0.05, dashArray: '10, 10' }}
                 >
-                    <Popup>Est. Land Area</Popup>
+                    <Popup>{t('est_land_area')}</Popup>
                 </Polygon>
             )}
         </MapContainer>

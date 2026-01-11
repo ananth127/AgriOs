@@ -4,8 +4,10 @@ import { AddAssetModal } from './AddAssetModal';
 import { EditAssetModal } from './EditAssetModal';
 import { api } from '@/lib/api';
 import { Pencil, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export const MachineryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
+    const t = useTranslations('FarmManagement');
     const [assets, setAssets] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -24,13 +26,13 @@ export const MachineryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
     }, [farmId]);
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Are you sure you want to delete this asset?")) return;
+        if (!confirm(t('confirm_delete_asset'))) return;
         try {
             await api.farmManagement.deleteAsset(id);
             fetchAssets();
         } catch (error) {
             console.error("Delete failed", error);
-            alert("Failed to delete asset");
+            alert(t('error_delete_asset'));
         }
     };
 
@@ -42,19 +44,19 @@ export const MachineryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
         <>
             <Card className="w-full">
                 <CardHeader className="flex flex-row justify-between items-center">
-                    <CardTitle>Tractor & Machinery</CardTitle>
+                    <CardTitle>{t('machinery_title')}</CardTitle>
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
-                        + Add Asset
+                        {t('btn_add_asset')}
                     </button>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
-                        <div className="p-8 text-center text-slate-500">Loading assets...</div>
+                        <div className="p-8 text-center text-slate-500">{t('loading_assets')}</div>
                     ) : assets.length === 0 ? (
-                        <div className="p-8 text-center text-slate-500">No machinery added. Add tractors, pumps, etc.</div>
+                        <div className="p-8 text-center text-slate-500">{t('empty_assets')}</div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {assets.map((asset) => (
@@ -76,10 +78,10 @@ export const MachineryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
                                     </div>
                                     <p className="text-sm text-gray-500">{asset.asset_type}</p>
                                     <div className="mt-3 text-sm text-gray-500">
-                                        <p>Purchase Cost: ₹{asset.cost.toLocaleString()}</p>
+                                        <p>{t('label_purchase_cost')}{asset.cost.toLocaleString()}</p>
                                         {asset.is_iot_enabled && (
                                             <p className="text-blue-500 flex items-center gap-1 mt-1">
-                                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" /> IoT Connected
+                                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" /> {t('iot_connected')}
                                             </p>
                                         )}
                                     </div>

@@ -24,6 +24,8 @@ interface DiagnosisResult {
 
 export default function DiagnosisUploader() {
     const t = useTranslations('Diagnosis');
+    const tResults = useTranslations('DiagnosisResults');
+    const tCrops = useTranslations('Crops');
     const { token } = useAuth();
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -131,8 +133,8 @@ export default function DiagnosisUploader() {
                             <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                                 <Upload className="w-8 h-8 text-slate-400 group-hover:text-green-400" />
                             </div>
-                            <p className="text-slate-300 font-medium">Click to upload or drag & drop</p>
-                            <p className="text-slate-500 text-sm mt-1">PG, PNG, JPEG (Max 5MB)</p>
+                            <p className="text-slate-300 font-medium">{t('click_upload_drag')}</p>
+                            <p className="text-slate-500 text-sm mt-1">{t('formats_allowed')}</p>
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -148,7 +150,7 @@ export default function DiagnosisUploader() {
                             className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl flex items-center justify-center gap-2 border border-white/5 transition-colors group"
                         >
                             <Camera className="w-5 h-5 text-green-400 group-hover:scale-110 transition-transform" />
-                            <span className="font-medium">Take Photo (Camera)</span>
+                            <span className="font-medium">{t('take_photo_btn')}</span>
                         </button>
                         <input
                             type="file"
@@ -185,13 +187,13 @@ export default function DiagnosisUploader() {
                             onChange={(e) => setCropName(e.target.value)}
                             className="w-full bg-slate-950/50 border border-white/10 rounded-lg p-3 text-white focus:border-green-500/50 focus:outline-none"
                         >
-                            <option value="Unknown">Unknown / Detect Auto</option>
-                            <option value="Wheat">Wheat</option>
-                            <option value="Rice">Rice</option>
-                            <option value="Potato">Potato</option>
-                            <option value="Tomato">Tomato</option>
-                            <option value="Cotton">Cotton</option>
-                            <option value="Corn">Corn</option>
+                            <option value="Unknown">{t('unknown_detect')}</option>
+                            <option value="Wheat">{tCrops('wheat')}</option>
+                            <option value="Rice">{tCrops('rice')}</option>
+                            <option value="Potato">{tCrops('potato')}</option>
+                            <option value="Tomato">{tCrops('tomato')}</option>
+                            <option value="Cotton">{tCrops('cotton')}</option>
+                            <option value="Corn">{tCrops('corn')}</option>
                         </select>
                     </div>
 
@@ -238,7 +240,7 @@ export default function DiagnosisUploader() {
                         <div className="space-y-6">
                             {(result.identified_crop || result.crop_name) && (
                                 <div className="bg-slate-950/30 rounded-lg p-3 border border-white/5 flex items-center gap-2">
-                                    <span className="text-slate-400 text-sm">Identified Crop:</span>
+                                    <span className="text-slate-400 text-sm">{tResults('identified_crop')}</span>
                                     <span className="text-green-400 font-semibold">{result.identified_crop || result.crop_name}</span>
                                 </div>
                             )}
@@ -259,7 +261,7 @@ export default function DiagnosisUploader() {
                             {/* Cause Section */}
                             {result.cause && (
                                 <div>
-                                    <h4 className="text-sm font-semibold text-slate-500 mb-2 uppercase tracking-wider">Cause</h4>
+                                    <h4 className="text-sm font-semibold text-slate-500 mb-2 uppercase tracking-wider">{tResults('cause')}</h4>
                                     <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-slate-300 text-sm">
                                         {result.cause}
                                     </div>
@@ -270,7 +272,7 @@ export default function DiagnosisUploader() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {result.treatment_organic && (
                                     <div>
-                                        <h4 className="text-sm font-semibold text-green-400 mb-2 uppercase tracking-wider">Organic Cure</h4>
+                                        <h4 className="text-sm font-semibold text-green-400 mb-2 uppercase tracking-wider">{tResults('organic_cure')}</h4>
                                         <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-slate-300 text-sm">
                                             {result.treatment_organic}
                                         </div>
@@ -278,7 +280,7 @@ export default function DiagnosisUploader() {
                                 )}
                                 {result.treatment_chemical && (
                                     <div>
-                                        <h4 className="text-sm font-semibold text-blue-400 mb-2 uppercase tracking-wider">Chemical Cure</h4>
+                                        <h4 className="text-sm font-semibold text-blue-400 mb-2 uppercase tracking-wider">{tResults('chemical_cure')}</h4>
                                         <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg text-slate-300 text-sm">
                                             {result.treatment_chemical}
                                         </div>
@@ -299,7 +301,7 @@ export default function DiagnosisUploader() {
                             {/* Prevention */}
                             {result.prevention && (
                                 <div>
-                                    <h4 className="text-sm font-semibold text-yellow-500 mb-2 uppercase tracking-wider">Prevention</h4>
+                                    <h4 className="text-sm font-semibold text-yellow-500 mb-2 uppercase tracking-wider">{tResults('prevention')}</h4>
                                     <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-slate-300 text-sm">
                                         {result.prevention}
                                     </div>
@@ -307,15 +309,15 @@ export default function DiagnosisUploader() {
                             )}
 
                             <div className="pt-4">
-                                <h4 className="text-sm font-semibold text-slate-500 mb-3 uppercase tracking-wider">Suggested Actions</h4>
+                                <h4 className="text-sm font-semibold text-slate-500 mb-3 uppercase tracking-wider">{tResults('suggested_actions')}</h4>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="p-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-green-500/20">
-                                        <div className="text-green-400 font-medium mb-1">Find Medicine</div>
-                                        <div className="text-xs text-slate-500">Search Marketplace</div>
+                                        <div className="text-green-400 font-medium mb-1">{tResults('action_find_medicine')}</div>
+                                        <div className="text-xs text-slate-500">{tResults('action_search_marketplace')}</div>
                                     </div>
                                     <div className="p-3 bg-slate-800/50 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors border border-transparent hover:border-blue-500/20">
-                                        <div className="text-blue-400 font-medium mb-1">Ask Expert</div>
-                                        <div className="text-xs text-slate-500">Contact Agronomist</div>
+                                        <div className="text-blue-400 font-medium mb-1">{tResults('action_ask_expert')}</div>
+                                        <div className="text-xs text-slate-500">{tResults('action_contact_agro')}</div>
                                     </div>
                                 </div>
                             </div>
@@ -326,7 +328,7 @@ export default function DiagnosisUploader() {
                         <div className="w-20 h-20 rounded-full bg-slate-900 flex items-center justify-center mb-4">
                             <Activity className="w-8 h-8 opacity-20" />
                         </div>
-                        <p>Analysis results will appear here</p>
+                        <p>{t('analyzing_results_placeholder')}</p>
                     </div>
                 )}
             </div>
