@@ -3,6 +3,57 @@ echo ==========================================
 echo       Starting Agri-OS Local Environment
 echo ==========================================
 
+
+:: 0. Check and Setup Environment
+echo Checking environment setup...
+
+:: Check Backend Configuration
+if not exist "backend\.env" (
+    if exist "backend\.env.example" (
+        echo Creating backend .env from example...
+        copy "backend\.env.example" "backend\.env" >nul
+    ) else (
+        echo WARNING: backend\.env.example not found. Skipping .env creation.
+    )
+)
+
+:: Check Backend Dependencies
+echo Checking Backend dependencies...
+pushd backend
+python -c "import fastapi" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Dependencies missing. Installing Backend requirements...
+    pip install -r requirements.txt
+) else (
+    echo Backend dependencies appear to be installed.
+)
+popd
+
+:: Check Frontend Configuration
+if not exist "frontend\.env.local" (
+    if exist "frontend\.env.local.example" (
+        echo Creating frontend .env.local from example...
+        copy "frontend\.env.local.example" "frontend\.env.local" >nul
+    ) else (
+        echo WARNING: frontend\.env.local.example not found. Skipping .env.local creation.
+    )
+)
+
+:: Check Frontend Dependencies
+echo Checking Frontend dependencies...
+if not exist "frontend\node_modules" (
+    echo node_modules not found. Installing Frontend dependencies...
+    pushd frontend
+    call npm install
+    popd
+) else (
+    echo Frontend dependencies appear to be installed.
+)
+
+echo.
+echo Environment check complete. Starting services...
+echo.
+
 :: 1. Detect Local IP Address
 echo Detecting Local IP (192.168.x.x)...
 set IP=127.0.0.1

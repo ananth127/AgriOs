@@ -1,26 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { api } from '@/lib/api';
 
 export default function WeatherWidget({ lat, lng, locationName }: { lat?: number, lng?: number, locationName?: string }) {
     const [weather, setWeather] = useState<any>(null);
 
     useEffect(() => {
-        // Fallback to Nasik if no props
         const targetLat = lat || 19.99;
         const targetLng = lng || 73.78;
 
-        // Fetch Real Weather from Open-Meteo (Free, No Key)
-        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${targetLat}&longitude=${targetLng}&current=temperature_2m,relative_humidity_2m,weather_code&hourly=temperature_2m`)
-            .then(res => res.json())
-            .then(data => {
+        // Fetch from Backend (Phase 2.2)
+        api.weather.getAdvisory(targetLat, targetLng)
+            .then((data: any) => {
                 setWeather({
-                    temp: data.current.temperature_2m,
-                    humidity: data.current.relative_humidity_2m,
-                    code: data.current.weather_code
+                    temp: data.forecast.current_temp,
+                    humidity: data.forecast.current_humidity,
+                    condition: data.forecast.condition,
+                    advisories: data.advisories
                 });
             })
-            .catch(err => console.error("Weather fetch failed", err));
+            .catch(err => console.error("Weather advisory fetch failed", err));
     }, [lat, lng]);
 
     return (
@@ -29,10 +29,14 @@ export default function WeatherWidget({ lat, lng, locationName }: { lat?: number
             {weather ? (
                 <>
                     <div className="text-4xl font-bold my-2">{weather.temp}°C</div>
-                    <p className="text-indigo-200/60 text-sm">
-                        Humidity {weather.humidity}% •
-                        {weather.code < 3 ? ' Clear' : weather.code < 50 ? ' Cloudy' : ' Rainy'}
+                    <p className="text-indigo-200/60 text-sm mb-2">
+                        Humidity {weather.humidity}% • {weather.condition}
                     </p>
+                    {weather.advisories && weather.advisories.length > 0 && (
+                        <div className="mt-2 text-xs bg-red-500/20 text-red-200 p-2 rounded-lg border border-red-500/30">
+                            ⚠️ {weather.advisories[0].risk_level} Risk: {weather.advisories[0].disease_name}
+                        </div>
+                    )}
                 </>
             ) : (
                 <div className="text-indigo-400/50 animate-pulse mt-4">Loading...</div>

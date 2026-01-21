@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Link, usePathname } from '@/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Calculator, LogOut, LogIn, X, MapPin, Briefcase, Loader2, Stethoscope, Activity, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Calculator, LogOut, LogIn, X, MapPin, Briefcase, Loader2, Stethoscope, Activity, BookOpen, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { syncData } from '@/db/sync';
 import { API_BASE_URL } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
@@ -167,6 +168,27 @@ export function Sidebar({ locale }: SidebarProps) {
                             </div>
                         </div>
                     </div>
+                    {/* Sync Button */}
+                    <button
+                        onClick={async () => {
+                            try {
+                                const btn = document.getElementById('sync-btn-icon');
+                                if (btn) btn.classList.add('animate-spin');
+                                await syncData();
+                                setTimeout(() => alert("Sync Complete!"), 500);
+                            } catch (e) {
+                                console.error(e);
+                                alert("Sync Failed");
+                            } finally {
+                                const btn = document.getElementById('sync-btn-icon');
+                                if (btn) btn.classList.remove('animate-spin');
+                            }
+                        }}
+                        className="ml-auto p-1.5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors"
+                        title="Sync Data"
+                    >
+                        <RefreshCw id="sync-btn-icon" className="w-4 h-4" />
+                    </button>
                 </div>
                 <p className="text-xs font-medium text-slate-500 mt-1.5 uppercase tracking-widest pl-0.5">{tGlobal('app_tagline')}</p>
             </div>
@@ -198,11 +220,13 @@ export function Sidebar({ locale }: SidebarProps) {
             </nav>
 
             {/* Connection Warning Toast */}
-            {connectionWarning && (
-                <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[90%] bg-red-500/90 text-white text-[10px] font-medium px-3 py-2 rounded-lg shadow-xl backdrop-blur-md z-50 text-center animate-in fade-in slide-in-from-top-2 border border-red-400/50">
-                    {connectionWarning}
-                </div>
-            )}
+            {
+                connectionWarning && (
+                    <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[90%] bg-red-500/90 text-white text-[10px] font-medium px-3 py-2 rounded-lg shadow-xl backdrop-blur-md z-50 text-center animate-in fade-in slide-in-from-top-2 border border-red-400/50">
+                        {connectionWarning}
+                    </div>
+                )
+            }
 
             <div className="p-4 border-t border-white/5 bg-slate-900/30">
                 {isAuthenticated ? (
@@ -364,6 +388,6 @@ export function Sidebar({ locale }: SidebarProps) {
                     </Link>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

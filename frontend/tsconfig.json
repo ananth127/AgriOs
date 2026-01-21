@@ -14,6 +14,8 @@
         "moduleResolution": "bundler",
         "resolveJsonModule": true,
         "isolatedModules": true,
+        "experimentalDecorators": true,
+        "useDefineForClassFields": true,
         "jsx": "preserve",
         "incremental": true,
         "plugins": [

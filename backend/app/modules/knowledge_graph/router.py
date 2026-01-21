@@ -78,3 +78,21 @@ def get_pest_details(
     if not pest:
         raise HTTPException(status_code=404, detail="Pest not found")
     return pest
+
+@router.post("/regulatory/sync")
+def sync_regulatory_data(db: Session = Depends(database.get_db)):
+    """
+    Force sync with CIBRC regulatory data (Mocked).
+    """
+    from .regulatory import RegulatoryIngestionService
+    svc = RegulatoryIngestionService(db)
+    return svc.sync_banned_chemicals()
+
+@router.get("/regulatory/check-compliance")
+def check_compliance(chemical_name: str, db: Session = Depends(database.get_db)):
+    """
+    Check if a chemical is banned or approved.
+    """
+    from .regulatory import RegulatoryIngestionService
+    svc = RegulatoryIngestionService(db)
+    return svc.check_compliance(chemical_name)

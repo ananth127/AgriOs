@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean
 from datetime import datetime
 from app.core.database import Base
 
@@ -25,3 +25,8 @@ class DiagnosisLog(Base):
     location_lat = Column(Float, nullable=True)
     location_lng = Column(Float, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Drift Monitoring / Active Learning
+    verified_label = Column(String, nullable=True)     # Human corrected label
+    is_flagged_for_review = Column(Boolean, default=False) # Low confidence trigger
+    human_reviewer_id = Column(Integer, nullable=True) # Who verified it

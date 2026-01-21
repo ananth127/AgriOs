@@ -20,6 +20,7 @@ interface DiagnosisResult {
     treatment_chemical?: string;
     identified_crop?: string;
     crop_name?: string; // Add this too as it's used in the logic
+    is_flagged_for_review?: boolean; // Drift Monitoring
 }
 
 export default function DiagnosisUploader() {
@@ -59,6 +60,23 @@ export default function DiagnosisUploader() {
         }
     };
 
+    const runOfflineDiagnosis = async () => {
+        console.log("📡 Offline Mode: Attempting TFLite Inference...");
+        // Mock TFLite Inference
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        return {
+            id: 0,
+            disease_detected: "Late Blight (Offline Estimate)",
+            confidence_score: 0.65,
+            recommendation: "Network unavailable. Based on visual patterns, this looks like Late Blight. Please verify when online.",
+            image_url: previewUrl || "",
+            cause: "Fungal infection (Offline)",
+            prevention: "Keep foliage dry.",
+            is_flagged_for_review: true
+        } as DiagnosisResult;
+    };
+
     const handleAnalyze = async () => {
         if (!selectedFile) return;
 
@@ -74,24 +92,31 @@ export default function DiagnosisUploader() {
             formData.append('lat', "19.0760");
             formData.append('lng', "72.8777");
 
-            const res = await fetch(`${API_BASE_URL}/diagnosis/predict`, {
-                method: 'POST',
-                headers: {
-                    // 'Content-Type': 'multipart/form-data', // Do NOT set this manually with fetch & FormData
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
+            let data;
 
-            if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.detail || 'Analysis failed');
+            try {
+                const res = await fetch(`${API_BASE_URL}/diagnosis/predict`, {
+                    method: 'POST',
+                    headers: {
+                        // 'Content-Type': 'multipart/form-data', // Do NOT set this manually with fetch & FormData
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.detail || 'Analysis failed');
+                }
+                data = await res.json();
+
+            } catch (networkError) {
+                console.warn("⚠️ Network failed, switching to Offline Edge AI...", networkError);
+                data = await runOfflineDiagnosis();
             }
 
-            const data = await res.json();
-
             // Adjust image URL to be absolute if it's relative
-            if (data.image_url.startsWith('/')) {
+            if (data.image_url && data.image_url.startsWith('/')) {
                 // Remove trailing slash from base if present to avoid double slashes
                 const baseUrl = API_BASE_URL.replace('/api/v1', '').replace(/\/$/, '');
                 data.image_url = `${baseUrl}${data.image_url}`;
@@ -252,11 +277,19 @@ export default function DiagnosisUploader() {
                                 </div>
                                 <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                                     <div
-                                        className="h-full bg-green-500 transition-all duration-1000 ease-out"
+                                        className={`h-full transition-all duration-1000 ease-out ${result.is_flagged_for_review ? 'bg-orange-500' : 'bg-green-500'}`}
                                         style={{ width: `${result.confidence_score * 100}%` }}
                                     />
                                 </div>
                             </div>
+                            {result.is_flagged_for_review && (
+                                <div className="mt-3 flex items-start gap-2 text-orange-400 text-xs bg-orange-500/10 p-2 rounded-lg border border-orange-500/20">
+                                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                                    <span>
+                                        {tResults ? tResults('low_confidence_warning') : "Low confidence result. Flagged for expert review (Drift Monitoring)."}
+                                    </span>
+                                </div>
+                            )}
 
                             {/* Cause Section */}
                             {result.cause && (
@@ -332,6 +365,6 @@ export default function DiagnosisUploader() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

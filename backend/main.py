@@ -57,7 +57,39 @@ app.include_router(voice_router.router, prefix="/api/v1/voice-search", tags=["vo
 app.include_router(crops_router.router, prefix="/api/v1/crops", tags=["crops"])
 app.include_router(livestock_router.router, prefix="/api/v1/livestock", tags=["livestock"])
 app.include_router(supply_router.router, prefix="/api/v1/supply-chain", tags=["supply_chain"])
+
 app.include_router(farm_mgmt_router.router, prefix="/api/v1/farm-management", tags=["farm_management"])
+
+from app.modules.weather import router as weather_router
+app.include_router(weather_router.router, prefix="/api/v1/weather", tags=["weather"])
+
+from app.modules.sync import router as sync_router
+app.include_router(sync_router.router, prefix="/api/v1/sync", tags=["sync"])
+
+# Phase 3: Farm Operations
+from app.modules.machinery import models as mach_models
+from app.modules.labor import models as labor_models
+from app.modules.inventory import models as inv_models
+# (Routers would go here, omitting for brevity in this step)
+
+# Phase 4: Commerce
+from app.modules.retailer import models as retail_models
+from app.modules.market_access import models as market_models
+
+# Phase 5: Fintech
+from app.modules.fintech import models as fintech_models
+
+# Phase 6: Traceability
+from app.modules.traceability import models as trace_models
+
+from app.modules.ufsi import router as ufsi_router
+app.include_router(ufsi_router.router, prefix="/api/v1/ufsi", tags=["ufsi"])
+
+from app.modules.consent import router as consent_router
+
+from app.modules.consent import router as consent_router
+app.include_router(consent_router.router, prefix="/api/v1/consent", tags=["consent"])
+
 from app.modules.diagnosis import router as diagnosis_router
 app.include_router(diagnosis_router.router, prefix="/api/v1/diagnosis", tags=["diagnosis"])
 from app.modules.knowledge_graph import router as kg_router

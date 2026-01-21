@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import {
     Loader2, ArrowRight, CloudSun, Droplets, Thermometer,
     Calculator, BookOpen, ShoppingBag, Users, ScanLine, Sprout,
-    MessageCircle, Leaf
+    MessageCircle, Leaf, Tractor
 } from 'lucide-react';
 
 const ProphetWidget = dynamic(() => import('@/components/dashboard/ProphetWidget'), { ssr: false });
@@ -115,7 +115,15 @@ export default function Index({ params: { locale } }: { params: { locale: string
                 {/* 2. Quick Services Grid */}
                 <div>
                     <h3 className="text-lg font-bold text-white mb-4 px-1">{tDashboard('services_title')}</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                        <ServiceCard
+                            href="/farm-management"
+                            icon={<Tractor className="w-6 h-6" />}
+                            label={tDashboard('service_farm_ops')}
+                            desc={tDashboard('service_farm_ops_desc') || "Machinery & Labor"}
+                            color="text-amber-400"
+                            bg="bg-amber-500/10 hover:bg-amber-500/20"
+                        />
                         <ServiceCard
                             href="/calculator"
                             icon={<Calculator className="w-6 h-6" />}

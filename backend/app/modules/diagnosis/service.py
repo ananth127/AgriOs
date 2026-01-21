@@ -151,8 +151,12 @@ class DiagnosisService:
             prevention=result.get("prevention"),
             treatment_organic=result.get("treatment_organic"),
             treatment_chemical=result.get("treatment_chemical"),
-            identified_crop=result.get("identified_crop")
+        identified_crop=result.get("identified_crop")
         )
+
+        # Drift Monitoring Logic
+        if confidence < 0.85:
+            diagnosis_entry.is_flagged_for_review = True
         
         self.db.add(diagnosis_entry)
         self.db.commit()
@@ -428,6 +432,9 @@ class DiagnosisService:
             confidence_score=confidence,
             recommendation=recommendation
         )
+
+        if confidence < 0.85:
+            diagnosis_entry.is_flagged_for_review = True
         
         self.db.add(diagnosis_entry)
         self.db.commit()

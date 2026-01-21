@@ -83,8 +83,8 @@ class FarmActivity(Base):
     cost = Column(Float, default=0.0) # Calculated cost for this activity (Labor + Material + Fuel)
 
 # 5. Harvest & Stock
-class HarvestLog(Base):
-    __tablename__ = "harvest_logs"
+class CropHarvestLog(Base):
+    __tablename__ = "crop_harvest_logs"
 
     id = Column(Integer, primary_key=True, index=True)
     crop_cycle_id = Column(Integer, ForeignKey("crop_cycles.id"))

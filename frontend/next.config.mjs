@@ -16,9 +16,24 @@ const withPWA = (await import('next-pwa')).default({
     disable: process.env.NODE_ENV === 'development',
 });
 
-/** @type {import('next').NextConfig} */
 const nextConfig = {
-    // Add other next config here
+    // Enable SWC minification
+    swcMinify: true,
+    experimental: {
+        swcPlugins: [
+            // ['@swc/plugin-styled-components', { displayName: true, ssr: true }],
+        ],
+    },
+
+    // Transpile WatermelonDB modules
+    transpilePackages: ['@nozbe/watermelondb', '@nozbe/watermelondb/drivers/lokijs'],
+
+    webpack: (config) => {
+        config.resolve.alias = {
+            ...config.resolve.alias,
+        };
+        return config;
+    },
 };
 
 export default withNextIntl(withPWA(nextConfig));
