@@ -7,27 +7,30 @@ import { RegisterAnimalModal } from '@/components/livestock/RegisterAnimalModal'
 import { EditAnimalModal } from '@/components/livestock/EditAnimalModal';
 import { Trash2, Pencil } from 'lucide-react';
 
+import { LivestockMainDashboard } from '@/components/livestock/LivestockMainDashboard';
+import { LivestockCategoryDashboard } from '@/components/livestock/LivestockCategoryDashboard';
+
 export default function LivestockPage() {
     const [animals, setAnimals] = useState<any[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [isRegisterOpen, setIsRegisterOpen] = useState(false);
     const [editingAnimal, setEditingAnimal] = useState<any>(null);
     const farmId = 1; // Default
 
     const fetchAnimals = () => {
         api.livestock.list(farmId)
-            .then((data: any) => setAnimals(data as any[]))
-            .catch(err => console.error("Failed to fetch livestock", err));
-    };
+            .then((data: any) => {
+                // Mocking species data if missing (because backend GET might not be joining Registry name yet)
+                // In a real scenario, the backend GET /livestock/farm/{id} should return the species name.
+                // Assuming backend 'registry_id' is foreign key but we need 'species' string.
+                // Let's patch it for now if needed or assume data has it. 
+                // Actually, Frontend can guess species from Tag ID prefix (COW-...) if backend doesn't send it.
+                // Or better, update backend List endpoint to include Registry info. 
 
-    const handleDelete = async (id: number) => {
-        if (!confirm("Remove this animal from the herd registry?")) return;
-        try {
-            await api.livestock.delete(id);
-            fetchAnimals();
-        } catch (error) {
-            console.error("Delete failed", error);
-            alert("Failed to delete animal");
-        }
+                // For now, I will let the data pass through.
+                setAnimals(data);
+            })
+            .catch(err => console.error("Failed to fetch livestock", err));
     };
 
     useEffect(() => {
@@ -41,80 +44,30 @@ export default function LivestockPage() {
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">Smart Herd</h1>
                     <p className="text-slate-400">Monitor health, vaccination cycles, and productivity.</p>
                 </div>
-                <button
-                    onClick={() => setIsRegisterOpen(true)}
-                    className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
-                >
-                    + Register Animal
-                </button>
+                {!selectedCategory && (
+                    <button
+                        onClick={() => setIsRegisterOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
+                    >
+                        + Register Animal
+                    </button>
+                )}
             </header>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="p-4 bg-blue-500/10 border-blue-500/20">
-                    <h3 className="text-blue-400 text-sm font-bold uppercase">Total Headcount</h3>
-                    <p className="text-3xl font-bold mt-1 text-white">{animals.length}</p>
-                </Card>
-                <Card className="p-4 bg-red-500/10 border-red-500/20">
-                    <h3 className="text-red-400 text-sm font-bold uppercase">Critical Alert</h3>
-                    <p className="text-3xl font-bold mt-1 text-white">{animals.filter(a => a.health_status === 'Critical').length}</p>
-                    <p className="text-xs text-red-300 mt-1">Animals needing attention</p>
-                </Card>
-            </div>
-
-            {/* List */}
-            <Card className="overflow-hidden">
-                <table className="w-full text-left text-sm text-slate-300">
-                    <thead className="bg-slate-800 text-slate-400">
-                        <tr>
-                            <th className="p-4">Tag ID</th>
-                            <th className="p-4">Species/Breed</th>
-                            <th className="p-4">Health Status</th>
-                            <th className="p-4">Last Vaccination</th>
-                            <th className="p-4">Weight</th>
-                            <th className="p-4 text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                        {animals.map((anim) => (
-                            <tr key={anim.id} className="hover:bg-white/5 group">
-                                <td className="p-4 font-mono font-bold text-white">{anim.tag_id}</td>
-                                <td className="p-4">{anim.species} - {anim.breed}</td>
-                                <td className="p-4">
-                                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${anim.health_status === 'Healthy' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                                        {anim.health_status}
-                                    </span>
-                                </td>
-                                <td className="p-4">{anim.last_vaccination_date || '-'}</td>
-                                <td className="p-4">{anim.weight_kg} kg</td>
-                                <td className="p-4 text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button
-                                        onClick={() => setEditingAnimal(anim)}
-                                        className="text-blue-400 hover:text-blue-300 p-1 rounded hover:bg-white/5"
-                                        title="Edit"
-                                    >
-                                        <Pencil className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(anim.id)}
-                                        className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-white/5"
-                                        title="Delete"
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                        {animals.length === 0 && (
-                            <tr>
-                                <td colSpan={6} className="p-8 text-center text-slate-500">
-                                    No animals registered. Click &quot;+ Register Animal&quot; to add your herd.
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-            </Card>
+            {selectedCategory ? (
+                <LivestockCategoryDashboard
+                    category={selectedCategory}
+                    animals={animals}
+                    onBack={() => setSelectedCategory(null)}
+                    onRegister={() => setIsRegisterOpen(true)}
+                />
+            ) : (
+                <LivestockMainDashboard
+                    animals={animals}
+                    onSelectCategory={setSelectedCategory}
+                    onSelectAnimal={(a) => { }}
+                />
+            )}
 
             <RegisterAnimalModal
                 isOpen={isRegisterOpen}

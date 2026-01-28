@@ -35,8 +35,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=["*"], # Wildcard can be problematic with credentials
-    allow_origin_regex="https?://.*", # Better for dynamic local IPs (192.168.x.x)
+    allow_origins=["*"], # Allow all origins for local dev
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -174,6 +173,46 @@ def fix_db():
                     connection.rollback()
                     print(f"Users update skipped for {col_def}: {e}")
 
+            # 7. Add QR columns to livestock
+            livestock_cols = ["qr_code VARCHAR", "qr_created_at TIMESTAMP"]
+            for col_def in livestock_cols:
+                try:
+                    connection.execute(text(f"ALTER TABLE livestock ADD COLUMN IF NOT EXISTS {col_def};"))
+                    connection.commit()
+                except Exception as e:
+                    connection.rollback()
+                    # Fallback for SQLite which might not like IF NOT EXISTS or TIMESTAMP syntax variations
+                    try:
+                        # Simple ADD COLUMN without IF NOT EXISTS (catch error if duplicate)
+                        clean_col = col_def.replace("IF NOT EXISTS ", "")
+                        connection.execute(text(f"ALTER TABLE livestock ADD COLUMN {clean_col};"))
+                        connection.commit()
+                    except Exception as e2:
+                        print(f"Livestock update skipped for {col_def}: {e2}")
+
+            # 8. Add missing profile columns to livestock
+            livestock_profile_cols = [
+                "name VARCHAR",
+                "gender VARCHAR DEFAULT 'Female'",
+                "purpose VARCHAR DEFAULT 'Dairy'",
+                "origin VARCHAR DEFAULT 'BORN'",
+                "source_details TEXT",
+                "parent_id INTEGER"
+            ]
+            for col_def in livestock_profile_cols:
+                try:
+                    connection.execute(text(f"ALTER TABLE livestock ADD COLUMN IF NOT EXISTS {col_def};"))
+                    connection.commit()
+                except Exception as e:
+                    connection.rollback()
+                    # Fallback for SQLite
+                    try:
+                        clean_col = col_def.replace("IF NOT EXISTS ", "")
+                        connection.execute(text(f"ALTER TABLE livestock ADD COLUMN {clean_col};"))
+                        connection.commit()
+                    except Exception as e2:
+                        print(f"Livestock profile update skipped for {col_def}: {e2}")
+
             return {"status": "success", "message": "Database schema updated."}
     except Exception as e:
         return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
@@ -196,3 +235,5 @@ def startup_event():
     # Run DB Fixes
     print("Running startup DB checks...")
     fix_db()
+    
+# Trigger Reload: Database schema updated

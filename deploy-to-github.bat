@@ -55,12 +55,14 @@ echo Committing changes...
 git commit -m "%commit_msg%"
 
 echo.
-echo Setting main branch...
-git branch -M main
+echo Setting agrios_dev branch...
+@REM git branch -M main
+git branch -M agrios_dev
 
 echo.
 echo Pushing to GitHub...
-git push -u origin main
+@REM git push -u origin main
+git push -u origin agrios_dev
 
 echo.
 echo ========================================

@@ -165,7 +165,9 @@
         "view_all": "VIEW ALL",
         "add_crop": "Add Crop",
         "market_insights": "Market Insights",
-        "day_count": "Day {days}"
+        "day_count": "Day {days}",
+        "service_farm_ops": "Farm Operations",
+        "service_farm_ops_desc": "Manage farm operations and logs"
     },
     "Crops": {
         "page_title": "Crops",

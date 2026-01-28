@@ -34,3 +34,11 @@ def delete_animal(animal_id: int, db: Session = Depends(get_db)):
     if not db_animal:
          raise HTTPException(status_code=404, detail="Animal not found")
     return db_animal
+
+@router.post("/{animal_id}/production", response_model=schemas.Production)
+def log_production(animal_id: int, log: schemas.ProductionCreate, db: Session = Depends(get_db)):
+    return service.add_production_log(db, animal_id, log)
+
+@router.get("/{animal_id}/production", response_model=List[schemas.Production])
+def get_production_history(animal_id: int, db: Session = Depends(get_db)):
+    return service.get_production_logs(db, animal_id)

@@ -11,7 +11,7 @@
   "dependencies": {
     "@nozbe/watermelondb": "^0.28.0",
     "@tanstack/react-query": "^5.90.16",
-    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs": "^4.9.0",
     "@tensorflow/tfjs-tflite": "^0.0.1-alpha.10",
     "@types/leaflet": "^1.9.21",
     "chart.js": "^4.5.1",
@@ -30,6 +30,7 @@
     "react-dom": "^18.3.1",
     "react-ga4": "^2.1.0",
     "react-leaflet": "^4.2.1",
+    "react-qr-code": "^2.0.18",
     "recharts": "^3.6.0",
     "tailwind-merge": "^3.4.0"
   },

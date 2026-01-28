@@ -123,6 +123,8 @@ export const api = {
         register: (data: any) => fetchAPI("/livestock/", "POST", data),
         update: (id: number, data: any) => fetchAPI(`/livestock/${id}`, "PUT", data),
         delete: (id: number) => fetchAPI(`/livestock/${id}`, "DELETE"),
+        logProduction: (id: number, data: any) => fetchAPI(`/livestock/${id}/production`, "POST", data),
+        getProductionHistory: (id: number) => fetchAPI(`/livestock/${id}/production`),
     },
     supplyChain: {
         getBatch: (id: string) => fetchAPI(`/supply-chain/batches/${id}`),
