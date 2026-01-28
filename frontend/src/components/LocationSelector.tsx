@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import L from 'leaflet';
 import { Search, MapPin, X, Loader2 } from 'lucide-react';
 import { Card } from './ui/Card';
@@ -102,7 +102,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
         }
     };
 
-    const handleGetCurrentLocation = (source: 'auto' | 'manual' = 'manual') => {
+    const handleGetCurrentLocation = useCallback((source: 'auto' | 'manual' = 'manual') => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 const lat = pos.coords.latitude;
@@ -129,7 +129,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
                 }
             });
         }
-    };
+    }, [t, onSelect, onClose]);
 
     // Auto-fetch if permission is granted (on mount)
     useEffect(() => {
@@ -143,8 +143,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect }: Location
                 console.log("Permission query skipped", e);
             });
         }
-    }, [isOpen]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isOpen, handleGetCurrentLocation]);
 
     if (!isOpen) return null;
 
