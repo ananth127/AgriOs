@@ -5,7 +5,16 @@ from datetime import datetime
 from app.modules.registry.models import RegistryTable
 
 def get_animal(db: Session, animal_id: int):
-    return db.query(models.Animal).filter(models.Animal.id == animal_id).first()
+    result = db.query(models.Animal, RegistryTable).join(
+        RegistryTable, models.Animal.registry_id == RegistryTable.id
+    ).filter(models.Animal.id == animal_id).first()
+    
+    if result:
+        animal, registry = result
+        animal.species = registry.category
+        animal.breed = registry.name
+        return animal
+    return None
 
 def create_animal(db: Session, animal: schemas.AnimalCreate):
     # Find or Create Registry Entry

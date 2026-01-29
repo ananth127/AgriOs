@@ -119,6 +119,7 @@ export const api = {
         delete: (id: number) => fetchAPI(`/crops/${id}`, "DELETE"),
     },
     livestock: {
+        get: (id: string | number) => fetchAPI(`/livestock/${id}`),
         list: (farmId: number) => fetchAPI(`/livestock/farm/${farmId}`),
         register: (data: any) => fetchAPI("/livestock/", "POST", data),
         update: (id: number, data: any) => fetchAPI(`/livestock/${id}`, "PUT", data),

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from '@/navigation';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
-const PUBLIC_PATHS = ['/docs', '/auth/login', '/auth/signup', '/'];
+const PUBLIC_PATHS = ['/docs', '/auth/login', '/auth/signup', '/', '/verify'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, loading } = useAuth();

@@ -9,6 +9,7 @@ import { AuthProvider } from '@/lib/auth-context';
 import AnalyticsListener from '@/components/AnalyticsListener';
 import AuthGuard from '@/components/AuthGuard';
 import GlobalProviders from '@/components/GlobalProviders';
+import AppShell from '@/components/AppShell';
 
 export default async function LocaleLayout({
     children,
@@ -27,16 +28,9 @@ export default async function LocaleLayout({
                         <AuthProvider>
                             <AuthGuard>
                                 <AnalyticsListener />
-                                <Sidebar locale={locale} />
-                                <div className="flex-1 flex flex-col min-w-0 bg-slate-950 relative">
-                                    {/* NavBar stays at top, essentially 'fixed' relative to content */}
-                                    <NavBar locale={locale} />
-
-                                    {/* Main Content Area - Scrolls independently */}
-                                    <main className="flex-1 overflow-y-auto relative scroll-smooth">
-                                        {children}
-                                    </main>
-                                </div>
+                                <AppShell locale={locale}>
+                                    {children}
+                                </AppShell>
                                 <VoiceAssistant />
                             </AuthGuard>
                         </AuthProvider>

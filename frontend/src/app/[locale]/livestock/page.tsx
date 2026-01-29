@@ -1,73 +1,180 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useRouter } from '@/navigation';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import { RegisterAnimalModal } from '@/components/livestock/RegisterAnimalModal';
 import { EditAnimalModal } from '@/components/livestock/EditAnimalModal';
-import { Trash2, Pencil } from 'lucide-react';
+import { LivestockDetailModal } from '@/components/livestock/LivestockDetailModal';
+import { LogProductionModal } from '@/components/livestock/LogProductionModal';
+import { Trash2, Pencil, Leaf, Activity } from 'lucide-react';
 
 import { LivestockMainDashboard } from '@/components/livestock/LivestockMainDashboard';
 import { LivestockCategoryDashboard } from '@/components/livestock/LivestockCategoryDashboard';
 
+import { QrPrintModal } from '@/components/livestock/QrPrintModal';
+import { SellLivestockModal } from '@/components/livestock/SellLivestockModal';
+
 export default function LivestockPage() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const animalIdParam = searchParams.get('animalId');
+
     const [animals, setAnimals] = useState<any[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [isRegisterOpen, setIsRegisterOpen] = useState(false);
     const [editingAnimal, setEditingAnimal] = useState<any>(null);
+    const [viewingAnimal, setViewingAnimal] = useState<any>(null); // For detail view
+    const [loggingAnimal, setLoggingAnimal] = useState<any>(null); // For logging production
+    const [qrModalAnimal, setQrModalAnimal] = useState<any>(null); // For QR printing
+    const [sellingAnimal, setSellingAnimal] = useState<any>(null); // For selling
     const farmId = 1; // Default
 
-    const fetchAnimals = () => {
-        api.livestock.list(farmId)
-            .then((data: any) => {
-                // Mocking species data if missing (because backend GET might not be joining Registry name yet)
-                // In a real scenario, the backend GET /livestock/farm/{id} should return the species name.
-                // Assuming backend 'registry_id' is foreign key but we need 'species' string.
-                // Let's patch it for now if needed or assume data has it. 
-                // Actually, Frontend can guess species from Tag ID prefix (COW-...) if backend doesn't send it.
-                // Or better, update backend List endpoint to include Registry info. 
+    const fetchAnimals = async () => {
+        try {
+            const data: any = await api.livestock.list(farmId);
 
-                // For now, I will let the data pass through.
-                setAnimals(data);
-            })
-            .catch(err => console.error("Failed to fetch livestock", err));
+            // Onboarding Logic: If no animals found and never onboarded, create defaults
+            if (Array.isArray(data) && data.length === 0) {
+                const hasOnboarded = localStorage.getItem(`livestock_onboarded_${farmId}`);
+
+                if (!hasOnboarded) {
+                    console.log("🆕 New User Detected: Seeding default livestock...");
+
+                    const defaultCow = {
+                        tag_id: 'COW-DEMO-01',
+                        name: 'Bella',
+                        species: 'Cow',
+                        breed: 'Holstein',
+                        gender: 'Female',
+                        date_of_birth: '2022-01-01',
+                        weight_kg: 500,
+                        health_status: 'Healthy',
+                        purpose: 'Dairy',
+                        origin: 'BORN',
+                        farm_id: farmId
+                    };
+
+                    const defaultGoat = {
+                        tag_id: 'GOAT-DEMO-01',
+                        name: 'Billy',
+                        species: 'Goat',
+                        breed: 'Boer',
+                        gender: 'Male',
+                        date_of_birth: '2023-05-15',
+                        weight_kg: 45,
+                        health_status: 'Healthy',
+                        purpose: 'Meat',
+                        origin: 'PURCHASED',
+                        source_details: 'Local Market',
+                        farm_id: farmId
+                    };
+
+                    // Register them
+                    // We use Promise.all to do it in parallel
+                    // Note: If backend fails, we catch it.
+                    try {
+                        await Promise.all([
+                            api.livestock.register(defaultCow),
+                            api.livestock.register(defaultGoat)
+                        ]);
+
+                        localStorage.setItem(`livestock_onboarded_${farmId}`, 'true');
+                        // Re-fetch after seeding
+                        const seededData: any = await api.livestock.list(farmId);
+                        setAnimals(seededData);
+                    } catch (seedErr) {
+                        console.error("Seeding failed, using mock state temporarily", seedErr);
+                        // Fallback: Show them locally even if backend failed (Authentication/Server error)
+                        setAnimals([
+                            { ...defaultCow, id: 'temp-1' },
+                            { ...defaultGoat, id: 'temp-2' }
+                        ]);
+                    }
+                    return;
+                }
+            }
+
+            setAnimals(data);
+        } catch (err) {
+            console.error("Failed to fetch livestock", err);
+        }
     };
 
     useEffect(() => {
         fetchAnimals();
     }, []);
 
-    return (
-        <div className="p-8 max-w-7xl mx-auto space-y-6">
-            <header className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">Smart Herd</h1>
-                    <p className="text-slate-400">Monitor health, vaccination cycles, and productivity.</p>
-                </div>
-                {!selectedCategory && (
-                    <button
-                        onClick={() => setIsRegisterOpen(true)}
-                        className="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-white"
-                    >
-                        + Register Animal
-                    </button>
-                )}
-            </header>
+    // Handle URL param for direct access
+    useEffect(() => {
+        if (animalIdParam && animals.length > 0) {
+            const found = animals.find(a => a.id.toString() === animalIdParam);
+            if (found) {
+                setViewingAnimal(found);
+            }
+        }
+    }, [animalIdParam, animals]);
 
-            {selectedCategory ? (
-                <LivestockCategoryDashboard
-                    category={selectedCategory}
-                    animals={animals}
-                    onBack={() => setSelectedCategory(null)}
-                    onRegister={() => setIsRegisterOpen(true)}
-                />
-            ) : (
-                <LivestockMainDashboard
-                    animals={animals}
-                    onSelectCategory={setSelectedCategory}
-                    onSelectAnimal={(a) => { }}
-                />
-            )}
+    const closeDetail = () => {
+        setViewingAnimal(null);
+        // clean up URL
+        router.push('/livestock');
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-950 pb-20">
+            {/* Header */}
+            <div className="bg-slate-900 border-b border-white/5 px-8 py-8 mb-8">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div>
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+                                <Activity className="w-5 h-5" />
+                            </div>
+                            <span className="text-blue-400 font-bold uppercase tracking-wider text-xs">Farm Operations</span>
+                        </div>
+                        <h1 className="text-4xl font-bold text-white mb-1">Livestock Management</h1>
+                        <p className="text-slate-400 max-w-xl">
+                            Monitor herd health, track production, and manage breeding cycles efficiently.
+                        </p>
+                    </div>
+
+                    {!selectedCategory && (
+                        <button
+                            onClick={() => setIsRegisterOpen(true)}
+                            className="bg-green-500 hover:bg-green-400 text-slate-950 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 shadow-lg shadow-green-900/20"
+                        >
+                            + Register Animal
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <main className="max-w-7xl mx-auto px-6 space-y-6">
+                {selectedCategory ? (
+                    <LivestockCategoryDashboard
+                        category={selectedCategory}
+                        animals={animals}
+                        onBack={() => setSelectedCategory(null)}
+                        onRegister={() => setIsRegisterOpen(true)}
+                        onSelectAnimal={(a) => setViewingAnimal(a)}
+                        onLog={(a) => setLoggingAnimal(a)}
+                        onScanQr={(a) => setQrModalAnimal(a)}
+                        onSell={(a) => setSellingAnimal(a)}
+                    />
+                ) : (
+                    <LivestockMainDashboard
+                        animals={animals}
+                        onSelectCategory={setSelectedCategory}
+                        onSelectAnimal={(a) => setViewingAnimal(a)}
+                        onLog={(a) => setLoggingAnimal(a)}
+                        onScanQr={(a) => setQrModalAnimal(a)}
+                        onSell={(a) => setSellingAnimal(a)}
+                    />
+                )}
+            </main>
 
             <RegisterAnimalModal
                 isOpen={isRegisterOpen}
@@ -82,6 +189,66 @@ export default function LivestockPage() {
                     onClose={() => setEditingAnimal(null)}
                     onSuccess={fetchAnimals}
                     animal={editingAnimal}
+                />
+            )}
+
+            {/* Detail Modal */}
+            {viewingAnimal && (
+                <LivestockDetailModal
+                    animal={viewingAnimal}
+                    onClose={closeDetail}
+                    onEdit={() => {
+                        setEditingAnimal(viewingAnimal);
+                        setViewingAnimal(null); // Switch to edit mode
+                    }}
+                    onLogProduction={() => {
+                        setLoggingAnimal(viewingAnimal);
+                        setViewingAnimal(null);
+                    }}
+                    onDelete={async () => {
+                        if (!confirm("Are you sure you want to delete this animal?")) return;
+                        try {
+                            await api.livestock.delete(viewingAnimal.id);
+                            setViewingAnimal(null);
+                            await fetchAnimals(); // Refresh list
+                        } catch (e) {
+                            console.error("Failed to delete", e);
+                            alert("Failed to delete animal");
+                        }
+                    }}
+                    onPrintQr={(a) => setQrModalAnimal(a)}
+                    onSell={(a) => {
+                        setSellingAnimal(a); // Open sell modal
+                        setViewingAnimal(null); // Close detail modal
+                    }}
+                />
+            )}
+
+            {/* Logging Modal */}
+            {loggingAnimal && (
+                <LogProductionModal
+                    isOpen={!!loggingAnimal}
+                    onClose={() => setLoggingAnimal(null)}
+                    animal={loggingAnimal}
+                    onSuccess={fetchAnimals}
+                />
+            )}
+
+            {/* QR Print Modal */}
+            {qrModalAnimal && (
+                <QrPrintModal
+                    isOpen={!!qrModalAnimal}
+                    onClose={() => setQrModalAnimal(null)}
+                    animal={qrModalAnimal}
+                />
+            )}
+
+            {/* Sell Livestock Modal */}
+            {sellingAnimal && (
+                <SellLivestockModal
+                    isOpen={!!sellingAnimal}
+                    onClose={() => setSellingAnimal(null)}
+                    animal={sellingAnimal}
                 />
             )}
         </div>

@@ -41,12 +41,28 @@ export const QrPrintModal: React.FC<QrPrintModalProps> = ({ isOpen, onClose, ani
         const url = URL.createObjectURL(blob);
 
         img.onload = () => {
-            canvas.width = img.width + 40; // Add padding
-            canvas.height = img.height + 40;
+            const padding = 20;
+            const extraBottom = 40; // Space for text
+            canvas.width = img.width + (padding * 2);
+            canvas.height = img.height + (padding * 2) + extraBottom;
+
             if (ctx) {
+                // Background
                 ctx.fillStyle = "white";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 20, 20);
+
+                // Draw QR
+                ctx.drawImage(img, padding, padding);
+
+                // Draw Text
+                ctx.font = "bold 16px Arial";
+                ctx.fillStyle = "black";
+                ctx.textAlign = "center";
+
+                const label = `${animal.name || 'Animal'} - ${animal.tag_id}`;
+                ctx.fillText(label, canvas.width / 2, canvas.height - 15);
+
+                // Download
                 const pngUrl = canvas.toDataURL("image/png");
                 const a = document.createElement("a");
                 a.download = `QR-${animal.tag_id}.png`;
@@ -60,8 +76,15 @@ export const QrPrintModal: React.FC<QrPrintModalProps> = ({ isOpen, onClose, ani
 
     if (!animal) return null;
 
-    // Use the backend provided QR value or fallback to a constructed one if needed (for legacy)
-    const qrValue = animal.qr_code || `https://app.agrios.com/livestock/${animal.id}`;
+    // Construct Public Verify URL
+    // Format: {origin}/[locale]/verify/[farmerId]/[animalId]
+    // We need to access parameters. For now, assume locale='en' (default) or grab it if possible.
+    // Also, we need farmId. Assuming animal.farm_id exists or falling back to '1' for demo.
+
+    // Use a safe origin check for SSR
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://agrios.com';
+    const farmId = animal.farm_id || 1;
+    const qrValue = `${origin}/en/verify/${farmId}/${animal.id}`;
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Print Animal Tag">

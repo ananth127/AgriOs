@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/navigation';
 import dynamic from 'next/dynamic';
@@ -12,12 +13,14 @@ import {
 
 const ProphetWidget = dynamic(() => import('@/components/dashboard/ProphetWidget'), { ssr: false });
 const WeatherWidget = dynamic(() => import('@/components/dashboard/WeatherWidget'), { ssr: false });
+const QrScannerModal = dynamic(() => import('@/components/dashboard/QrScannerModal').then(mod => mod.QrScannerModal), { ssr: false });
 
 export default function Index({ params: { locale } }: { params: { locale: string } }) {
     const tDashboard = useTranslations('Dashboard');
     const tAuth = useTranslations('Auth');
     const tGlobal = useTranslations('Global');
     const { isAuthenticated, loading, user } = useAuth();
+    const [isQrOpen, setIsQrOpen] = React.useState(false);
 
     if (loading) {
         return (
@@ -74,9 +77,23 @@ export default function Index({ params: { locale } }: { params: { locale: string
                             {user?.location_name || tDashboard('location_not_set')}
                         </p>
                     </div>
-                    {/* User Profile Avatar or similar could go here */}
+
+                    <button
+                        onClick={() => setIsQrOpen(true)}
+                        className="group flex items-center gap-2 px-4 py-3 bg-white/5 hover:bg-green-500/20 border border-white/10 hover:border-green-500/50 rounded-xl transition-all active:scale-95 shadow-lg hover:shadow-green-900/20"
+                    >
+                        <div className="p-2 bg-green-500/20 rounded-lg text-green-400 group-hover:bg-green-500 group-hover:text-black transition-colors">
+                            <ScanLine className="w-5 h-5" />
+                        </div>
+                        <div className="text-left hidden sm:block">
+                            <p className="text-xs text-slate-400 font-medium">Quick Action</p>
+                            <p className="text-sm font-bold text-white group-hover:text-green-400 transition-colors">Scan Tag</p>
+                        </div>
+                    </button>
                 </div>
             </header>
+
+            <QrScannerModal isOpen={isQrOpen} onClose={() => setIsQrOpen(false)} />
 
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-8 mt-6">
 

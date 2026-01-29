@@ -13,6 +13,13 @@ def get_db():
     finally:
         db.close()
 
+@router.get("/{animal_id}", response_model=schemas.Animal)
+def get_animal(animal_id: int, db: Session = Depends(get_db)):
+    db_animal = service.get_animal(db, animal_id)
+    if not db_animal:
+        raise HTTPException(status_code=404, detail="Animal not found")
+    return db_animal
+
 @router.post("/", response_model=schemas.Animal)
 def register_animal(animal: schemas.AnimalCreate, db: Session = Depends(get_db)):
     return service.create_animal(db, animal)

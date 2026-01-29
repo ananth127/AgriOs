@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -5,12 +6,14 @@ import { api } from '@/lib/api';
 import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui/Card';
 import { ContentLoader } from '@/components/ui/ContentLoader';
-import { ShoppingBag, Search, Filter, Pencil, Trash2, Tag, Tractor, Sprout, Wheat, ShoppingCart, RefreshCw } from 'lucide-react';
+import { ShoppingBag, Search, Filter, Pencil, Trash2, Tag, Tractor, Sprout, Wheat, ShoppingCart, RefreshCw, Briefcase, MapPin, DollarSign, Clock, User } from 'lucide-react';
 import { CreateListingModal } from '@/components/marketplace/CreateListingModal';
 import { EditListingModal } from '@/components/marketplace/EditListingModal';
+import { CreateJobModal } from '@/components/marketplace/CreateJobModal';
+import { PurchaseModal } from '@/components/marketplace/PurchaseModal';
 
 /* Types */
-type ViewMode = 'market' | 'store'; // Market = P2P, Store = Commercial (B2B)
+type ViewMode = 'market' | 'jobs' | 'store'; // Market (P2P), Jobs, Store (B2B)
 type ListingType = 'SELL' | 'BUY' | 'RENT' | 'ALL';
 
 export default function MarketplacePage() {
@@ -18,6 +21,7 @@ export default function MarketplacePage() {
     /* State: View & Data */
     const [viewMode, setViewMode] = useState<ViewMode>('market');
     const [listings, setListings] = useState<any[]>([]);
+    const [jobs, setJobs] = useState<any[]>([]);
     const [commercialProducts, setCommercialProducts] = useState<any[]>([]);
 
     /* State: Filters */
@@ -28,7 +32,9 @@ export default function MarketplacePage() {
 
     /* State: Modals */
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isJobModalOpen, setIsJobModalOpen] = useState(false);
     const [editingListing, setEditingListing] = useState<any>(null);
+    const [purchasingItem, setPurchasingItem] = useState<any>(null);
 
     const myUserId = 1; // Default for demo
 
@@ -43,8 +49,11 @@ export default function MarketplacePage() {
         if (searchQuery) filters.search = searchQuery;
 
         api.marketplace.products.list(filters, { forceRefresh: force })
-            .then((data: any) => setListings(data))
-            .catch(err => console.error("Failed to fetch listings", err))
+            .then((data: any) => setListings(Array.isArray(data) ? data : []))
+            .catch(err => {
+                console.error("Failed to fetch listings", err);
+                setListings([]);
+            })
             .finally(() => setLoading(false));
     }, [listingType, categoryFilter, searchQuery]);
 
@@ -53,25 +62,45 @@ export default function MarketplacePage() {
         const filters: any = {};
         if (categoryFilter) filters.category = categoryFilter;
 
-        // Map common terms to backend categories if needed, or rely on UI
         api.marketplace.commercial.list(filters)
-            .then((data: any) => setCommercialProducts(data))
-            .catch(err => console.error("Failed to fetch commercial products", err))
+            .then((data: any) => setCommercialProducts(Array.isArray(data) ? data : []))
+            .catch(err => {
+                console.error("Failed to fetch commercial products", err);
+                setCommercialProducts([]);
+            })
             .finally(() => setLoading(false));
     }, [categoryFilter]);
+
+    // Mock Fetch Jobs
+    const fetchJobs = useCallback(() => {
+        setLoading(true);
+        // Simulate API delay
+        setTimeout(() => {
+            setJobs([
+                { id: 1, title: 'Tractor Driver Needed', farm: 'Green Acres', location: 'Pune, MH', salary: '₹800/day', type: 'Temporary', posted: '2d ago', description: 'Need experienced driver for plowing season. Must know John Deere models.' },
+                { id: 2, title: 'Harvest Helper', farm: 'Sunshine Orchards', location: 'Nashik, MH', salary: '₹500/day', type: 'Full Time', posted: '1d ago', description: 'Looking for 5 helpers for grape harvest. Food and stay provided.' },
+                { id: 3, title: 'Irrigation Specialist', farm: 'HydroTech Farms', location: 'Nagpur, MH', salary: '₹15,000/mo', type: 'Contract', posted: '5d ago', description: 'Manage drip irrigation systems for 20 acre plot.' },
+            ]);
+            setLoading(false);
+        }, 800);
+    }, []);
 
     useEffect(() => {
         if (viewMode === 'market') {
             fetchListings();
-        } else {
+        } else if (viewMode === 'store') {
             fetchCommercialProducts();
+        } else if (viewMode === 'jobs') {
+            fetchJobs();
         }
-    }, [viewMode, fetchListings, fetchCommercialProducts]);
+    }, [viewMode, fetchListings, fetchCommercialProducts, fetchJobs]);
 
     /* Accessors */
-    const displayedListings = activeTab === 'browse'
-        ? listings
-        : listings.filter(l => l.seller_id === myUserId);
+    /* Accessors */
+    // Filter out my own listings from general browse view to simulate "Marketplace" logic
+    // But show them if filter is active or if we have a specific 'My Listings' view later.
+    // For now, if activeTab is 'browse', we hide my listings.
+    const displayedListings = listings.filter(l => l.seller_id !== myUserId);
 
     /* Handlers */
     const handleDelete = async (id: number) => {
@@ -85,192 +114,153 @@ export default function MarketplacePage() {
         }
     };
 
-    const handleBuy = async (item: any) => {
-        if (!confirm(t('confirm_order', { product: item.product_name, price: `₹${item.price}` }))) return;
-        try {
-            await api.marketplace.orders.create({
-                listing_id: item.id,
-                quantity: 1 // Default 1 unit for now
-            });
-            alert(t('success_order'));
-        } catch (error) {
-            console.error("Order failed", error);
-            alert(t('error_order'));
-        }
+    const handleBuy = (item: any) => {
+        setPurchasingItem(item);
     };
 
-    return (
-        <div className="p-8 max-w-7xl mx-auto space-y-6">
+    const handleApplyJob = (job: any) => {
+        alert(`Application sent for ${job.title} at ${job.farm}! You can track this in 'Track & Trace'.`);
+    };
 
-            {/* Header Area */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-400 to-cyan-500 bg-clip-text text-transparent">
-                        {t('title')}
-                    </h1>
-                    <p className="text-slate-400">
-                        {viewMode === 'market'
-                            ? t('subtitle_market')
-                            : t('subtitle_store')}
-                    </p>
+    const renderViewTab = (mode: ViewMode, label: string, icon: any) => (
+        <button
+            onClick={() => {
+                setViewMode(mode);
+                setCategoryFilter(''); // Reset filters on switch
+            }}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap shadow-sm border ${viewMode === mode
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-emerald-900/20'
+                : 'bg-slate-900 text-slate-400 border-white/5 hover:bg-slate-800'
+                }`}
+        >
+            {icon}
+            {label}
+        </button>
+    );
+
+    return (
+        <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6 pb-24">
+            {/* Header & Navigation */}
+            <div className="space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-2">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-bold text-white mb-1">
+                            {t('title')}
+                        </h1>
+                        <p className="text-slate-400 text-sm md:text-base">
+                            Discover products, supplies, and opportunities.
+                        </p>
+                    </div>
                 </div>
 
-                {/* View Switcher */}
-                <div className="bg-slate-900 border border-white/10 p-1 rounded-lg flex gap-1">
-                    <button
-                        onClick={() => setViewMode('market')}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'market' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                    >
-                        {t('view_market')}
-                    </button>
-                    <button
-                        onClick={() => setViewMode('store')}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'store' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                    >
-                        {t('view_store')}
-                    </button>
+                {/* Mobile Scrollable Navigation */}
+                <div className="-mx-4 px-4 md:mx-0 md:px-0 overflow-x-auto pb-2 scrollbar-hide">
+                    <div className="flex gap-3 min-w-max">
+                        {renderViewTab('market', 'Marketplace', <ShoppingBag className="w-4 h-4" />)}
+                        {renderViewTab('jobs', 'Job Board', <Briefcase className="w-4 h-4" />)}
+                        {renderViewTab('store', 'Commercial Store', <ShoppingCart className="w-4 h-4" />)}
+                    </div>
                 </div>
             </div>
 
-            {/* --- MARKET MODE --- */}
+            {/* --- MARKET MODE (P2P) --- */}
             {viewMode === 'market' && (
                 <>
                     {/* Toolbar */}
-                    <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-900/50 p-4 rounded-xl border border-white/5 backdrop-blur-sm">
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-slate-900/50 p-4 rounded-2xl border border-white/5 backdrop-blur-sm sticky top-0 z-10">
 
-                        {/* Tabs (Browse / Mine) */}
-                        <div className="flex gap-4 border-b md:border-b-0 border-white/10 w-full md:w-auto pb-2 md:pb-0 items-center">
-                            <button onClick={() => setActiveTab('browse')} className={`text-sm font-medium transition-colors ${activeTab === 'browse' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-400'}`}>
-                                {t('tab_browse')}
-                            </button>
-                            <button onClick={() => setActiveTab('my-listings')} className={`text-sm font-medium transition-colors ${activeTab === 'my-listings' ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-400'}`}>
-                                {t('tab_my_listings')}
-                            </button>
-                            <div className="h-4 w-px bg-white/10 mx-2 hidden md:block"></div>
+                        <div className="flex flex-wrap gap-2 w-full md:w-auto items-center">
+                            {/* Search */}
+                            <div className="relative flex-grow md:flex-grow-0 w-full md:w-auto">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                <input
+                                    type="text"
+                                    placeholder="Search products..."
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    className="w-full bg-slate-950 border border-white/10 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500/50 transition-colors"
+                                />
+                            </div>
+
+                            <select
+                                value={listingType}
+                                onChange={e => setListingType(e.target.value as ListingType)}
+                                className="bg-slate-950 border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none flex-grow md:flex-grow-0"
+                            >
+                                <option value="ALL">All Types</option>
+                                <option value="SELL">For Sale</option>
+                                <option value="BUY">Wanted</option>
+                                <option value="RENT">Rentals</option>
+                            </select>
+
                             <button
                                 onClick={() => fetchListings(true)}
-                                className="text-slate-400 hover:text-white transition-colors p-1"
-                                title={t('refresh_tooltip')}
+                                className="p-2.5 bg-slate-950 border border-white/10 rounded-xl text-slate-400 hover:text-white"
                             >
                                 <RefreshCw className="w-4 h-4" />
                             </button>
                         </div>
 
-                        {/* Filters */}
-                        <div className="flex flex-wrap gap-2 w-full md:w-auto items-center">
-                            {/* Search */}
-                            <div className="relative">
-                                <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                                <input
-                                    type="text"
-                                    placeholder={t('search_placeholder')}
-                                    value={searchQuery}
-                                    onChange={e => setSearchQuery(e.target.value)}
-                                    className="bg-slate-950 border border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm w-40 focus:w-60 transition-all focus:outline-none focus:border-emerald-500/50"
-                                />
-                            </div>
-
-                            <select
-                                value={categoryFilter}
-                                onChange={e => setCategoryFilter(e.target.value)}
-                                className="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none"
-                            >
-                                <option value="">{t('filter_category_all')}</option>
-                                <option value="Crop Grown">{t('cat_crops')}</option>
-                                <option value="Fruit">{t('cat_fruits')}</option>
-                                <option value="Vegetable">{t('cat_veg')}</option>
-                                <option value="Livestock">{t('cat_livestock')}</option>
-                                <option value="Meat">{t('cat_meat')}</option>
-                                <option value="Dairy">{t('cat_dairy')}</option>
-                                <option value="Machinery">{t('cat_machinery')}</option>
-                            </select>
-
-                            <select
-                                value={listingType}
-                                onChange={e => setListingType(e.target.value as ListingType)}
-                                className="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none"
-                            >
-                                <option value="ALL">{t('filter_type_all')}</option>
-                                <option value="SELL">{t('type_sell')}</option>
-                                <option value="BUY">{t('type_buy')}</option>
-                                <option value="RENT">{t('type_rent')}</option>
-                            </select>
-                        </div>
-
                         <button
                             onClick={() => setIsCreateModalOpen(true)}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-lg hover:shadow-emerald-500/20 transition-all flex items-center gap-2 whitespace-nowrap"
+                            className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-emerald-900/20 transition-all flex items-center justify-center gap-2"
                         >
-                            {t('btn_post_ad')}
+                            <span>+</span> Post Listing
                         </button>
                     </div>
 
                     {/* Listings Grid */}
                     <ContentLoader loading={loading} text={t('loading_listings')}>
                         {displayedListings.length === 0 ? (
-                            <div className="text-center py-20 text-slate-500 bg-slate-900/50 rounded-xl border border-white/5 border-dashed">
-                                <ShoppingBag className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                <p className="text-lg">{t('no_listings_title')}</p>
-                                <p className="text-sm">{t('no_listings_desc')}</p>
+                            <div className="flex flex-col items-center justify-center py-20 bg-slate-900/30 rounded-3xl border border-white/5 border-dashed">
+                                <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-4 text-3xl opacity-50">
+                                    📦
+                                </div>
+                                <p className="text-slate-400 font-bold">No active listings</p>
+                                <p className="text-xs text-slate-500 mt-1">Be the first to post something!</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {displayedListings.map((item, i) => (
-                                    <Card key={i} className="group overflow-hidden border-white/5 bg-slate-900/40 hover:bg-slate-900/80 transition-all hover:-translate-y-1 hover:border-emerald-500/30">
+                                    <Card key={i} className="group overflow-hidden border-white/5 bg-slate-900/80 hover:border-emerald-500/30 transition-all">
                                         {/* Image Area */}
                                         <div className="aspect-[4/3] bg-slate-950 relative overflow-hidden">
                                             {item.image_url ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
-                                                <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                                <img src={item.image_url} alt={item.product_name} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
                                             ) : (
-                                                <div className="w-full h-full flex items-center justify-center text-4xl opacity-20">📦</div>
+                                                <div className="w-full h-full flex items-center justify-center text-4xl opacity-20">
+                                                    {item.category === 'Livestock' ? '🐮' : '🥦'}
+                                                </div>
                                             )}
 
-                                            {/* Badge: Type */}
-                                            <div className={`absolute top-2 left-2 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider text-white shadow-sm
+                                            <div className={`absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide text-white shadow-sm border border-black/10
                                                 ${item.listing_type === 'SELL' ? 'bg-emerald-600' :
                                                     item.listing_type === 'BUY' ? 'bg-blue-600' : 'bg-orange-600'}`}>
                                                 {item.listing_type}
                                             </div>
-
-                                            {/* Edit Controls */}
-                                            {activeTab === 'my-listings' && (
-                                                <div className="absolute top-2 right-2 flex gap-1 transform translate-x-10 group-hover:translate-x-0 transition-transform">
-                                                    <button onClick={() => setEditingListing(item)} className="bg-slate-900/90 p-1.5 rounded-md text-blue-400 hover:text-white hover:bg-blue-600"><Pencil className="w-3.5 h-3.5" /></button>
-                                                    <button onClick={() => handleDelete(item.id)} className="bg-slate-900/90 p-1.5 rounded-md text-red-400 hover:text-white hover:bg-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
-                                                </div>
-                                            )}
                                         </div>
 
-                                        {/* Content */}
-                                        <div className="p-4 space-y-2">
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <span className="text-xs text-slate-500 uppercase font-semibold flex items-center gap-1">
-                                                        <Tag className="w-3 h-3" /> {item.category}
-                                                    </span>
-                                                    <h3 className="font-bold text-lg text-white leading-tight mt-0.5">{item.product_name}</h3>
-                                                </div>
+                                        <div className="p-4">
+                                            <div className="mb-2">
+                                                <h3 className="font-bold text-white text-lg line-clamp-1">{item.product_name}</h3>
+                                                <p className="text-xs text-slate-500 flex items-center gap-1">
+                                                    <User className="w-3 h-3" /> {item.seller_id ? `Seller #${item.seller_id}` : 'Anonymous'}
+                                                </p>
                                             </div>
 
-                                            <p className="text-xs text-slate-400 line-clamp-2 min-h-[2.5em]">{item.description || t('no_description')}</p>
-
-                                            <div className="pt-3 mt-2 border-t border-white/5 flex justify-between items-end">
-                                                <div>
-                                                    <p className="text-emerald-400 font-bold text-lg">₹{item.price}</p>
-                                                    <p className="text-[10px] text-slate-500">per {item.price_unit.replace('per_', '')}</p>
+                                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+                                                <div className="font-mono text-emerald-400 font-bold text-lg">
+                                                    ₹{item.price} <span className="text-[10px] text-slate-500 font-sans font-normal">/ {item.unit}</span>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-xs text-slate-400">{t('available', { qty: item.quantity, unit: item.unit })}</p>
-                                                    {item.seller_id !== myUserId && (
-                                                        <button
-                                                            onClick={() => handleBuy(item)}
-                                                            className="mt-1 bg-white/5 hover:bg-emerald-600 text-slate-300 hover:text-white px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1"
-                                                        >
-                                                            {t('btn_details')}
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                {item.seller_id !== myUserId && (
+                                                    <button
+                                                        onClick={() => handleBuy(item)}
+                                                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-900/20 transition-colors"
+                                                    >
+                                                        {item.listing_type === 'SELL' ? 'Buy Now' : 'Contact'}
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </Card>
@@ -281,35 +271,73 @@ export default function MarketplacePage() {
                 </>
             )}
 
+            {/* --- JOBS MODE --- */}
+            {viewMode === 'jobs' && (
+                <div className="animate-in fade-in duration-300">
+                    <div className="flex justify-between items-center mb-6 bg-slate-900/50 p-4 rounded-2xl border border-white/5 backdrop-blur-sm">
+                        <div className="flex items-center gap-2 text-slate-400 text-sm">
+                            <Briefcase className="w-4 h-4" />
+                            <span>Find work or hire help</span>
+                        </div>
+                        <button
+                            onClick={() => setIsJobModalOpen(true)}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20 transition-all flex items-center gap-2"
+                        >
+                            <span>+</span> Post Job
+                        </button>
+                    </div>
+
+                    <ContentLoader loading={loading} text="Loading opportunities...">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {jobs.map((job) => (
+                                <div key={job.id} className="bg-slate-900 border border-white/5 rounded-2xl p-5 hover:border-blue-500/30 transition-all group relative">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="w-10 h-10 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center font-bold text-xl">
+                                            {job.title.charAt(0)}
+                                        </div>
+                                        <span className="bg-slate-800 text-slate-400 px-2 py-1 rounded-lg text-[10px] font-bold uppercase">{job.type}</span>
+                                    </div>
+
+                                    <h3 className="text-lg font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">{job.title}</h3>
+                                    <p className="text-sm text-slate-400 mb-4">{job.farm}</p>
+
+                                    <div className="flex flex-wrap gap-3 text-xs text-slate-500 mb-4">
+                                        <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {job.location}</span>
+                                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {job.posted}</span>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                                        <span className="font-bold text-white">{job.salary}</span>
+                                        <button
+                                            onClick={() => handleApplyJob(job)}
+                                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20"
+                                        >
+                                            Apply Now
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </ContentLoader>
+                </div>
+            )}
+
             {/* --- STORE MODE (Commercial) --- */}
             {viewMode === 'store' && (
-                <>
-                    {/* Store Toolbar */}
-                    <div className="flex gap-4 items-center mb-6 overflow-x-auto pb-2">
-                        <button
-                            onClick={() => setCategoryFilter('')}
-                            className={`px-4 py-2 rounded-full border border-white/10 text-sm whitespace-nowrap transition-colors ${!categoryFilter ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
-                        >
-                            {t('store_cat_all')}
-                        </button>
-                        <button
-                            onClick={() => setCategoryFilter('Seeds')}
-                            className={`px-4 py-2 rounded-full border border-white/10 text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${categoryFilter === 'Seeds' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
-                        >
-                            <Sprout className="w-4 h-4" /> {t('store_cat_seeds')}
-                        </button>
-                        <button
-                            onClick={() => setCategoryFilter('Pesticides')}
-                            className={`px-4 py-2 rounded-full border border-white/10 text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${categoryFilter === 'Pesticides' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
-                        >
-                            <Tag className="w-4 h-4" /> {t('store_cat_pesticides')}
-                        </button>
-                        <button
-                            onClick={() => setCategoryFilter('Fertilizers')}
-                            className={`px-4 py-2 rounded-full border border-white/10 text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${categoryFilter === 'Fertilizers' ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
-                        >
-                            <Wheat className="w-4 h-4" /> {t('store_cat_fertilizers')}
-                        </button>
+                <div className="animate-in fade-in duration-300">
+                    <div className="flex gap-2 items-center mb-6 overflow-x-auto pb-2 scrollbar-hide">
+                        {['', 'Seeds', 'Pesticides', 'Fertilizers'].map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setCategoryFilter(cat)}
+                                className={`px-4 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${categoryFilter === cat
+                                    ? 'bg-blue-600 text-white border-transparent shadow-lg shadow-blue-900/20'
+                                    : 'bg-slate-900 text-slate-400 border-white/5 hover:bg-slate-800 hover:text-white'
+                                    }`}
+                            >
+                                {cat || 'All Products'}
+                            </button>
+                        ))}
                     </div>
 
                     <ContentLoader loading={loading} text={t('loading_store')}>
@@ -326,16 +354,9 @@ export default function MarketplacePage() {
                                     <div className="p-4">
                                         <div className="text-xs text-blue-400 font-bold uppercase mb-1">{prod.manufacturer}</div>
                                         <h3 className="text-lg font-bold text-white leading-tight mb-2">{prod.brand_name}</h3>
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <span className="bg-slate-800 text-slate-400 text-[10px] px-2 py-0.5 rounded border border-white/10">
-                                                {prod.active_ingredient_name}
-                                            </span>
-                                        </div>
-                                        <p className="text-xs text-slate-400 line-clamp-2 mb-4 h-[2.5em]">{prod.description}</p>
-
-                                        <div className="flex items-center justify-between">
+                                        <div className="flex items-center justify-between mt-4">
                                             <div className="text-xl font-bold text-white">₹{prod.unit_price}</div>
-                                            <button className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors">
+                                            <button className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors shadow-lg shadow-blue-900/20">
                                                 <ShoppingCart className="w-5 h-5" />
                                             </button>
                                         </div>
@@ -344,23 +365,42 @@ export default function MarketplacePage() {
                             ))}
                         </div>
                     </ContentLoader>
-                </>
+                </div>
             )}
 
             {/* Create Modal */}
             <CreateListingModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
-                onSuccess={fetchListings}
+                onSuccess={() => fetchListings(true)}
             />
 
-            {/* Edit Modal */}
+            <CreateJobModal
+                isOpen={isJobModalOpen}
+                onClose={() => setIsJobModalOpen(false)}
+                onSuccess={fetchJobs}
+            />
+
+            {/* Edit Modal Logic (Simplified for this version) */}
             {editingListing && (
                 <EditListingModal
                     isOpen={!!editingListing}
                     onClose={() => setEditingListing(null)}
-                    onSuccess={fetchListings}
+                    onSuccess={() => fetchListings(true)}
                     listing={editingListing}
+                />
+            )}
+
+            {/* Purchase Modal */}
+            {purchasingItem && (
+                <PurchaseModal
+                    isOpen={!!purchasingItem}
+                    item={purchasingItem}
+                    onClose={() => setPurchasingItem(null)}
+                    onSuccess={() => {
+                        // Maybe move to "My Orders" or refresh
+                        setPurchasingItem(null);
+                    }}
                 />
             )}
         </div>
