@@ -1,34 +1,15 @@
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
-import { usePathname, useRouter } from '@/navigation';
-import { useEffect, useState } from 'react';
+import { usePathname } from '@/navigation';
 import { Loader2 } from 'lucide-react';
+import AppPreview from '@/components/AppPreview';
 
-const PUBLIC_PATHS = ['/docs', '/auth/login', '/auth/signup', '/', '/verify'];
+const PUBLIC_PATHS = ['/docs', '/auth/login', '/auth/signup', '/', '/features', '/use-cases', '/verify'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, loading } = useAuth();
     const pathname = usePathname();
-    const router = useRouter();
-    const [authorized, setAuthorized] = useState(false);
-
-    useEffect(() => {
-        // Allow public paths
-        const isPublic = PUBLIC_PATHS.some(path => {
-            if (path === '/') return pathname === '/';
-            return pathname.startsWith(path);
-        });
-
-        if (loading) return; // Wait for auth check to finish
-
-        if (!isAuthenticated && !isPublic) {
-            router.push('/auth/login');
-            setAuthorized(false);
-        } else {
-            setAuthorized(true);
-        }
-    }, [isAuthenticated, loading, pathname, router]);
 
     if (loading) {
         return (
@@ -38,17 +19,24 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         );
     }
 
-    // If redirecting, don't show content
-    // Check again for render safety? 
-    // If not authorized and not public, we are redirecting.
+    // Check if the current path is public
+    // We treat '/' as public explicitly. For others, we check prefix.
     const isPublic = PUBLIC_PATHS.some(path => {
         if (path === '/') return pathname === '/';
         return pathname.startsWith(path);
     });
 
-    if (!isAuthenticated && !isPublic) {
-        return null;
+    // Case 1: Authenticated User -> Show the actual App
+    if (isAuthenticated) {
+        return <>{children}</>;
     }
 
-    return <>{children}</>;
+    // Case 2: Unauthenticated but Public Page -> Show the Page (e.g. Landing, Login)
+    if (isPublic) {
+        return <>{children}</>;
+    }
+
+    // Case 3: Unauthenticated & Protected Route -> Show "App Preview" (SEO Friendly)
+    // Instead of redirecting to login, we show a preview of what's behind the wall.
+    return <AppPreview pathname={pathname} />;
 }

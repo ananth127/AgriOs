@@ -135,7 +135,7 @@ export function Sidebar({ locale }: SidebarProps) {
     ];
 
     return (
-        <div className="w-72 bg-slate-950/80 backdrop-blur-xl border-r border-white/5 flex-col hidden md:flex h-full shadow-2xl relative z-40">
+        <div className="w-64 xl:w-72 shrink-0 bg-slate-950/80 backdrop-blur-xl border-r border-white/5 flex-col hidden md:flex h-full shadow-2xl relative z-40">
             <div className="p-8 pb-6">
                 <div className="flex items-center gap-3">
                     <div className="text-3xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600 bg-clip-text text-transparent tracking-tight">
@@ -195,7 +195,7 @@ export function Sidebar({ locale }: SidebarProps) {
 
             <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
                 {links.map((link) => {
-                    const isActive = pathname === link.href;
+                    const isActive = link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
 
                     return (
                         <Link

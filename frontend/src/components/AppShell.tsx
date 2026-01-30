@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { usePathname } from '@/navigation';
+import { useAuth } from '@/lib/auth-context';
 import { Sidebar } from './Sidebar';
 import NavBar from './NavBar';
 
@@ -12,9 +13,12 @@ interface AppShellProps {
 
 export default function AppShell({ children, locale }: AppShellProps) {
     const pathname = usePathname();
+    const { isAuthenticated } = useAuth();
     const isPublicVerify = pathname.includes('/verify/');
+    const isMarketingPage = ['/features', '/use-cases', '/community', '/docs', '/auth'].some(route => pathname.startsWith(route));
+    const isPublicLanding = pathname === '/' && !isAuthenticated;
 
-    if (isPublicVerify) {
+    if (isPublicVerify || isMarketingPage || isPublicLanding) {
         return (
             <div className="flex-1 flex flex-col min-w-0 bg-slate-950 relative h-screen">
                 {/* No Sidebar, No NavBar */}

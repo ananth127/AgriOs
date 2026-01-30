@@ -12,7 +12,9 @@ import dynamic from 'next/dynamic';
 
 const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
 
-export default function SignupPage() {
+import PublicHeader from '@/components/PublicHeader';
+
+export default function SignupPage({ params: { locale } }: { params: { locale: string } }) {
     const [fullName, setFullName] = useState('');
     const [email, setEmail] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
@@ -105,7 +107,8 @@ export default function SignupPage() {
     };
 
     return (
-        <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        <main className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 pt-24 relative overflow-hidden">
+            <PublicHeader locale={locale} />
             {/* Background Effects */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-green-500/10 rounded-full blur-[100px]"></div>
