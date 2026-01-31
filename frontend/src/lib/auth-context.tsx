@@ -6,6 +6,7 @@ import { useRouter } from '@/navigation';
 import { API_BASE_URL } from './constants';
 
 interface User {
+    id: number;
     email: string;
     full_name?: string;
     role: string;

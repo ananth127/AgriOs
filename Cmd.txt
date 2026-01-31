@@ -3,3 +3,17 @@ stop : wsl --shutdown
 🤖 Trying model: meta-llama/Llama-3.1-8B-Instruct
 ✅ Success with model: meta-llama/Llama-3.1-8B-Instruct
 curl http://127.0.0.1:8000/fix-db
+
+# make sure you're on xyz and everything is committed
+git checkout xyz
+git status
+
+# switch to main
+git checkout main
+git pull origin main
+
+# merge xyz into main
+git merge xyz
+
+# push to remote
+git push origin main
