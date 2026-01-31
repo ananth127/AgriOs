@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 class FarmBase(BaseModel):
     name: str
@@ -16,8 +16,29 @@ class FarmUpdate(BaseModel):
     geometry: Optional[str] = None
     soil_profile: Optional[Dict[str, Any]] = None
 
+class ZoneBase(BaseModel):
+    name: str
+    land_id: Optional[str] = None
+    geometry: Optional[str] = None # WKT
+    details: Optional[Dict[str, Any]] = {}
+
+class ZoneCreate(ZoneBase):
+    pass
+
+class ZoneUpdate(BaseModel):
+    name: Optional[str] = None
+    crop_details: Optional[Dict[str, Any]] = None
+
+class Zone(ZoneBase):
+    id: int
+    farm_id: int
+
+    class Config:
+        from_attributes = True
+
 class Farm(FarmBase):
     id: int
+    zones: List[Zone] = []
 
     class Config:
         from_attributes = True

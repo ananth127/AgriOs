@@ -11,7 +11,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, loading } = useAuth();
     const pathname = usePathname();
 
-    if (loading) {
+    // Optimization: If the path is public, we don't need to wait for loading to finish.
+    // This improves First Contentful Paint (FCP) significantly for Landing Page.
+    const isPublic = PUBLIC_PATHS.some(path => {
+        if (path === '/') return pathname === '/';
+        return pathname.startsWith(path);
+    });
+
+    if (loading && !isPublic) {
         return (
             <div className="h-full w-full flex items-center justify-center bg-slate-950">
                 <Loader2 className="w-8 h-8 animate-spin text-green-500" />
@@ -19,12 +26,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         );
     }
 
-    // Check if the current path is public
-    // We treat '/' as public explicitly. For others, we check prefix.
-    const isPublic = PUBLIC_PATHS.some(path => {
-        if (path === '/') return pathname === '/';
-        return pathname.startsWith(path);
-    });
+
 
     // Case 1: Authenticated User -> Show the actual App
     if (isAuthenticated) {

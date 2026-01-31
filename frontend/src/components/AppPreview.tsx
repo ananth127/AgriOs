@@ -168,68 +168,23 @@ const FEATURES: Record<string, FeatureInfo> = {
     }
 };
 
+import PublicHeader from '@/components/PublicHeader';
+import { useParams } from 'next/navigation';
+
 export default function AppPreview({ pathname }: { pathname: string }) {
     const matchedKey = Object.keys(FEATURES).find(key => key !== 'default' && pathname.includes(key));
     const content = matchedKey ? FEATURES[matchedKey] : FEATURES['default'];
-    const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+    const params = useParams();
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white selection:bg-green-500/30 font-sans flex flex-col overflow-x-hidden">
+        <div id="scrolling-container" className="w-full h-full bg-slate-950 text-white selection:bg-green-500/30 font-sans flex flex-col overflow-x-hidden overflow-y-auto">
             {/* Navbar */}
-            <header className="px-4 md:px-8 py-4 flex justify-between items-center bg-slate-950/90 backdrop-blur-md border-b border-white/5 fixed top-0 w-full z-50">
-                <div className="flex items-center gap-3 md:gap-3">
-                    {/* Mobile Menu Icon */}
-                    <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="md:hidden p-1 text-slate-300 hover:text-white"
-                    >
-                        {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                    </button>
+            <PublicHeader locale={params.locale as string} />
 
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-green-900/20">
-                        <Sprout className="w-5 h-5 md:w-6 md:h-6 text-white" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-lg md:text-xl font-bold tracking-tight text-white leading-none">Agri-OS</span>
-                        <span className="text-[10px] uppercase tracking-wider font-semibold text-green-400 leading-none mt-1">Preview Mode</span>
-                    </div>
-                </div>
-
-                {/* Desktop Nav */}
-                <div className="flex items-center gap-3 md:gap-4">
-                    <Link href="/auth/login" className="hidden sm:block text-sm font-medium text-slate-300 hover:text-white transition-colors">
-                        Log In
-                    </Link>
-                    <Link href="/auth/signup" className="px-3 md:px-5 py-2 text-sm font-bold bg-white text-slate-950 rounded-lg hover:bg-slate-200 transition-colors shadow-lg shadow-white/10 flex items-center gap-2 whitespace-nowrap">
-                        Get Started <ArrowRight className="w-4 h-4 hidden sm:block" />
-                    </Link>
-                </div>
-            </header>
-
-            {/* Mobile Menu Overlay */}
-            {isMenuOpen && (
-                <div className="fixed inset-0 top-16 z-40 bg-slate-950/95 backdrop-blur-xl border-t border-white/10 md:hidden animate-in slide-in-from-top-2">
-                    <div className="p-4 flex flex-col gap-2">
-                        <Link href="/features" className="p-4 rounded-xl bg-slate-900/50 border border-white/5 text-slate-200 font-medium hover:bg-slate-800 transition-colors">
-                            Features
-                        </Link>
-                        <Link href="/use-cases" className="p-4 rounded-xl bg-slate-900/50 border border-white/5 text-slate-200 font-medium hover:bg-slate-800 transition-colors">
-                            Use Cases
-                        </Link>
-                        <Link href="/community" className="p-4 rounded-xl bg-slate-900/50 border border-white/5 text-slate-200 font-medium hover:bg-slate-800 transition-colors">
-                            Community
-                        </Link>
-                        <Link href="/auth/login" className="p-4 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 font-bold mt-2 text-center">
-                            Log In
-                        </Link>
-                    </div>
-                </div>
-            )}
-
-            <main className="flex-1 flex flex-col lg:flex-row items-center justify-center pt-24 md:pt-32 pb-12 px-4 md:px-6 lg:px-12 gap-8 md:gap-12 max-w-7xl mx-auto w-full">
+            <main className="flex-1 flex flex-col lg:flex-row lg:items-start items-center justify-center pt-20 md:pt-24 pb-12 px-6 md:px-12 gap-12 md:gap-24 w-full max-w-7xl mx-auto">
 
                 {/* Left: Text Content - Top on Mobile, Left on Desktop */}
-                <div className="w-full lg:w-1/2 space-y-6 md:space-y-8 text-center lg:text-left order-1">
+                <div className="flex-1 space-y-6 md:space-y-8 text-center lg:text-left order-1 lg:mt-12 max-w-xl">
                     <div className="space-y-4 md:space-y-6">
                         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-white/10 text-xs font-semibold ${content.color} mx-auto lg:mx-0`}>
                             <Lock className="w-3 h-3" />
@@ -239,7 +194,7 @@ export default function AppPreview({ pathname }: { pathname: string }) {
                         <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.1]">
                             {content.title}
                         </h1>
-                        <p className="text-lg md:text-xl text-slate-400 leading-relaxed">
+                        <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto lg:mx-0">
                             {content.description}
                         </p>
                     </div>
@@ -259,14 +214,14 @@ export default function AppPreview({ pathname }: { pathname: string }) {
                         <Link href="/auth/signup" className={`px-8 py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-bold rounded-xl text-lg hover:shadow-lg hover:shadow-green-500/20 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-2`}>
                             Create Account <ArrowRight className="w-5 h-5" />
                         </Link>
-                        <Link href="/auth/login" className="px-8 py-3.5 bg-slate-800 text-white font-semibold rounded-xl text-lg hover:bg-slate-700 transition-colors flex items-center justify-center border border-white/5">
-                            Log In
+                        <Link href="/#features" className="px-8 py-3.5 bg-slate-800 text-white font-semibold rounded-xl text-lg hover:bg-slate-700 transition-colors flex items-center justify-center border border-white/5">
+                            View Features
                         </Link>
                     </div>
                 </div>
 
                 {/* Right: Dynamic UI Mockup - Bottom on Mobile, Right on Desktop */}
-                <div className="w-full lg:w-1/2 flex justify-center order-2 mt-8 lg:mt-0">
+                <div className="flex-1 w-full flex justify-center lg:justify-start order-2 mt-8 lg:mt-0">
                     <MockAppScreen content={content} />
                 </div>
             </main>
@@ -276,7 +231,7 @@ export default function AppPreview({ pathname }: { pathname: string }) {
 
 function MockAppScreen({ content }: { content: FeatureInfo }) {
     return (
-        <div className="relative w-full max-w-[320px] md:max-w-sm mx-auto transform hover:scale-[1.02] transition-transform duration-500 ease-out">
+        <div className="relative w-full max-w-[320px] md:max-w-sm mx-auto lg:mx-0 transform hover:scale-[1.02] transition-transform duration-500 ease-out">
             {/* Phone Bezel */}
             <div className="relative bg-slate-950 border-[8px] border-slate-800 rounded-[2.5rem] shadow-2xl shadow-black overflow-hidden aspect-[9/19]">
 

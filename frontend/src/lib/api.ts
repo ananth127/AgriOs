@@ -6,9 +6,16 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const requestCache = new Map<string, { data: any; timestamp: number }>();
 
 async function fetchAPI<T>(endpoint: string, method: RequestMethod = "GET", body?: any, useCache: boolean = true): Promise<T> {
-    const headers = {
+    const headers: Record<string, string> = {
         "Content-Type": "application/json",
     };
+
+    if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('access_token');
+        if (token) {
+            headers["Authorization"] = `Bearer ${token}`;
+        }
+    }
 
     const config: RequestInit = {
         method,

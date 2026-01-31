@@ -2,7 +2,7 @@
 
 import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import L from 'leaflet';
 
@@ -41,7 +41,51 @@ const userIcon = L.icon({
     shadowSize: [41, 41]
 });
 
-export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocation }: FarmMapProps) {
+function ZoneGrid({ center, activeZoneId }: { center: L.LatLng | null, activeZoneId: string }) {
+    if (!center) return null;
+
+    // ~50m offset for visual grid (represents ~2.5 acres total)
+    const d = 0.00045;
+    const lat = center.lat;
+    const lng = center.lng;
+
+    // Define 4 quadrants
+    const quadrants = [
+        { id: '1', name: 'Zone 1 (North-East)', color: 'blue', positions: [[lat, lng], [lat + d, lng], [lat + d, lng + d], [lat, lng + d]] as [number, number][] }, // NE
+        { id: '2', name: 'Zone 2 (South-East)', color: 'green', positions: [[lat, lng], [lat - d, lng], [lat - d, lng + d], [lat, lng + d]] as [number, number][] }, // SE
+        { id: '3', name: 'Zone 3 (South-West)', color: 'orange', positions: [[lat, lng], [lat - d, lng], [lat - d, lng - d], [lat, lng - d]] as [number, number][] }, // SW
+        { id: '4', name: 'Zone 4 (North-West)', color: 'purple', positions: [[lat, lng], [lat + d, lng], [lat + d, lng - d], [lat, lng - d]] as [number, number][] }, // NW
+    ];
+
+    return (
+        <>
+            {quadrants.map((q) => (
+                <Polygon
+                    key={q.id}
+                    positions={q.positions}
+                    pathOptions={{
+                        color: 'white',
+                        weight: 2,
+                        dashArray: '5, 5',
+                        fillColor: q.color,
+                        fillOpacity: activeZoneId === 'all' ? 0.05 : (activeZoneId.includes(q.id) ? 0.3 : 0.05)
+                    }}
+                />
+            ))}
+        </>
+    );
+}
+
+interface FarmMapProps {
+    farms: any[];
+    selectedFarmId?: number;
+    viewCenter?: [number, number] | null;
+    userLocation?: [number, number] | null;
+    activeZone?: string;
+    zones?: any[];
+}
+
+export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocation, activeZone = 'all', zones }: FarmMapProps) {
     const t = useTranslations('FarmMap');
     // Priority:
     // 1. View Center (Search Result)
@@ -97,13 +141,16 @@ export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocatio
         }
     }, [selectedFarmId, farms, viewCenter, userLocation, hasInitialized]);
 
-    // Mock Polygon for visual
-    const polygonCoords: [number, number][] = [
-        [18.5, 73.5],
-        [18.51, 73.5],
-        [18.51, 73.51],
-        [18.5, 73.51]
-    ];
+    // Calculate Grid Center
+    const targetGridLocation = useMemo(() => {
+        if (selectedFarmId && farms.length > 0) {
+            const f = farms.find(f => f.id === selectedFarmId);
+            if (f?.latitude) return new L.LatLng(f.latitude, f.longitude);
+        }
+        if (userLocation) return new L.LatLng(userLocation[0], userLocation[1]);
+        return null;
+    }, [selectedFarmId, farms, userLocation]);
+
 
     // Repositioned My Location Button (Above Mic)
     return (
@@ -129,6 +176,9 @@ export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocatio
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 url="https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png"
             />
+
+            {/* Zone Grid Visualization */}
+            <ZoneGrid center={targetGridLocation} activeZoneId={activeZone} />
 
             {/* My Location Button - Fixed above Voice Mic (bottom-8 + h-16 + gap) ~ 32 + 64 + 20 = 116px. Using bottom-32 (128px) */}
             <div className="absolute bottom-48 right-6 z-[400]">
@@ -195,21 +245,6 @@ export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocatio
                     </div>
                 );
             })}
-
-            {/* Show User Land Boundary if available (Mock/Profile) */}
-            {userLocation && (
-                <Polygon
-                    positions={[
-                        [userLocation[0] - 0.001, userLocation[1] - 0.001],
-                        [userLocation[0] + 0.001, userLocation[1] - 0.001],
-                        [userLocation[0] + 0.001, userLocation[1] + 0.001],
-                        [userLocation[0] - 0.001, userLocation[1] + 0.001],
-                    ]}
-                    pathOptions={{ color: 'white', weight: 2, fillOpacity: 0.05, dashArray: '10, 10' }}
-                >
-                    <Popup>{t('est_land_area')}</Popup>
-                </Polygon>
-            )}
         </MapContainer>
     );
 }

@@ -13,10 +13,11 @@ import { useAuth } from '@/lib/auth-context';
 export default function FarmsPage() {
     const t = useTranslations('Farms');
     const tGlobal = useTranslations('Global');
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
     const [farms, setFarms] = useState<any[]>([]);
     const [selectedFarmId, setSelectedFarmId] = useState<number | undefined>(undefined);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [activeZone, setActiveZone] = useState<string>('all'); // State for active zone
 
     // Dynamically import Map to avoid SSR issues with Leaflet
     const FarmMap = useMemo(() => dynamic(
@@ -31,32 +32,129 @@ export default function FarmsPage() {
         api.farms.list()
             .then((data: any) => {
                 if (Array.isArray(data)) {
-                    setFarms(data);
-                    // Do not auto-select first farm; let map default to User Land Location
-                    // if (data.length > 0 && !selectedFarmId) setSelectedFarmId(data[0].id);
+                    // Process farms to extract lat/lon from WKT geometry
+                    const processedFarms = data.map(f => {
+                        let lat = f.latitude;
+                        let lon = f.longitude;
+                        let boundary: [number, number][] = [];
+
+                        if (!lat && typeof f.geometry === 'string') {
+                            try {
+                                // Simple WKT parser for POLYGON((x y, ...)) or POINT(x y)
+                                // Matches all float numbers
+                                const matches = f.geometry.match(/-?\d+\.\d+/g);
+                                if (matches && matches.length >= 2) {
+                                    // WKT Order is usually (Lon Lat)
+                                    let totalLat = 0, totalLon = 0, count = 0;
+                                    const points: [number, number][] = [];
+
+                                    for (let i = 0; i < matches.length; i += 2) {
+                                        const x = parseFloat(matches[i]);   // Lon
+                                        const y = parseFloat(matches[i + 1]); // Lat
+                                        if (!isNaN(x) && !isNaN(y)) {
+                                            totalLon += x;
+                                            totalLat += y;
+                                            count++;
+                                            points.push([y, x]); // Leaflet uses [Lat, Lon]
+                                        }
+                                    }
+
+                                    if (count > 0) {
+                                        lat = totalLat / count;
+                                        lon = totalLon / count;
+                                        boundary = points;
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn("Failed to parse WKT", f.geometry);
+                            }
+                        }
+                        return {
+                            ...f,
+                            latitude: lat,
+                            longitude: lon,
+                            boundary: f.boundary || boundary
+                        };
+                    });
+
+                    setFarms(processedFarms);
+
+                    // Auto-select logic:
+                    if (processedFarms.length > 0) {
+                        // If we have a newly created farm (highest ID), maybe prefer it? 
+                        // For now, adhere to standard behavior: Select first if none selected.
+                        if (selectedFarmId === undefined) {
+                            setSelectedFarmId(processedFarms[0].id);
+                        } else {
+                            // If current selection is invalid, reset to first
+                            const exists = processedFarms.find(f => f.id === selectedFarmId);
+                            if (!exists) setSelectedFarmId(processedFarms[0].id);
+
+                            // Check if we just added a farm (simple heuristic: list grew?)
+                            // Can't easily detect "just added" without more state. 
+                            // But fixing lat/lon enables manual selection to work immediately.
+                        }
+                    }
                 } else {
                     console.error("Farms API returned non-array:", data);
                     setFarms([]);
                 }
             })
-            .catch(err => console.error("Failed to fetch farms", err));
-    }, []);
+            .catch(err => {
+                console.error("Failed to fetch farms", err);
+                if (err && err.message && err.message.includes("Unauthorized")) {
+                    logout();
+                }
+            });
+    }, [logout, selectedFarmId]);
 
     useEffect(() => {
         fetchFarms();
     }, [fetchFarms]);
 
     // Find selected farm details
-    const currentFarm = farms.find(f => f.id === selectedFarmId);
+    const currentFarm = useMemo(() =>
+        farms.find(f => f.id === selectedFarmId) || farms[0]
+        , [farms, selectedFarmId]);
+
+    // Ensure we always have 4 zones
+    const displayZones = useMemo(() => {
+        const zones = currentFarm?.zones || [];
+        const quadrants = [
+            { id: '1', defaultName: 'Zone 1 (North-East)', type: 'NE' },
+            { id: '2', defaultName: 'Zone 2 (South-East)', type: 'SE' },
+            { id: '3', defaultName: 'Zone 3 (South-West)', type: 'SW' },
+            { id: '4', defaultName: 'Zone 4 (North-West)', type: 'NW' },
+        ];
+
+        return quadrants.map((q, idx) => {
+            const propZone = zones[idx];
+            if (propZone) {
+                return {
+                    ...propZone,
+                    id: String(propZone.id),
+                    name: propZone.name || q.defaultName,
+                    isPlaceholder: false
+                };
+            }
+            return {
+                id: `placeholder-${q.id}`,
+                name: q.defaultName,
+                details: { crop: 'Empty', status: 'Available' },
+                isPlaceholder: true
+            };
+        });
+    }, [currentFarm]);
 
     const [viewCenter, setViewCenter] = useState<[number, number] | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [isZonesExpanded, setIsZonesExpanded] = useState(false); // Default collapsed on mobile
+    const [isZonesExpanded, setIsZonesExpanded] = useState(true); // Default expanded for visibility
 
     const userLocation: [number, number] | null = (user?.latitude && user?.longitude)
         ? [user.latitude, user.longitude]
         : null;
 
+    // ... search logic remains ... 
     const handleSearch = async () => {
         if (!searchQuery) return;
         try {
@@ -75,7 +173,14 @@ export default function FarmsPage() {
         <div className="flex h-full relative">
             {/* Map (Full background) */}
             <div className="absolute inset-0 bg-slate-950 z-0">
-                <FarmMap farms={farms} selectedFarmId={selectedFarmId} viewCenter={viewCenter} userLocation={userLocation} />
+                <FarmMap
+                    farms={farms}
+                    selectedFarmId={selectedFarmId}
+                    viewCenter={viewCenter}
+                    userLocation={userLocation}
+                    activeZone={activeZone} // Pass activeZone if Map supports it (update later)
+                    zones={displayZones}    // Pass zones for Grid
+                />
             </div>
 
             {/* Floating Overlay Panel - Dynamic Height */}
@@ -145,37 +250,39 @@ export default function FarmsPage() {
                         onClick={() => setIsZonesExpanded(!isZonesExpanded)}
                     >
                         <h3 className="font-semibold text-sm text-slate-300">{t('active_zones')}</h3>
-                        <span className={`text-slate-500 text-xs transition-transform ${isZonesExpanded ? 'rotate-180' : ''}`}>
-                            ▼
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-medium">{displayZones.length} Active</span>
+                            <span className={`text-slate-500 text-xs transition-transform ${isZonesExpanded ? 'rotate-180' : ''}`}>
+                                ▼
+                            </span>
+                        </div>
                     </div>
 
                     {/* Collapsible Content */}
                     <div className={`${isZonesExpanded ? 'max-h-[300px]' : 'max-h-0'} overflow-y-auto transition-all duration-300 ease-in-out`}>
                         <div className="divide-y divide-white/5">
-                            <div className="p-3 hover:bg-white/5 cursor-pointer transition-colors">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-medium text-green-400 text-sm">{t('mock_zone_a')}</span>
-                                    <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
+                            {displayZones.map((zone) => (
+                                <div
+                                    key={zone.id}
+                                    onClick={() => setActiveZone(String(zone.id))}
+                                    className={`p-3 hover:bg-white/5 cursor-pointer transition-colors ${activeZone === String(zone.id) ? 'bg-green-500/10' : ''}`}
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`font-medium text-sm ${activeZone === String(zone.id) ? 'text-green-400' : 'text-slate-200'}`}>
+                                                {zone.name}
+                                                {zone.details?.crop && !zone.isPlaceholder && <span className="text-slate-500 font-normal ml-1">- {zone.details.crop}</span>}
+                                            </span>
+                                        </div>
+                                        <div className={`h-1.5 w-1.5 rounded-full ${zone.isPlaceholder ? 'bg-slate-600' : 'bg-green-500'}`}></div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-400 mt-1">
+                                        {zone.details?.status || (zone.isPlaceholder ? 'Available' : 'Active')}
+                                    </p>
                                 </div>
-                                <p className="text-[10px] text-slate-400 mt-1">{t('mock_status_irrigation')}</p>
-                            </div>
-                            <div className="p-3 hover:bg-white/5 cursor-pointer transition-colors">
-                                <div className="flex justify-between items-center">
-                                    <span className="font-medium text-orange-400 text-sm">{t('mock_zone_b')}</span>
-                                    <div className="h-1.5 w-1.5 rounded-full bg-orange-500"></div>
-                                </div>
-                                <p className="text-[10px] text-slate-400 mt-1">{t('mock_status_sowing')}</p>
-                            </div>
+                            ))}
                         </div>
                     </div>
-
-                    {/* Preview (Shown when collapsed) */}
-                    {!isZonesExpanded && (
-                        <div className="p-3 text-xs text-slate-500 text-center cursor-pointer" onClick={() => setIsZonesExpanded(true)}>
-                            {t('zones_tap_view_other', { count: 2 })}
-                        </div>
-                    )}
                 </Card>
             </div>
             <CreateFarmModal

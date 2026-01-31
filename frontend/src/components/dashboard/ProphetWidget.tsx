@@ -23,21 +23,21 @@ export default function ProphetWidget({ locationName }: { locationName?: string 
     }, [locationName]);
 
     return (
-        <div className="col-span-1 md:col-span-2 row-span-2 rounded-2xl bg-slate-900 border border-white/10 p-6 flex flex-col relative overflow-hidden group hover:border-green-500/50 transition-colors">
+        <div className="col-span-1 md:col-span-2 row-span-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 p-6 flex flex-col relative overflow-hidden group hover:border-green-500/50 transition-colors shadow-sm dark:shadow-none">
             <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <span className="text-9xl">📈</span>
             </div>
-            <h2 className="text-xl font-semibold mb-2 text-green-400">Agri-Prophet Engine</h2>
-            <p className="text-slate-400 mb-4">Market predictions and crop suggestions based on real-time data.</p>
+            <h2 className="text-xl font-semibold mb-2 text-green-600 dark:text-green-400">Agri-Prophet Engine</h2>
+            <p className="text-slate-500 dark:text-slate-400 mb-4">Market predictions and crop suggestions based on real-time data.</p>
 
-            <div className="mt-auto bg-slate-800 rounded-lg p-4 z-10">
+            <div className="mt-auto bg-slate-50 dark:bg-slate-800 rounded-lg p-4 z-10 border border-slate-100 dark:border-white/5 opacity-90 backdrop-blur-sm">
                 {prediction ? (
                     <>
                         <div className="flex justify-between items-center mb-2">
-                            <span className="font-bold text-white">{prediction.crop_name}</span>
-                            <span className="text-green-400 font-mono">Score: {prediction.profitability_score}</span>
+                            <span className="font-bold text-slate-900 dark:text-white">{prediction.crop_name}</span>
+                            <span className="text-green-600 dark:text-green-400 font-mono">Score: {prediction.profitability_score}</span>
                         </div>
-                        <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
                             <div
                                 className="bg-green-500 h-full transition-all duration-1000"
                                 style={{ width: `${prediction.confidence * 100}%` }}

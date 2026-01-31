@@ -10,6 +10,7 @@ import { API_BASE_URL } from '@/lib/constants';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { trackSidebarClick, trackAuthEvent } from '@/lib/analytics';
+import { startNavigationProgress } from '@/components/NavigationLoader';
 import { useConnectionHealth } from '@/hooks/useConnectionHealth';
 
 const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
@@ -135,10 +136,10 @@ export function Sidebar({ locale }: SidebarProps) {
     ];
 
     return (
-        <div className="w-64 xl:w-72 shrink-0 bg-slate-950/80 backdrop-blur-xl border-r border-white/5 flex-col hidden md:flex h-full shadow-2xl relative z-40">
+        <div className="w-64 xl:w-72 shrink-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-xl border-r border-slate-200 dark:border-white/5 flex-col hidden md:flex h-full shadow-2xl relative z-40 transition-colors duration-300">
             <div className="p-8 pb-6">
                 <div className="flex items-center gap-3">
-                    <div className="text-3xl font-extrabold bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600 bg-clip-text text-transparent tracking-tight">
+                    <div className="text-3xl font-extrabold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 dark:from-green-400 dark:via-emerald-500 dark:to-teal-600 bg-clip-text text-transparent tracking-tight">
                         {tGlobal('app_name')}
                     </div>
                     {/* Status Indicators */}
@@ -184,7 +185,7 @@ export function Sidebar({ locale }: SidebarProps) {
                                 if (btn) btn.classList.remove('animate-spin');
                             }
                         }}
-                        className="ml-auto p-1.5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors"
+                        className="ml-auto p-1.5 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
                         title="Sync Data"
                     >
                         <RefreshCw id="sync-btn-icon" className="w-4 h-4" />
@@ -201,18 +202,23 @@ export function Sidebar({ locale }: SidebarProps) {
                         <Link
                             key={link.href}
                             href={link.href}
-                            onClick={() => trackSidebarClick(link.label, link.href)}
+                            onClick={() => {
+                                trackSidebarClick(link.label, link.href);
+                                if (link.href !== pathname) {
+                                    startNavigationProgress();
+                                }
+                            }}
                             className={cn(
                                 "flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group relative overflow-hidden",
                                 isActive
-                                    ? "bg-green-500/10 text-green-400 shadow-[0_0_20px_rgba(34,197,94,0.1)] border border-green-500/20"
-                                    : "text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent"
+                                    ? "bg-green-100/50 text-green-700 dark:bg-green-500/10 dark:text-green-400 shadow-[0_0_20px_rgba(34,197,94,0.1)] border border-green-200/60 dark:border-green-500/20"
+                                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50 dark:hover:bg-white/5 border border-transparent"
                             )}
                         >
                             {isActive && (
-                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r-full shadow-lg shadow-green-500/50" />
+                                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r-full shadow-lg shadow-green-500/30" />
                             )}
-                            <link.icon className={cn("w-5 h-5 transition-transform duration-300 group-hover:scale-110", isActive ? "text-green-400" : "text-slate-500 group-hover:text-slate-300")} />
+                            <link.icon className={cn("w-5 h-5 transition-transform duration-300 group-hover:scale-110", isActive ? "text-green-600 dark:text-green-400" : "text-slate-500 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300")} />
                             <span className="relative z-10">{link.label}</span>
                         </Link>
                     );
@@ -228,21 +234,21 @@ export function Sidebar({ locale }: SidebarProps) {
                 )
             }
 
-            <div className="p-4 border-t border-white/5 bg-slate-900/30">
+            <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-900/30 transition-colors duration-300">
                 {isAuthenticated ? (
                     <>
                         <div
                             onClick={() => setIsProfileOpen(true)}
-                            className="bg-slate-900/50 border border-white/5 rounded-xl p-3.5 hover:bg-slate-800/80 hover:border-green-500/30 transition-all cursor-pointer group shadow-lg"
+                            className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-green-500/30 transition-all cursor-pointer group shadow-lg"
                         >
                             <div className="flex items-center gap-3.5">
                                 <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-500 to-teal-600 p-[1px] shadow-lg shadow-green-900/20">
-                                    <div className="w-full h-full rounded-full bg-slate-900 flex items-center justify-center text-sm font-bold text-white uppercase">
+                                    <div className="w-full h-full rounded-full bg-white dark:bg-slate-900 flex items-center justify-center text-sm font-bold text-slate-800 dark:text-white uppercase">
                                         {user?.full_name?.charAt(0) || 'U'}
                                     </div>
                                 </div>
                                 <div className="overflow-hidden">
-                                    <div className="text-sm font-semibold text-white truncate group-hover:text-green-400 transition-colors">
+                                    <div className="text-sm font-semibold text-slate-900 dark:text-white truncate group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
                                         {user?.full_name || tAuth('guest_user')}
                                     </div>
                                     <div className="text-xs font-medium text-slate-500 group-hover:text-green-500/70 flex items-center gap-1 transition-colors">

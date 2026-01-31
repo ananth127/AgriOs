@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import LanguageSwitcher from './LanguageSwitcher';
+import ThemeToggle from './ThemeToggle';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/navigation';
 import { cn } from '@/lib/utils';
@@ -43,13 +44,13 @@ export default function NavBar({ locale }: { locale: string }) {
 
     return (
         <>
-            <nav className="z-50 bg-slate-950/80 backdrop-blur-md border-b border-white/10 text-white w-full sticky top-0">
+            <nav className="z-50 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200/60 dark:border-white/10 text-slate-900 dark:text-white w-full sticky top-0 transition-colors duration-300 shadow-sm shadow-slate-200/50 dark:shadow-none">
                 <div className="flex items-center justify-between p-4 h-16">
                     <div className="flex items-center gap-3 md:hidden">
                         {/* Mobile Menu Button */}
                         <button
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-white/10 rounded-lg transition-colors text-slate-600 dark:text-white"
                         >
                             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
                         </button>
@@ -87,18 +88,19 @@ export default function NavBar({ locale }: { locale: string }) {
                     </div>
 
                     <div className="flex gap-4 items-center">
+                        <ThemeToggle />
                         <LanguageSwitcher locale={locale} />
                     </div>
                 </div>
 
                 {/* Secondary Sub-Navigation */}
                 {!isAuthenticated && (
-                    <div className="border-t border-white/5 bg-slate-950/50 backdrop-blur-sm">
+                    <div className="border-t border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-slate-950/50 backdrop-blur-sm transition-colors duration-300">
                         <div className="max-w-7xl mx-auto flex items-center gap-6 overflow-x-auto px-4 py-2 scrollbar-none md:justify-center">
-                            <Link href="/features" className="text-sm font-medium text-slate-400 hover:text-green-400 whitespace-nowrap transition-colors">Features</Link>
-                            <Link href="/use-cases" className="text-sm font-medium text-slate-400 hover:text-green-400 whitespace-nowrap transition-colors">Use Cases</Link>
-                            <Link href="/community" className="text-sm font-medium text-slate-400 hover:text-green-400 whitespace-nowrap transition-colors">Community</Link>
-                            <Link href="/docs" className="text-sm font-medium text-slate-400 hover:text-green-400 whitespace-nowrap transition-colors">Docs</Link>
+                            <Link href="/features" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 whitespace-nowrap transition-colors">Features</Link>
+                            <Link href="/use-cases" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 whitespace-nowrap transition-colors">Use Cases</Link>
+                            <Link href="/community" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 whitespace-nowrap transition-colors">Community</Link>
+                            <Link href="/docs" className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 whitespace-nowrap transition-colors">Docs</Link>
                         </div>
                     </div>
                 )}

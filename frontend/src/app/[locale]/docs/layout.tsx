@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { Metadata } from 'next';
-import PublicHeader from '@/components/PublicHeader';
+import DocsHeaderWrapper from '@/components/DocsHeaderWrapper';
 
 export async function generateMetadata({
     params: { locale }
@@ -28,7 +28,7 @@ export default function DocsLayout({
 }) {
     return (
         <div className="min-h-screen bg-slate-950 text-white">
-            <PublicHeader locale={locale} />
+            <DocsHeaderWrapper locale={locale} />
             {children}
         </div>
     );

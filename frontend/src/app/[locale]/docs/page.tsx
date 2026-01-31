@@ -80,7 +80,7 @@ export default function DocsPage() {
     ];
 
     return (
-        <div className="px-4 pt-28 pb-20 md:px-8 md:pt-32 max-w-7xl mx-auto space-y-10">
+        <div className="px-4 pt-24 pb-20 md:px-8 md:pt-28 max-w-7xl mx-auto space-y-10">
             {/* Header */}
             <div className="space-y-4 text-center md:text-left">
                 <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent">

@@ -64,8 +64,8 @@ export default async function LocaleLayout({
     const messages = await getMessages();
 
     return (
-        <html lang={locale} className="dark" suppressHydrationWarning>
-            <body className="bg-slate-950 text-white flex h-screen overflow-hidden">
+        <html lang={locale} suppressHydrationWarning>
+            <body className="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex h-screen overflow-hidden transition-colors duration-300">
                 <NextIntlClientProvider messages={messages}>
                     <GlobalProviders>
                         <AuthProvider>
@@ -74,8 +74,8 @@ export default async function LocaleLayout({
                                 <AppShell locale={locale}>
                                     {children}
                                 </AppShell>
-                                <VoiceAssistant />
                             </AuthGuard>
+                            <VoiceAssistant />
                         </AuthProvider>
                     </GlobalProviders>
                 </NextIntlClientProvider>

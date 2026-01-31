@@ -9,7 +9,7 @@ export default function FeaturesPage({ params: { locale } }: { params: { locale:
         <div className="min-h-screen bg-slate-950 text-white">
             <PublicHeader locale={locale} />
 
-            <main className="max-w-7xl mx-auto px-6 pt-28 pb-12 md:pt-32 md:pb-20">
+            <main className="max-w-7xl mx-auto px-6 pt-20 pb-12 md:pt-28 md:pb-20">
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-green-400 to-emerald-600 bg-clip-text text-transparent mb-6">
                         Powerful Features for Modern Farms

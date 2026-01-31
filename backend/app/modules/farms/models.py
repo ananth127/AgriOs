@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, JSON
+from sqlalchemy import Column, Integer, String, JSON, ForeignKey
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.core.db_compat import get_geo_column
 
@@ -17,3 +18,23 @@ class FarmTable(Base):
     
     # Detailed soil data
     soil_profile = Column(JSON, nullable=True) 
+    
+    # Relationship
+    zones = relationship("ZoneTable", back_populates="farm", cascade="all, delete-orphan")
+
+class ZoneTable(Base):
+    __tablename__ = "zones"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id"), nullable=False)
+    name = Column(String)
+    land_id = Column(String) # Unique ID like L-1234
+    
+    # Geometry for the zone
+    geometry = Column(get_geo_column('POLYGON', srid=4326))
+    
+    # Crop & Status Info
+    # e.g. {"crop": "Wheat", "status": "Irrigation in 2 days", "color": "green"}
+    details = Column(JSON, default={})
+    
+    farm = relationship("FarmTable", back_populates="zones") 

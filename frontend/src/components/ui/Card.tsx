@@ -10,7 +10,7 @@ export function Card({ children, className, onClick }: { children: React.ReactNo
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className={cn(
-                "bg-slate-900 border border-white/10 rounded-2xl shadow-xl",
+                "bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl shadow-xl",
                 // If the user does not provide padding override, we might want a default.
                 // But since we are introducing Header/Content, it's better if Card is just the container.
                 // However, to permit backward compatibility (if any), we should check.
@@ -25,7 +25,7 @@ export function Card({ children, className, onClick }: { children: React.ReactNo
                 // I will risk removing 'p-6' from here and adding it to CardContent.
                 // Wait, the previous file had 'p-6'.
                 // I will keep 'p-6' but allow 'p-0' override easily.
-                "p-6",
+                "p-6 transition-colors duration-300",
                 className
             )}
             onClick={onClick}
@@ -40,7 +40,7 @@ export function CardHeader({ className, children }: { className?: string, childr
 }
 
 export function CardTitle({ className, children }: { className?: string, children: React.ReactNode }) {
-    return <h3 className={cn("font-semibold leading-none tracking-tight text-lg text-white", className)}>{children}</h3>;
+    return <h3 className={cn("font-semibold leading-none tracking-tight text-lg text-slate-900 dark:text-white", className)}>{children}</h3>;
 }
 
 export function CardContent({ className, children }: { className?: string, children: React.ReactNode }) {

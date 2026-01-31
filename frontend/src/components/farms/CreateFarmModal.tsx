@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { api } from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 
 interface CreateFarmProps {
     isOpen: boolean;
@@ -10,6 +11,7 @@ interface CreateFarmProps {
 }
 
 export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, onSuccess }) => {
+    const { user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState<{
         name: string;
@@ -62,21 +64,43 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!user?.id) {
+            alert("User not authenticated.");
+            return;
+        }
+
         setLoading(true);
         try {
+            const lat = parseFloat(formData.location_lat);
+            const lon = parseFloat(formData.location_lon);
+
+            // Construct WKT Polygon
+            let points = formData.boundary;
+            if (!points || points.length === 0) {
+                const d = 0.001; // Default ~2 acre box
+                points = [
+                    [lat - d, lon - d],
+                    [lat + d, lon - d],
+                    [lat + d, lon + d],
+                    [lat - d, lon + d]
+                ];
+            }
+
+            // Format for WKT: POINT(lon lat) ... must close loop
+            const wktPoints = [...points, points[0]].map(p => `${p[1]} ${p[0]}`).join(", ");
+            const geometryWKT = `POLYGON((${wktPoints}))`;
+
             const payload = {
                 name: formData.name,
-                geometry: {
-                    type: "Point",
-                    coordinates: [parseFloat(formData.location_lon), parseFloat(formData.location_lat)]
-                },
+                owner_id: user.id,
+                geometry: geometryWKT,
                 soil_profile: {
                     type: formData.soil_type,
                     ph: 7.0, // Default
                     nutrients: { N: "Medium", P: "Medium", K: "Medium" } // Default
-                },
-                boundary: formData.boundary || [], // Pass boundary to backend
-                survey_number: formData.survey_number
+                }
+                // Note: boundary and survey_number are not currently stored in backend
             };
 
             await api.farms.create(payload);
