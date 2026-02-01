@@ -1,7 +1,8 @@
 import React from 'react';
-import { X, Calendar, Weight, Ruler, Activity, QrCode, FileText, Edit, Syringe, Milk, Trash2, ShoppingBag } from 'lucide-react';
+import { X, Calendar, Weight, Ruler, Activity, QrCode, FileText, Edit, Syringe, Milk, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Card } from '@/components/ui/Card';
+import { Link } from '@/navigation';
 
 interface LivestockDetailModalProps {
     animal: any;
@@ -98,6 +99,38 @@ export const LivestockDetailModal: React.FC<LivestockDetailModalProps> = ({ anim
                         <DetailItem icon={<Calendar className="w-5 h-5 text-purple-400" />} label="Age" value={calculateAge(animal.date_of_birth)} />
                         <DetailItem icon={<Weight className="w-5 h-5 text-orange-400" />} label="Weight" value={`${animal.weight_kg} kg`} />
                         <DetailItem icon={<Ruler className="w-5 h-5 text-indigo-400" />} label="Origin" value={animal.origin} />
+                    </div>
+
+                    {/* Nutritional Plan (Chain Link) */}
+                    <div className="mb-8 p-4 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+                        <h3 className="text-lg font-bold text-amber-200 mb-3 flex items-center gap-2">
+                            <span className="text-xl">🌾</span> Nutritional Plan & Feed
+                        </h3>
+                        <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+                            <div className="flex-1">
+                                <p className="text-sm font-medium text-slate-300">Recommended Daily Intake</p>
+                                <p className="text-xs text-slate-500 mb-2">Based on {animal.age || 'Current Age'}</p>
+                                <ul className="space-y-1">
+                                    <li className="text-sm text-white flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                                        {animal.species === 'Cow' ? 'Maize Stalks (Dry Fodder) - 12kg' : 'Mixed Grains & Leaves - 2kg'}
+                                    </li>
+                                    <li className="text-sm text-white flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                        Clean Water - {animal.species === 'Cow' ? '40-60 Litres' : '4-8 Litres'}
+                                    </li>
+                                </ul>
+                            </div>
+                            <div className="w-full md:w-auto">
+                                <Link
+                                    href="/crops"
+                                    onClick={onClose}
+                                    className="flex items-center gap-2 bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 px-4 py-3 rounded-xl border border-amber-600/30 transition-all text-sm font-bold"
+                                >
+                                    Check Fodder Stock <ArrowRight className="w-4 h-4" />
+                                </Link>
+                            </div>
+                        </div>
                     </div>
 
                     <div className="mb-8">

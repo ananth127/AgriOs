@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Link, usePathname } from '@/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Calculator, LogOut, LogIn, X, MapPin, Briefcase, Loader2, Stethoscope, Activity, BookOpen, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Calculator, LogOut, LogIn, X, MapPin, Briefcase, Loader2, Stethoscope, Activity, BookOpen, RefreshCw, Cpu } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { syncData } from '@/db/sync';
 import { API_BASE_URL } from '@/lib/constants';
@@ -131,8 +131,9 @@ export function Sidebar({ locale }: SidebarProps) {
         { href: '/supply-chain', label: t('menu_track_trace'), icon: ScrollText },
         { href: '/marketplace', label: t('menu_marketplace'), icon: ShoppingBag },
         { href: '/drone', label: t('menu_drone_ai'), icon: Camera },
+        { href: '/devices', label: "Smart Devices", icon: Cpu },
         { href: '/calculator', label: t('menu_calculator'), icon: Calculator },
-        { href: '/docs', label: t('menu_docs'), icon: Users },
+        { href: '/docs', label: t('menu_docs'), icon: BookOpen },
     ];
 
     return (

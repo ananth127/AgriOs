@@ -13,7 +13,12 @@ export default function CropsPage() {
     const t = useTranslations('Crops');
     const [registry, setRegistry] = useState<any[]>([]);
     const [myCrops, setMyCrops] = useState<any[]>([]);
-    const [farms, setFarms] = useState<any[]>([]);
+
+    // State for Farms (Grouping Logic)
+    const [allFarms, setAllFarms] = useState<any[]>([]); // Raw list containing duplicates/zones
+    const [uniqueFarms, setUniqueFarms] = useState<string[]>([]); // Unique Farm Names (cleaned)
+    const [selectedFarmKey, setSelectedFarmKey] = useState<string>(""); // Currently selected Clean Name
+
     const [activeTab, setActiveTab] = useState<'registry' | 'my-crops'>('registry');
     const [showPlantModal, setShowPlantModal] = useState(false);
     const [isPlanting, setIsPlanting] = useState(false);
@@ -22,64 +27,102 @@ export default function CropsPage() {
     const [editingCrop, setEditingCrop] = useState<any>(null);
     const [viewingAnalytics, setViewingAnalytics] = useState<any>(null);
 
-    // Form State
-    const [selectedFarmId, setSelectedFarmId] = useState<string>("");
+    // Plant Form State
+    const [plantFormFarmKey, setPlantFormFarmKey] = useState<string>(""); // Selection in Modal
     const [selectedCropId, setSelectedCropId] = useState<string>("");
     const [sowingDate, setSowingDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    const [modalMetrics, setModalMetrics] = useState<string[]>(['Water Usage', 'Financials', 'Harvest Projections', 'Timeline']);
+    const [dashboardConfigs, setDashboardConfigs] = useState<Record<number, string[]>>({});
     const [loading, setLoading] = useState(true);
 
-    const fetchMyCrops = useCallback(() => {
-        if (farms.length > 0) {
-            setLoading(true);
-            const farmId = selectedFarmId || farms[0].id;
-            api.crops.list(farmId)
-                .then((data: any) => {
-                    if (Array.isArray(data)) setMyCrops(data as any[]);
-                })
-                .catch(err => console.error("Failed to fetch crops", err))
-                .finally(() => setLoading(false));
-        } else {
-            setLoading(false);
+    const fetchMyCrops = useCallback(async () => {
+        if (!selectedFarmKey || allFarms.length === 0) return;
+
+        try {
+            const targetFarms = allFarms.filter(f => {
+                const cleanName = f.name.replace(/^Land-\d+\s*-\s*/i, '').trim();
+                return cleanName === selectedFarmKey;
+            });
+
+            const promises = targetFarms.map(f => api.crops.list(f.id));
+            const results = await Promise.all(promises);
+            const allCrops = results.flat();
+            setMyCrops(allCrops);
+        } catch (error) {
+            console.error("Failed to fetch my crops", error);
         }
-    }, [farms, selectedFarmId]);
+    }, [allFarms, selectedFarmKey]);
 
     useEffect(() => {
-        setLoading(true);
-        Promise.all([
-            api.registry.list().then((data: any) => { if (Array.isArray(data)) setRegistry(data); }),
-            api.farms.list().then((data: any) => {
-                if (Array.isArray(data)) {
-                    setFarms(data as any[]);
-                    if (data.length > 0) setSelectedFarmId(data[0].id.toString());
+        const loadInitialData = async () => {
+            try {
+                const [registryRes, farmsRes] = await Promise.all([
+                    api.registry.list(),
+                    api.farms.list()
+                ]) as [any[], any[]];
+
+                setRegistry(registryRes);
+                setAllFarms(farmsRes);
+
+                // Process Unique Farms
+                const names = new Set<string>();
+                farmsRes.forEach((f: any) => {
+                    const cleanName = f.name.replace(/^Land-\d+\s*-\s*/i, '').trim();
+                    names.add(cleanName);
+                });
+                const sortedNames = Array.from(names).sort();
+                setUniqueFarms(sortedNames);
+
+                if (sortedNames.length > 0) {
+                    setSelectedFarmKey(sortedNames[0]);
                 }
-            })
-        ]).finally(() => {
-            // If defaulting to my-crops, we might leave loading true, but here we default to registry so we are done.
-            setLoading(false);
-        });
+            } catch (err) {
+                console.error("Failed to load initial data", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadInitialData();
     }, []);
 
     useEffect(() => {
-        if (activeTab === 'my-crops') {
+        if (selectedFarmKey) {
             fetchMyCrops();
-        } else {
-            // If switching back to registry, we assume it's loaded from cache or state, so stop loading
-            setLoading(false);
         }
-    }, [activeTab, fetchMyCrops]);
+    }, [selectedFarmKey, fetchMyCrops]);
 
     const handlePlant = async () => {
-        if (!selectedFarmId || !selectedCropId) return;
+        // Resolve selected Key in modal to a specific Farm ID
+        const targetFarm = allFarms.find(f => {
+            const cleanName = f.name.replace(/^Land-\d+\s*-\s*/i, '').trim();
+            return cleanName === plantFormFarmKey;
+        });
+
+        if (!targetFarm || !selectedCropId) return;
+
         setIsPlanting(true);
         try {
             await api.crops.plant({
-                farm_id: parseInt(selectedFarmId),
+                farm_id: targetFarm.id,
                 registry_id: parseInt(selectedCropId),
                 sowing_date: sowingDate
             });
             setShowPlantModal(false);
+
+            // Fetch updated list to find the new crop and assign config
+            // Since we don't get ID back, we'll assign this config to the "latest" one for this farm in a real app.
+            // For now, we'll just persist the toggle selection so when they open any dashboard,
+            // we might default to this or allow them to set it.
+            // Ideally: backend stores this.
+            // Client-side hack: We will assign these metrics to ALL new crops viewed until page reload,
+            // or better, just allow the dashboard to be configurable.
+
+            // Just refresh
+            if (plantFormFarmKey === selectedFarmKey) {
+                fetchMyCrops();
+            }
             setActiveTab('my-crops');
-            fetchMyCrops();
         } catch (error) {
             console.error("Planting failed", error);
             alert("Failed to plant crop. Check console.");
@@ -89,34 +132,37 @@ export default function CropsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm(t('confirm_delete') || "Are you sure?")) return;
+        if (!window.confirm("Are you sure you want to delete this crop?")) return;
         try {
             await api.crops.delete(id);
             fetchMyCrops();
         } catch (error) {
-            console.error("Delete failed", error);
-            alert("Failed to delete crop cycle");
+            console.error("Failed to delete crop", error);
         }
     };
 
-    const getCropName = (regId: number) => {
-        const item = registry.find(r => r.id === regId);
-        return item ? item.name : `Unknown Crop #${regId}`;
+    const getCropName = (id: number) => {
+        const found = registry.find(r => r.id === id);
+        return found ? found.name : `Crop #${id}`;
     };
 
-    // Helper to get localized stage name if possible (or default to backend string)
-    const getStageName = (backendStage: string) => {
-        // Simple mapping attempt, fallback to original
-        const key = `crop_stage_${backendStage.toLowerCase().replace(' ', '_')}`;
-        // Since we can't easily check if key exists in 't', we might just return the backend string 
-        // or try to match known keys. For now, let's keep it simple or user lowercase match.
-        if (backendStage === "Harvest Ready") return t('crop_stage_harvest_ready');
-        if (backendStage === "Germination") return t('crop_stage_germination');
-        if (backendStage === "Vegetative") return t('crop_stage_vegetative');
-        if (backendStage === "Flowering") return t('crop_stage_flowering');
-        if (backendStage === "Fruiting") return t('crop_stage_fruiting');
-        return backendStage;
+    const getStageName = (stage: string) => {
+        if (!stage) return 'Unknown';
+        return stage.replace(/_/g, ' ');
     };
+
+    if (viewingAnalytics) {
+        return (
+            <div className="p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                <CropAnalyticsDashboard
+                    cropCycle={viewingAnalytics}
+                    onClose={() => setViewingAnalytics(null)}
+                    visibleMetrics={dashboardConfigs[viewingAnalytics.id] || modalMetrics}
+                    onUpdateMetrics={(metrics: string[]) => setDashboardConfigs(prev => ({ ...prev, [viewingAnalytics.id]: metrics }))}
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-6 relative">
@@ -195,15 +241,15 @@ export default function CropsPage() {
             {activeTab === 'my-crops' && (
                 <ContentLoader loading={loading} text="Loading your crops...">
                     <div className="space-y-4">
-                        {farms.length > 0 && (
+                        {uniqueFarms.length > 0 && (
                             <div className="flex items-center gap-2 mb-4">
                                 <span className="text-sm text-slate-400">{t('label_viewing_farm')}:</span>
                                 <select
-                                    value={selectedFarmId}
-                                    onChange={(e) => setSelectedFarmId(e.target.value)}
+                                    value={selectedFarmKey}
+                                    onChange={(e) => setSelectedFarmKey(e.target.value)}
                                     className="bg-slate-900 border border-white/10 rounded px-3 py-1 text-sm focus:outline-none"
                                 >
-                                    {farms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                    {uniqueFarms.map(name => <option key={name} value={name}>{name}</option>)}
                                 </select>
                             </div>
                         )}
@@ -289,11 +335,11 @@ export default function CropsPage() {
                                 <label className="block text-sm text-slate-400 mb-1">{t('modal_label_farm')}</label>
                                 <select
                                     className="w-full bg-slate-900 border border-white/10 rounded p-2 text-sm"
-                                    value={selectedFarmId}
-                                    onChange={(e) => setSelectedFarmId(e.target.value)}
+                                    value={plantFormFarmKey}
+                                    onChange={(e) => setPlantFormFarmKey(e.target.value)}
                                 >
                                     <option value="">{t('modal_select_default')}</option>
-                                    {farms.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                    {uniqueFarms.map(name => <option key={name} value={name}>{name}</option>)}
                                 </select>
                             </div>
                             <div>
@@ -316,6 +362,32 @@ export default function CropsPage() {
                                     onChange={(e) => setSowingDate(e.target.value)}
                                 />
                             </div>
+
+                            {/* Dashboard Configuration */}
+                            <div className="bg-slate-900/50 p-3 rounded-lg border border-white/5">
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Dashboard Metrics to Track</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {['Water Usage', 'Financials', 'Soil Health', 'Machinery', 'Timeline', 'Harvest Projections'].map((metric) => (
+                                        <label key={metric} className="flex items-center gap-2 cursor-pointer group">
+                                            <div className="relative">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={modalMetrics.includes(metric)}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) setModalMetrics([...modalMetrics, metric]);
+                                                        else setModalMetrics(modalMetrics.filter(m => m !== metric));
+                                                    }}
+                                                    className="sr-only peer"
+                                                />
+                                                <div className="w-4 h-4 border border-slate-600 rounded peer-checked:bg-green-500 peer-checked:border-green-500 transition-colors"></div>
+                                                <svg className="absolute top-0.5 left-0.5 w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                                            </div>
+                                            <span className="text-sm text-slate-300 group-hover:text-white transition-colors">{metric}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
                             <button
                                 onClick={handlePlant}
                                 disabled={isPlanting}
@@ -337,12 +409,7 @@ export default function CropsPage() {
                 />
             )}
 
-            {viewingAnalytics && (
-                <CropAnalyticsDashboard
-                    cropCycle={viewingAnalytics}
-                    onClose={() => setViewingAnalytics(null)}
-                />
-            )}
+            {viewingAnalytics && null /* Handled above */}
         </div>
     );
 }

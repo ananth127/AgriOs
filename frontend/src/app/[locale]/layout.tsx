@@ -1,7 +1,18 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
-import { Metadata } from 'next';
+import { Metadata, Viewport } from 'next';
 import "../globals.css";
+
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    themeColor: [
+        { media: '(prefers-color-scheme: light)', color: '#f8fafc' }, // slate-50
+        { media: '(prefers-color-scheme: dark)', color: '#020617' }, // slate-950
+    ],
+};
 
 import { Sidebar } from '@/components/Sidebar';
 import NavBar from '@/components/NavBar';
@@ -65,7 +76,7 @@ export default async function LocaleLayout({
 
     return (
         <html lang={locale} suppressHydrationWarning>
-            <body className="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex h-screen overflow-hidden transition-colors duration-300">
+            <body className="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex h-[100dvh] overflow-hidden transition-colors duration-300">
                 <NextIntlClientProvider messages={messages}>
                     <GlobalProviders>
                         <AuthProvider>

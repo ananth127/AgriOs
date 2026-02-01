@@ -3,7 +3,7 @@ try:
     from load_env import load_env_with_decryption
     load_env_with_decryption()
 except Exception as e:
-    print(f"⚠️  Could not load encrypted .env: {e}")
+    print(f"Could not load encrypted .env: {e}")
     # Continue anyway - env vars might be set directly
 
 from fastapi import FastAPI
@@ -24,6 +24,8 @@ from app.modules.auth import models as auth_models
 from app.modules.auth import router as auth_router
 from app.modules.knowledge_graph import models as kg_models
 from app.modules.diagnosis import models as diagnosis_models
+from app.modules.iot import models as iot_models
+from app.modules.iot import router as iot_router
 
 # Create tables (Registry, Auth, etc)
 # Using database.Base ensures all imported models are created
@@ -93,6 +95,8 @@ from app.modules.diagnosis import router as diagnosis_router
 app.include_router(diagnosis_router.router, prefix="/api/v1/diagnosis", tags=["diagnosis"])
 from app.modules.knowledge_graph import router as kg_router
 app.include_router(kg_router.router, prefix="/api/v1/library", tags=["knowledge_graph"])
+
+app.include_router(iot_router.router, prefix="/api/v1/iot", tags=["iot"])
 
 # Trigger Reload: Fixed Services Import
 

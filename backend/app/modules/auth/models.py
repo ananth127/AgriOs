@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, JSON
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 class User(Base):
@@ -23,3 +24,5 @@ class User(Base):
     # Government Record
     survey_number = Column(String, nullable=True)
     boundary = Column(JSON, nullable=True) # GeoJSON or Array of points
+
+    devices = relationship("app.modules.iot.models.IoTDevice", back_populates="owner")

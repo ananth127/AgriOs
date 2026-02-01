@@ -11,6 +11,8 @@ import {
     Leaf, Tractor
 } from 'lucide-react';
 
+import { FarmEcosystem } from '@/components/dashboard/FarmEcosystem';
+
 // Dynamic Imports with SSR disabled for heavy widgets
 const ProphetWidget = dynamic(() => import('@/components/dashboard/ProphetWidget'), { ssr: false });
 const WeatherWidget = dynamic(() => import('@/components/dashboard/WeatherWidget'), { ssr: false });
@@ -164,6 +166,85 @@ export default function DashboardView({ locale }: { locale: string }) {
             />
 
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-8 mt-6">
+
+                {/* 0. Real-time Status & Suggestions (New Request) */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Active Operations */}
+                    <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm">
+                        <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                            <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                            </span>
+                            {tDashboard('live_operations') || "Live Operations"}
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Motor Status Card */}
+                            <Link href="/devices" className="block hover:scale-[1.02] transition-transform">
+                                <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-100 dark:border-white/5 flex items-center justify-between cursor-pointer hover:border-blue-500/30">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg">
+                                            <Droplets className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-900 dark:text-white">Main Pump A</p>
+                                            <p className="text-xs text-green-600 dark:text-green-400 font-medium">Running • 240V</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-xs text-slate-400">Duration</span>
+                                        <p className="font-mono text-sm dark:text-white">00:42:15</p>
+                                    </div>
+                                </div>
+                            </Link>
+
+                            {/* Recent Log */}
+                            <Link href="/farm-management" className="block hover:scale-[1.02] transition-transform">
+                                <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-100 dark:border-white/5 cursor-pointer hover:border-green-500/30">
+                                    <p className="text-xs text-slate-400 mb-2 uppercase tracking-wide">Recent Activity</p>
+                                    <ul className="space-y-2">
+                                        <li className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-600 dark:text-slate-300">✅ Zone 2 Irrigation</span>
+                                            <span className="text-slate-400 text-xs">10m ago</span>
+                                        </li>
+                                        <li className="flex items-center justify-between text-sm">
+                                            <span className="text-slate-600 dark:text-slate-300">🚜 Tractor Deploy</span>
+                                            <span className="text-slate-400 text-xs">1h ago</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* Suggested Actions */}
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-5">
+                        <h3 className="text-lg font-bold text-amber-900 dark:text-amber-400 mb-3 flex items-center gap-2">
+                            <span className="text-amber-500">⚡</span> {tDashboard('suggested_actions') || "Suggested"}
+                        </h3>
+                        <div className="space-y-3">
+                            <Link href="/crops" className="block w-full text-left p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-white/5 shadow-sm hover:shadow-md hover:border-amber-300 transition-all group">
+                                <div className="flex justify-between items-start">
+                                    <span className="font-medium text-slate-800 dark:text-slate-200 text-sm group-hover:text-amber-600 transition-colors">Schedule Fertilizer for Zone 1</span>
+                                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">Based on Soil pH falling to 6.2</p>
+                            </Link>
+                            <Link href="/crop-doctor" className="block w-full text-left p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-white/5 shadow-sm hover:shadow-md hover:border-amber-300 transition-all group">
+                                <div className="flex justify-between items-start">
+                                    <span className="font-medium text-slate-800 dark:text-slate-200 text-sm group-hover:text-amber-600 transition-colors">Check Weather Risk</span>
+                                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                                </div>
+                                <p className="text-xs text-slate-400 mt-1">Heavy rain expected in 2 days</p>
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 0.5 Farm Ecosystem Monitor (Chain Mechanism) */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm">
+                    <FarmEcosystem />
+                </div>
 
                 {/* 1. Hero Cards: Weather & Crop Doctor */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

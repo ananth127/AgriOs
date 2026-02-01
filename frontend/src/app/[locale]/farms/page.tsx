@@ -102,7 +102,8 @@ export default function FarmsPage() {
             })
             .catch(err => {
                 console.error("Failed to fetch farms", err);
-                if (err && err.message && err.message.includes("Unauthorized")) {
+                // Check for 401 Unauthorized via ApiError status
+                if (err?.status === 401 || (err?.message && err.message.includes("Unauthorized"))) {
                     logout();
                 }
             });

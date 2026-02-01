@@ -22,9 +22,9 @@ export default function AppShell({ children, locale }: AppShellProps) {
 
     if (isPublicVerify || isMarketingPage || isPublicLanding) {
         return (
-            <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 relative h-screen">
+            <div className="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950 relative">
                 {/* No Sidebar, No NavBar */}
-                <main id="scrolling-container" className="flex-1 overflow-y-auto relative scroll-smooth">
+                <main id="scrolling-container" className="flex-1 overflow-y-auto relative scroll-smooth pb-32">
                     {children}
                 </main>
             </div>
@@ -39,7 +39,7 @@ export default function AppShell({ children, locale }: AppShellProps) {
                 <NavBar locale={locale} />
 
                 {/* Main Content Area - Scrolls independently */}
-                <main id="scrolling-container" className="flex-1 overflow-y-auto relative scroll-smooth">
+                <main id="scrolling-container" className="flex-1 overflow-y-auto relative scroll-smooth pb-32">
                     {children}
                 </main>
             </div>

@@ -12,6 +12,7 @@ import {
     LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Menu, X, Calculator, LogIn, LogOut, Briefcase, Stethoscope, BookOpen
 } from 'lucide-react';
 import { useConnectionHealth } from '@/hooks/useConnectionHealth';
+import { startNavigationProgress } from '@/components/NavigationLoader';
 
 
 
@@ -107,7 +108,7 @@ export default function NavBar({ locale }: { locale: string }) {
             </nav>
 
             {/* Mobile Menu Side Drawer */}
-            <div className={`fixed inset-0 z-[9999] md:hidden transition-all duration-300 ${isMenuOpen ? 'visible' : 'invisible'}`}>
+            <div className={`fixed inset-0 z-[100] md:hidden transition-all duration-300 ${isMenuOpen ? 'visible' : 'invisible'}`}>
                 {/* Backdrop */}
                 <div
                     className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isMenuOpen ? 'opacity-100' : 'opacity-0'}`}
@@ -153,7 +154,12 @@ export default function NavBar({ locale }: { locale: string }) {
                                 <Link
                                     key={link.href}
                                     href={link.href}
-                                    onClick={() => setIsMenuOpen(false)}
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        if (link.href !== pathname) {
+                                            startNavigationProgress();
+                                        }
+                                    }}
                                     className={cn(
                                         "flex items-center gap-4 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-200 group",
                                         isActive

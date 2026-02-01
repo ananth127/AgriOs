@@ -5,6 +5,15 @@ type RequestMethod = "GET" | "POST" | "PUT" | "DELETE";
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 const requestCache = new Map<string, { data: any; timestamp: number }>();
 
+class ApiError extends Error {
+    status: number;
+    constructor(message: string, status: number) {
+        super(message);
+        this.status = status;
+        this.name = 'ApiError';
+    }
+}
+
 async function fetchAPI<T>(endpoint: string, method: RequestMethod = "GET", body?: any, useCache: boolean = true): Promise<T> {
     const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -37,7 +46,7 @@ async function fetchAPI<T>(endpoint: string, method: RequestMethod = "GET", body
     try {
         const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
         if (!response.ok) {
-            throw new Error(`API Error: ${response.statusText}`);
+            throw new ApiError(`API Error: ${response.statusText}`, response.status);
         }
         const data = await response.json();
 
@@ -134,6 +143,12 @@ export const api = {
         logProduction: (id: number, data: any) => fetchAPI(`/livestock/${id}/production`, "POST", data),
         getProductionHistory: (id: number) => fetchAPI(`/livestock/${id}/production`),
     },
+    iot: {
+        list: (farmId: number) => fetchAPI(`/farm-management/assets/${farmId}?type=iot`), // We might need to filter by type on client if API doesn't support it yet
+        create: (data: any) => fetchAPI("/farm-management/assets", "POST", data),
+        update: (id: number, data: any) => fetchAPI(`/farm-management/assets/${id}`, "PUT", data),
+        delete: (id: number) => fetchAPI(`/farm-management/assets/${id}`, "DELETE"),
+    },
     supplyChain: {
         getBatch: (id: string) => fetchAPI(`/supply-chain/batches/${id}`),
         getAllBatches: () => fetchAPI("/supply-chain/batches"),
@@ -155,8 +170,9 @@ export const api = {
         deleteInventory: (id: number) => fetchAPI(`/farm-management/inventory/${id}`, "DELETE"),
 
         // Assets
+        // Assets
         addAsset: (data: any) => fetchAPI("/farm-management/assets", "POST", data),
-        getAssets: (farmId: number) => fetchAPI(`/farm-management/assets/${farmId}`),
+        getAssets: (farmId: number, options?: { forceRefresh?: boolean }) => fetchAPI(`/farm-management/assets/${farmId}`, "GET", undefined, !options?.forceRefresh),
         updateAsset: (id: number, data: any) => fetchAPI(`/farm-management/assets/${id}`, "PUT", data),
         deleteAsset: (id: number) => fetchAPI(`/farm-management/assets/${id}`, "DELETE"),
 
