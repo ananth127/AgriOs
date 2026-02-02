@@ -8,14 +8,16 @@ interface EditProps {
     onClose: () => void;
     onSuccess: () => void;
     animal: any;
+    housingList: any[];
 }
 
-export const EditAnimalModal: React.FC<EditProps> = ({ isOpen, onClose, onSuccess, animal }) => {
+export const EditAnimalModal: React.FC<EditProps> = ({ isOpen, onClose, onSuccess, animal, housingList = [] }) => {
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         weight_kg: '',
         health_status: '',
-        last_vaccination_date: ''
+        last_vaccination_date: '',
+        housing_id: ''
     });
 
     useEffect(() => {
@@ -23,7 +25,8 @@ export const EditAnimalModal: React.FC<EditProps> = ({ isOpen, onClose, onSucces
             setFormData({
                 weight_kg: animal.weight_kg.toString(),
                 health_status: animal.health_status,
-                last_vaccination_date: animal.last_vaccination_date || ''
+                last_vaccination_date: animal.last_vaccination_date || '',
+                housing_id: animal.housing_id ? animal.housing_id.toString() : ''
             });
         }
     }, [animal]);
@@ -34,7 +37,8 @@ export const EditAnimalModal: React.FC<EditProps> = ({ isOpen, onClose, onSucces
         try {
             await api.livestock.update(animal.id, {
                 ...formData,
-                weight_kg: parseFloat(formData.weight_kg)
+                weight_kg: parseFloat(formData.weight_kg),
+                housing_id: formData.housing_id ? Number(formData.housing_id) : null
             });
             onSuccess();
             onClose();
@@ -49,6 +53,22 @@ export const EditAnimalModal: React.FC<EditProps> = ({ isOpen, onClose, onSucces
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={`Edit ${animal?.tag_id || 'Animal'}`}>
             <form onSubmit={handleSubmit} className="space-y-4">
+
+                {/* Housing Selection */}
+                <div>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">Assigned Shelter</label>
+                    <select
+                        className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
+                        value={formData.housing_id}
+                        onChange={e => setFormData({ ...formData, housing_id: e.target.value })}
+                    >
+                        <option value="">-- No Shelter / Grazing --</option>
+                        {housingList.map(h => (
+                            <option key={h.id} value={h.id}>{h.name} ({h.type})</option>
+                        ))}
+                    </select>
+                </div>
+
                 <div>
                     <label className="block text-sm font-medium text-slate-400 mb-1">Health Status</label>
                     <select

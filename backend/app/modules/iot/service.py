@@ -52,6 +52,20 @@ def get_user_devices(db: Session, user_id: int) -> List[models.IoTDevice]:
 def get_device(db: Session, device_id: int) -> Optional[models.IoTDevice]:
     return db.query(models.IoTDevice).filter(models.IoTDevice.id == device_id).first()
 
+def update_device(db: Session, device_id: int, device_update: schemas.IoTDeviceUpdate) -> Optional[models.IoTDevice]:
+    db_device = get_device(db, device_id)
+    if not db_device:
+        return None
+        
+    update_data = device_update.model_dump(exclude_unset=True)
+    
+    for key, value in update_data.items():
+        setattr(db_device, key, value)
+        
+    db.commit()
+    db.refresh(db_device)
+    return db_device
+
 def create_command(db: Session, command: schemas.IoTCommandCreate, device_id: int, user_id: Optional[int], source: str = "WEB") -> models.IoTCommand:
     db_command = models.IoTCommand(
         **command.model_dump(),

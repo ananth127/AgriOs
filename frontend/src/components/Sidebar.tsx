@@ -122,6 +122,7 @@ export function Sidebar({ locale }: SidebarProps) {
 
     const links = [
         { href: '/', label: t('menu_overview'), icon: LayoutDashboard },
+        { href: '/smart-monitor', label: "Smart Monitor", icon: Activity },
         { href: '/farms', label: t('menu_my_farms'), icon: Tractor },
         { href: '/crops', label: t('menu_crops_registry'), icon: Sprout },
         { href: '/farm-management', label: t('menu_management'), icon: Briefcase },

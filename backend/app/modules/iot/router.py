@@ -41,6 +41,21 @@ def get_device_details(
          raise HTTPException(status_code=403, detail="Not authorized")
     return device
 
+@router.put("/devices/{device_id}", response_model=schemas.IoTDeviceResponse)
+def update_device_details(
+    device_id: int,
+    device_update: schemas.IoTDeviceUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    device = service.get_device(db, device_id)
+    if not device:
+        raise HTTPException(status_code=404, detail="Device not found")
+    if device.user_id != current_user.id:
+         raise HTTPException(status_code=403, detail="Not authorized")
+         
+    return service.update_device(db, device_id, device_update)
+
 
 # --- Commands ---
 

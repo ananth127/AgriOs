@@ -1,4 +1,6 @@
 import React from 'react';
+import { api } from '@/lib/api';
+import { AddHealthLogModal } from './AddHealthLogModal';
 import { X, Calendar, Weight, Ruler, Activity, QrCode, FileText, Edit, Syringe, Milk, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Card } from '@/components/ui/Card';
@@ -14,7 +16,22 @@ interface LivestockDetailModalProps {
     onSell: (animal: any) => void;
 }
 
-export const LivestockDetailModal: React.FC<LivestockDetailModalProps> = ({ animal, onClose, onEdit, onLogProduction, onDelete, onPrintQr, onSell }) => {
+export const LivestockDetailModal: React.FC<LivestockDetailModalProps> = ({ animal: initialAnimal, onClose, onEdit, onLogProduction, onDelete, onPrintQr, onSell }) => {
+    const [animal, setAnimal] = React.useState(initialAnimal);
+    const [loading, setLoading] = React.useState(true);
+    const [isAddHealthOpen, setIsAddHealthOpen] = React.useState(false);
+
+    React.useEffect(() => {
+        if (initialAnimal?.id) {
+            api.livestock.get(initialAnimal.id)
+                .then(data => {
+                    setAnimal(data);
+                    setLoading(false);
+                })
+                .catch(err => console.error("Failed to load details", err));
+        }
+    }, [initialAnimal]);
+
     if (!animal) return null;
 
     const calculateAge = (dobStr: string) => {
@@ -108,18 +125,27 @@ export const LivestockDetailModal: React.FC<LivestockDetailModalProps> = ({ anim
                         </h3>
                         <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
                             <div className="flex-1">
-                                <p className="text-sm font-medium text-slate-300">Recommended Daily Intake</p>
+                                <div className="flex justify-between items-start">
+                                    <p className="text-sm font-medium text-slate-300">Daily Intake Recommendations</p>
+                                    {animal.housing && (
+                                        <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-white/10">{animal.housing.name}</span>
+                                    )}
+                                </div>
                                 <p className="text-xs text-slate-500 mb-2">Based on {animal.age || 'Current Age'}</p>
-                                <ul className="space-y-1">
-                                    <li className="text-sm text-white flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                        {animal.species === 'Cow' ? 'Maize Stalks (Dry Fodder) - 12kg' : 'Mixed Grains & Leaves - 2kg'}
-                                    </li>
-                                    <li className="text-sm text-white flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                        Clean Water - {animal.species === 'Cow' ? '40-60 Litres' : '4-8 Litres'}
-                                    </li>
-                                </ul>
+
+                                {animal.feed_plans && animal.feed_plans.length > 0 ? (
+                                    <ul className="space-y-1">
+                                        {animal.feed_plans.map((plan: any) => (
+                                            <li key={plan.id} className="text-sm text-white flex items-center gap-2">
+                                                <span className={`w-1.5 h-1.5 rounded-full ${plan.auto_feeder_enabled ? 'bg-green-500' : 'bg-blue-500'}`}></span>
+                                                {plan.feed_item_name} - {plan.quantity_per_day} kg
+                                                {plan.housing_id && <span className="text-[10px] text-slate-500 ml-1">(Group)</span>}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-slate-400 italic">No specific feed plans assigned.</p>
+                                )}
                             </div>
                             <div className="w-full md:w-auto">
                                 <Link
@@ -138,24 +164,50 @@ export const LivestockDetailModal: React.FC<LivestockDetailModalProps> = ({ anim
                         <div className="flex flex-wrap gap-3">
                             <ActionBtn onClick={onLogProduction} icon={<Milk className="w-4 h-4" />} label="Log Production" color="bg-blue-600 hover:bg-blue-500" />
                             <ActionBtn onClick={() => onSell(animal)} icon={<ShoppingBag className="w-4 h-4" />} label="Sell" color="bg-indigo-600 hover:bg-indigo-500" />
-                            <ActionBtn onClick={() => { }} icon={<Syringe className="w-4 h-4" />} label="Add Vaccination" color="bg-emerald-600 hover:bg-emerald-500" />
+                            <ActionBtn onClick={() => setIsAddHealthOpen(true)} icon={<Syringe className="w-4 h-4" />} label="Add Health Record" color="bg-emerald-600 hover:bg-emerald-500" />
                             <ActionBtn onClick={onEdit} icon={<Edit className="w-4 h-4" />} label="Edit" color="bg-slate-700 hover:bg-slate-600" />
                             <ActionBtn onClick={onDelete} icon={<Trash2 className="w-4 h-4" />} label="Delete" color="bg-red-900/50 hover:bg-red-900 text-red-200" />
                         </div>
                     </div>
 
-                    {/* Placeholder for History/Timeline */}
+                    {/* Medical & Activity History */}
                     <div>
-                        <h3 className="text-lg font-bold text-white mb-4">Recent History</h3>
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-white">Medical & Activity History</h3>
+                            <button
+                                onClick={() => setIsAddHealthOpen(true)}
+                                className="text-xs text-blue-400 hover:text-blue-300"
+                            >
+                                + Add Record
+                            </button>
+                        </div>
                         <div className="space-y-4 relative pl-4 border-l-2 border-slate-800">
-                            {/* Mock History Items */}
-                            <HistoryItem title="Health Check" date="Today" desc="Routine checkup completed. Status: Healthy" />
-                            <HistoryItem title="Production Log" date="Yesterday" desc="Milk yield: 12L logged." />
-                            <HistoryItem title="Vaccination" date="2 weeks ago" desc="FMD Vaccine administered." />
+                            {animal.health_logs && animal.health_logs.length > 0 ? (
+                                animal.health_logs.map((log: any) => (
+                                    <HistoryItem
+                                        key={log.id}
+                                        title={log.event_type}
+                                        date={log.date}
+                                        desc={log.description}
+                                        cost={log.cost}
+                                    />
+                                ))
+                            ) : (
+                                <p className="text-sm text-slate-500 italic">No health records found.</p>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
+
+            <AddHealthLogModal
+                isOpen={isAddHealthOpen}
+                onClose={() => setIsAddHealthOpen(false)}
+                animal={animal}
+                onSuccess={() => {
+                    api.livestock.get(animal.id).then(setAnimal);
+                }}
+            />
         </div>
     );
 };
@@ -176,10 +228,16 @@ const ActionBtn = ({ onClick, icon, label, color }: any) => (
     </button>
 );
 
-const HistoryItem = ({ title, date, desc }: any) => (
+const HistoryItem = ({ title, date, desc, cost }: any) => (
     <div className="relative">
-        <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full bg-slate-700 border-2 border-slate-900"></div>
-        <p className="text-sm font-bold text-white">{title} <span className="text-xs font-normal text-slate-500 ml-2">{date}</span></p>
+        <div className={`absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 border-slate-900 ${title === 'Vaccination' ? 'bg-emerald-500' :
+                title === 'Sickness' || title === 'Injury' ? 'bg-red-500' :
+                    title === 'Checkup' ? 'bg-blue-500' : 'bg-slate-500'
+            }`}></div>
+        <div className="flex justify-between items-start">
+            <p className="text-sm font-bold text-white">{title} <span className="text-xs font-normal text-slate-500 ml-2">{new Date(date).toLocaleDateString()}</span></p>
+            {cost > 0 && <span className="text-xs text-slate-400 font-mono">${Number(cost).toFixed(2)}</span>}
+        </div>
         <p className="text-sm text-slate-400 mt-1">{desc}</p>
     </div>
 );

@@ -14,6 +14,8 @@ class IoTDevice(Base):
     location_lat = Column(Float, nullable=True)
     location_lng = Column(Float, nullable=True)
     is_online = Column(Boolean, default=False)
+    status = Column(String, default="IDLE") # ACTIVE, ALERT, WARNING, IDLE, RUNNING
+    last_telemetry = Column(JSON, default={}) # e.g. {"battery": 80, "value": "24C", "video_url": "..."}
     last_heartbeat = Column(DateTime, nullable=True)
     secret_key = Column(String, nullable=False)  # For HMAC signing
     config = Column(JSON, default={})  # Store pin configs, schedule, etc.
@@ -21,7 +23,9 @@ class IoTDevice(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    owner = relationship("app.modules.auth.models.User", back_populates="devices")
+    # Note: Relationship to User is commented out to avoid circular import issues
+    # Access via user_id foreign key instead
+    # owner = relationship("User", back_populates="devices")
     commands = relationship("IoTCommand", back_populates="device")
 
 

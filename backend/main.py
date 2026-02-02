@@ -98,6 +98,9 @@ app.include_router(kg_router.router, prefix="/api/v1/library", tags=["knowledge_
 
 app.include_router(iot_router.router, prefix="/api/v1/iot", tags=["iot"])
 
+from app.modules.dashboard import router as dashboard_router
+app.include_router(dashboard_router.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+
 # Trigger Reload: Fixed Services Import
 
 # Trigger Reload: Added exception handling to routers

@@ -21,11 +21,14 @@ class IoTDeviceUpdate(BaseModel):
     location_lat: Optional[float] = None
     location_lng: Optional[float] = None
     config: Optional[Dict[str, Any]] = None
+    status: Optional[str] = None
 
 class IoTDeviceResponse(IoTDeviceBase):
     id: int
     user_id: int
     is_online: bool
+    status: Optional[str] = "IDLE"
+    last_telemetry: Optional[Dict[str, Any]] = {}
     last_heartbeat: Optional[datetime]
     config: Dict[str, Any]
     asset_type: str = "Device"

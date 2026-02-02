@@ -14,7 +14,7 @@ export const LogProductionModal: React.FC<LogProductionProps> = ({ isOpen, onClo
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
-        product_type: animal?.species === 'Poultry' ? 'Eggs' : 'Milk', 
+        product_type: animal?.species === 'Poultry' ? 'Eggs' : 'Milk',
         quantity: '',
         unit: animal?.species === 'Poultry' ? 'Count' : 'Liters'
     });
@@ -54,14 +54,20 @@ export const LogProductionModal: React.FC<LogProductionProps> = ({ isOpen, onClo
                         onChange={e => setFormData({ ...formData, date: e.target.value })}
                     />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-400 mb-1">Product</label>
                         <select
-                             className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                             value={formData.product_type}
-                             onChange={e => setFormData({ ...formData, product_type: e.target.value })}
+                            className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
+                            value={formData.product_type}
+                            onChange={e => {
+                                const pType = e.target.value;
+                                let unit = 'Kg';
+                                if (pType === 'Milk') unit = 'Liters';
+                                if (pType === 'Eggs') unit = 'Count';
+                                setFormData({ ...formData, product_type: pType, unit });
+                            }}
                         >
                             <option value="Milk">Milk</option>
                             <option value="Eggs">Eggs</option>
@@ -70,8 +76,8 @@ export const LogProductionModal: React.FC<LogProductionProps> = ({ isOpen, onClo
                         </select>
                     </div>
                     <div>
-                         <label className="block text-sm font-medium text-slate-400 mb-1">Quantity ({formData.unit})</label>
-                         <div className="flex gap-2">
+                        <label className="block text-sm font-medium text-slate-400 mb-1">Quantity ({formData.unit})</label>
+                        <div className="flex gap-2">
                             <input
                                 type="number"
                                 step="0.1"
@@ -80,21 +86,21 @@ export const LogProductionModal: React.FC<LogProductionProps> = ({ isOpen, onClo
                                 value={formData.quantity}
                                 onChange={e => setFormData({ ...formData, quantity: e.target.value })}
                             />
-                         </div>
+                        </div>
                     </div>
                 </div>
 
                 <div className="flex gap-2 justify-end mt-2">
-                     {['Morning', 'Evening'].map(time => (
-                         <button 
+                    {['Morning', 'Evening'].map(time => (
+                        <button
                             key={time}
-                            type="button" 
+                            type="button"
                             className="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded hover:bg-slate-700"
                             onClick={() => console.log('Tagging session not implemented yet')}
-                         >
+                        >
                             {time}
-                         </button>
-                     ))}
+                        </button>
+                    ))}
                 </div>
 
                 <button

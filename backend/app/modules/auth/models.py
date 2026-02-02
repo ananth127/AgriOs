@@ -24,5 +24,7 @@ class User(Base):
     # Government Record
     survey_number = Column(String, nullable=True)
     boundary = Column(JSON, nullable=True) # GeoJSON or Array of points
-
-    devices = relationship("app.modules.iot.models.IoTDevice", back_populates="owner")
+    
+    # Relationship to IoT devices commented out to avoid circular dependency
+    # Access devices via query: db.query(IoTDevice).filter(IoTDevice.user_id == user.id)
+    # devices = relationship("app.modules.iot.models.IoTDevice", back_populates="owner")
