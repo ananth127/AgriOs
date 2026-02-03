@@ -122,17 +122,16 @@ export function Sidebar({ locale }: SidebarProps) {
 
     const links = [
         { href: '/', label: t('menu_overview'), icon: LayoutDashboard },
-        { href: '/smart-monitor', label: "Smart Monitor", icon: Activity },
+        { href: '/smart-monitor', label: t('menu_smart_monitor'), icon: Activity },
         { href: '/farms', label: t('menu_my_farms'), icon: Tractor },
         { href: '/crops', label: t('menu_crops_registry'), icon: Sprout },
         { href: '/farm-management', label: t('menu_management'), icon: Briefcase },
         { href: '/crop-doctor', label: t('menu_crop_doctor'), icon: Stethoscope },
-        { href: '/library', label: t('menu_library'), icon: BookOpen },
         { href: '/livestock', label: t('menu_livestock'), icon: Users },
         { href: '/supply-chain', label: t('menu_track_trace'), icon: ScrollText },
         { href: '/marketplace', label: t('menu_marketplace'), icon: ShoppingBag },
         { href: '/drone', label: t('menu_drone_ai'), icon: Camera },
-        { href: '/devices', label: "Smart Devices", icon: Cpu },
+        { href: '/devices', label: t('menu_smart_devices'), icon: Cpu },
         { href: '/calculator', label: t('menu_calculator'), icon: Calculator },
         { href: '/docs', label: t('menu_docs'), icon: BookOpen },
     ];

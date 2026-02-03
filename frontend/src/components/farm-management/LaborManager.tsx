@@ -15,8 +15,37 @@ export const LaborManager: React.FC = () => {
     const fetchJobs = async () => {
         setLoading(true);
         try {
-            const data = await api.farmManagement.getJobs(farmId);
-            setJobs(data as any);
+            let data = await api.farmManagement.getJobs(farmId) as any[];
+            if (!Array.isArray(data)) data = [];
+
+            if (data.length === 0) {
+                // Auto-create default job
+                const payload = {
+                    title: "Harvest Helpers",
+                    description: "Looking for help with wheat harvesting.",
+                    wage_per_day: 450,
+                    duration_days: 5,
+                    start_date: new Date().toISOString().split('T')[0],
+                    required_count: 3,
+                    farm_id: farmId,
+                    provides_food: false,
+                    provides_travel: false
+                };
+
+                // Optimistic Update
+                setJobs([{ ...payload, id: Date.now(), filled_count: 0, status: 'Open' }]);
+
+                try {
+                    await api.farmManagement.postJob(payload);
+                    const newData = await api.farmManagement.getJobs(farmId) as any[];
+                    if (Array.isArray(newData) && newData.length > 0) setJobs(newData);
+                } catch (createErr) {
+                    console.error("Failed to persist default job", createErr);
+                    // Keep optimistic
+                }
+            } else {
+                setJobs(data);
+            }
         } catch (error) {
             console.error("Failed to fetch jobs", error);
         } finally {

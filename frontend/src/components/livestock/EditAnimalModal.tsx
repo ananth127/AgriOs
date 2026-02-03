@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface EditProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface EditProps {
 }
 
 export const EditAnimalModal: React.FC<EditProps> = ({ isOpen, onClose, onSuccess, animal, housingList = [] }) => {
+    const t = useTranslations('Livestock');
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         weight_kg: '',
@@ -44,19 +46,19 @@ export const EditAnimalModal: React.FC<EditProps> = ({ isOpen, onClose, onSucces
             onClose();
         } catch (error) {
             console.error("Failed to update animal", error);
-            alert("Failed to update animal");
+            alert(t('failed_update_animal'));
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Edit ${animal?.tag_id || 'Animal'}`}>
+        <Modal isOpen={isOpen} onClose={onClose} title={t('edit_animal_title', { tag: animal?.tag_id || t('animal') })}>
             <form onSubmit={handleSubmit} className="space-y-4">
 
                 {/* Housing Selection */}
                 <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Assigned Shelter</label>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">{t('assigned_shelter')}</label>
                     <select
                         className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
                         value={formData.housing_id}
@@ -70,22 +72,22 @@ export const EditAnimalModal: React.FC<EditProps> = ({ isOpen, onClose, onSucces
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Health Status</label>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">{t('health_status')}</label>
                     <select
                         className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
                         value={formData.health_status}
                         onChange={e => setFormData({ ...formData, health_status: e.target.value })}
                     >
-                        <option value="Healthy">Healthy</option>
-                        <option value="Sick">Sick</option>
-                        <option value="Injured">Injured</option>
-                        <option value="Critical">Critical</option>
-                        <option value="Pregnant">Pregnant</option>
+                        <option value="Healthy">{t('healthy')}</option>
+                        <option value="Sick">{t('sick')}</option>
+                        <option value="Injured">{t('injured')}</option>
+                        <option value="Critical">{t('critical')}</option>
+                        <option value="Pregnant">{t('pregnant')}</option>
                     </select>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Weight (kg)</label>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">{t('weight_kg')}</label>
                     <input
                         type="number"
                         step="0.1"
@@ -97,7 +99,7 @@ export const EditAnimalModal: React.FC<EditProps> = ({ isOpen, onClose, onSucces
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-slate-400 mb-1">Last Vaccination</label>
+                    <label className="block text-sm font-medium text-slate-400 mb-1">{t('last_vaccination')}</label>
                     <input
                         type="date"
                         className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
@@ -115,7 +117,7 @@ export const EditAnimalModal: React.FC<EditProps> = ({ isOpen, onClose, onSucces
                     disabled={loading}
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg mt-4 flex justify-center items-center gap-2"
                 >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update Record'}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('save_changes')}
                 </button>
             </form>
         </Modal>

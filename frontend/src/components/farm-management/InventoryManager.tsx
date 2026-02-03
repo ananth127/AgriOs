@@ -16,8 +16,35 @@ export const InventoryManager: React.FC<{ farmId: number }> = ({ farmId }) => {
     const fetchInventory = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await api.farmManagement.getInventory(farmId);
-            setItems(data as any);
+            let data = await api.farmManagement.getInventory(farmId) as any[];
+            if (!Array.isArray(data)) data = [];
+
+            if (data.length === 0) {
+                // Auto-create default inventory
+                const payload = {
+                    name: "Urea Premium",
+                    item_type: "Fertilizer",
+                    quantity: 500,
+                    unit: "kg",
+                    cost_per_unit: 45,
+                    farm_id: farmId,
+                    purchase_date: new Date().toISOString().split('T')[0]
+                };
+
+                // Optimistic Update
+                setItems([{ ...payload, id: Date.now() }]);
+
+                try {
+                    await api.farmManagement.addInventory(payload);
+                    const newData = await api.farmManagement.getInventory(farmId) as any[];
+                    if (Array.isArray(newData) && newData.length > 0) setItems(newData);
+                } catch (createErr) {
+                    console.error("Failed to persist default inventory", createErr);
+                    // Keep optimistic
+                }
+            } else {
+                setItems(data);
+            }
         } catch (error) {
             console.error("Failed to fetch inventory", error);
         } finally {

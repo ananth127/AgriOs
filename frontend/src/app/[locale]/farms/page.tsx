@@ -151,6 +151,25 @@ export default function FarmsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isZonesExpanded, setIsZonesExpanded] = useState(true); // Default expanded for visibility
 
+    // Auto-collapse zones after 5 seconds if no interaction (basic timer)
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (isZonesExpanded) {
+            timer = setTimeout(() => {
+                setIsZonesExpanded(false);
+            }, 5000);
+        }
+        return () => clearTimeout(timer);
+    }, [isZonesExpanded]);
+
+    // Reset view state when farm changes
+    useEffect(() => {
+        setViewCenter(null);
+        setActiveZone('all');
+        setIsZonesExpanded(true);
+        setSearchQuery('');
+    }, [selectedFarmId]);
+
     const userLocation: [number, number] | null = (user?.latitude && user?.longitude)
         ? [user.latitude, user.longitude]
         : null;
@@ -170,6 +189,31 @@ export default function FarmsPage() {
         }
     };
 
+    const handleZoneSelect = (zone: any) => {
+        setActiveZone(String(zone.id));
+        setIsZonesExpanded(false);
+
+        // Move to zone center
+        if (currentFarm && currentFarm.latitude && currentFarm.longitude) {
+            // The ZoneGrid in FarmMap uses a fixed size 'd = 0.00045'
+            // To center on the quadrant, we need d/2 = 0.000225
+            const offset = 0.000225;
+
+            let targetLat = currentFarm.latitude;
+            let targetLon = currentFarm.longitude;
+
+            // displayZones order: NE (0), SE (1), SW (2), NW (3)
+            const index = displayZones.findIndex(z => String(z.id) === String(zone.id));
+
+            if (index === 0) { targetLat += offset; targetLon += offset; } // NE
+            if (index === 1) { targetLat -= offset; targetLon += offset; } // SE
+            if (index === 2) { targetLat -= offset; targetLon -= offset; } // SW
+            if (index === 3) { targetLat += offset; targetLon -= offset; } // NW
+
+            setViewCenter([targetLat, targetLon]);
+        }
+    };
+
     return (
         <div className="flex h-full relative">
             {/* Map (Full background) */}
@@ -185,7 +229,7 @@ export default function FarmsPage() {
             </div>
 
             {/* Floating Overlay Panel - Dynamic Height */}
-            <div className="absolute top-0 left-0 right-0 z-10 p-4 w-full md:w-96 flex flex-col gap-3 pointer-events-none max-h-screen overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 z-10 p-2 md:p-4 w-full md:w-96 flex flex-col gap-2 md:gap-3 pointer-events-none max-h-screen overflow-hidden">
 
                 {/* 1. Search Bar (Above Farm) */}
                 <div className="pointer-events-auto relative shadow-xl flex gap-2">
@@ -193,7 +237,7 @@ export default function FarmsPage() {
                         <input
                             type="text"
                             placeholder={t('search_location')}
-                            className="w-full bg-slate-900/95 backdrop-blur text-white border border-white/20 rounded-xl px-4 py-3 shadow-2xl focus:outline-none focus:border-green-500 text-sm pl-11"
+                            className="w-full bg-slate-900/95 backdrop-blur text-white border border-white/20 rounded-xl px-3 py-2 md:px-4 md:py-3 shadow-2xl focus:outline-none focus:border-green-500 text-sm pl-11"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -216,10 +260,10 @@ export default function FarmsPage() {
                 </div>
 
                 {/* 2. Farm Selector (Compact) */}
-                <Card className="p-4 bg-slate-900/95 backdrop-blur border-white/10 shadow-xl pointer-events-auto shrink-0">
+                <Card className="p-3 md:p-4 bg-slate-900/95 backdrop-blur border-white/10 shadow-xl pointer-events-auto shrink-0">
                     <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{t('current_farm')}</label>
                     <select
-                        className="w-full bg-transparent font-bold text-lg mt-0.5 focus:outline-none cursor-pointer appearance-none text-white truncate pr-4"
+                        className="w-full bg-transparent font-bold text-base md:text-lg mt-0.5 focus:outline-none cursor-pointer appearance-none text-white truncate pr-4"
                         value={selectedFarmId ?? ''}
                         onChange={(e) => setSelectedFarmId(e.target.value ? parseInt(e.target.value) : undefined)}
                     >
@@ -247,10 +291,15 @@ export default function FarmsPage() {
                 {/* 3. Active Zones (Collapsible) */}
                 <Card className="p-0 bg-slate-900/95 backdrop-blur border-white/10 shadow-xl pointer-events-auto flex flex-col overflow-hidden shrink transition-all duration-300">
                     <div
-                        className="p-3 border-b border-white/10 flex justify-between items-center cursor-pointer hover:bg-white/5 bg-slate-800/50"
+                        className="p-2 md:p-3 border-b border-white/10 flex justify-between items-center cursor-pointer hover:bg-white/5 bg-slate-800/50"
                         onClick={() => setIsZonesExpanded(!isZonesExpanded)}
                     >
-                        <h3 className="font-semibold text-sm text-slate-300">{t('active_zones')}</h3>
+                        <h3 className="font-semibold text-sm text-slate-300">
+                            {activeZone === 'all'
+                                ? t('active_zones')
+                                : displayZones.find(z => String(z.id) === activeZone)?.name || t('active_zones')
+                            }
+                        </h3>
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-medium">{displayZones.length} Active</span>
                             <span className={`text-slate-500 text-xs transition-transform ${isZonesExpanded ? 'rotate-180' : ''}`}>
@@ -265,8 +314,8 @@ export default function FarmsPage() {
                             {displayZones.map((zone) => (
                                 <div
                                     key={zone.id}
-                                    onClick={() => setActiveZone(String(zone.id))}
-                                    className={`p-3 hover:bg-white/5 cursor-pointer transition-colors ${activeZone === String(zone.id) ? 'bg-green-500/10' : ''}`}
+                                    onClick={() => handleZoneSelect(zone)}
+                                    className={`p-2 md:p-3 hover:bg-white/5 cursor-pointer transition-colors ${activeZone === String(zone.id) ? 'bg-green-500/10' : ''}`}
                                 >
                                     <div className="flex justify-between items-center">
                                         <div className="flex items-center gap-2">

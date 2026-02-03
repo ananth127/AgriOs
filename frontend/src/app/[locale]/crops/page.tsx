@@ -31,7 +31,8 @@ export default function CropsPage() {
     const [plantFormFarmKey, setPlantFormFarmKey] = useState<string>(""); // Selection in Modal
     const [selectedCropId, setSelectedCropId] = useState<string>("");
     const [sowingDate, setSowingDate] = useState<string>(new Date().toISOString().split('T')[0]);
-    const [modalMetrics, setModalMetrics] = useState<string[]>(['Water Usage', 'Financials', 'Harvest Projections', 'Timeline']);
+    // Default to SHOW ALL metrics
+    const [modalMetrics, setModalMetrics] = useState<string[]>(['Water Usage', 'Financials', 'Soil Health', 'Machinery', 'Timeline', 'Harvest Projections', 'IoT Network']);
     const [dashboardConfigs, setDashboardConfigs] = useState<Record<number, string[]>>({});
     const [loading, setLoading] = useState(true);
 
@@ -125,14 +126,14 @@ export default function CropsPage() {
             setActiveTab('my-crops');
         } catch (error) {
             console.error("Planting failed", error);
-            alert("Failed to plant crop. Check console.");
+            alert(t('alert_planting_failed'));
         } finally {
             setIsPlanting(false);
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!window.confirm("Are you sure you want to delete this crop?")) return;
+        if (!window.confirm(t('confirm_delete_crop'))) return;
         try {
             await api.crops.delete(id);
             fetchMyCrops();
@@ -143,7 +144,7 @@ export default function CropsPage() {
 
     const getCropName = (id: number) => {
         const found = registry.find(r => r.id === id);
-        return found ? found.name : `Crop #${id}`;
+        return found ? found.name : t('crop_default_name', { id });
     };
 
     const getStageName = (stage: string) => {
@@ -197,7 +198,7 @@ export default function CropsPage() {
             </div>
 
             {activeTab === 'registry' && (
-                <ContentLoader loading={loading} text="Loading crop registry...">
+                <ContentLoader loading={loading} text={t('loading')}>
                     <div className="space-y-4">
                         <div className="flex gap-2">
                             <div className="relative flex-1">
@@ -239,7 +240,7 @@ export default function CropsPage() {
             )}
 
             {activeTab === 'my-crops' && (
-                <ContentLoader loading={loading} text="Loading your crops...">
+                <ContentLoader loading={loading} text={t('loading')}>
                     <div className="space-y-4">
                         {uniqueFarms.length > 0 && (
                             <div className="flex items-center gap-2 mb-4">
@@ -305,7 +306,7 @@ export default function CropsPage() {
                                         </div>
                                         <div className="mt-2 flex justify-between text-xs text-slate-500">
                                             <span className="flex items-center gap-1">{t('label_health')}: <strong className="text-white">{cycle.health_score ?? 'N/A'}%</strong></span>
-                                            <span>{t('label_est_harvest')}: {cycle.harvest_date_estimated || 'Calculating...'}</span>
+                                            <span>{t('label_est_harvest')}: {cycle.harvest_date_estimated || t('calculating')}</span>
                                         </div>
 
                                         <button
@@ -365,26 +366,40 @@ export default function CropsPage() {
 
                             {/* Dashboard Configuration */}
                             <div className="bg-slate-900/50 p-3 rounded-lg border border-white/5">
-                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Dashboard Metrics to Track</label>
+                                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">{t('dashboard_metrics_title')}</label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {['Water Usage', 'Financials', 'Soil Health', 'Machinery', 'Timeline', 'Harvest Projections'].map((metric) => (
-                                        <label key={metric} className="flex items-center gap-2 cursor-pointer group">
-                                            <div className="relative">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={modalMetrics.includes(metric)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) setModalMetrics([...modalMetrics, metric]);
-                                                        else setModalMetrics(modalMetrics.filter(m => m !== metric));
-                                                    }}
-                                                    className="sr-only peer"
-                                                />
-                                                <div className="w-4 h-4 border border-slate-600 rounded peer-checked:bg-green-500 peer-checked:border-green-500 transition-colors"></div>
-                                                <svg className="absolute top-0.5 left-0.5 w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
-                                            </div>
-                                            <span className="text-sm text-slate-300 group-hover:text-white transition-colors">{metric}</span>
-                                        </label>
-                                    ))}
+                                    {['Water Usage', 'Financials', 'Soil Health', 'Machinery', 'Timeline', 'Harvest Projections', 'IoT Network'].map((metric) => {
+                                        // Mapping hardcoded English string to key (simplified approach)
+                                        const keyMap: Record<string, string> = {
+                                            'Water Usage': 'metric_water_usage',
+                                            'Financials': 'metric_financials',
+                                            'Soil Health': 'metric_soil_health',
+                                            'Machinery': 'metric_machinery',
+                                            'Timeline': 'metric_timeline',
+                                            'Harvest Projections': 'metric_harvest',
+                                            'IoT Network': 'metric_iot'
+                                        };
+                                        const displayLabel = keyMap[metric] ? t(keyMap[metric]) : metric;
+
+                                        return (
+                                            <label key={metric} className="flex items-center gap-2 cursor-pointer group">
+                                                <div className="relative">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={modalMetrics.includes(metric)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) setModalMetrics([...modalMetrics, metric]);
+                                                            else setModalMetrics(modalMetrics.filter(m => m !== metric));
+                                                        }}
+                                                        className="sr-only peer"
+                                                    />
+                                                    <div className="w-4 h-4 border border-slate-600 rounded peer-checked:bg-green-500 peer-checked:border-green-500 transition-colors"></div>
+                                                    <svg className="absolute top-0.5 left-0.5 w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                                                </div>
+                                                <span className="text-sm text-slate-300 group-hover:text-white transition-colors">{displayLabel}</span>
+                                            </label>
+                                        );
+                                    })}
                                 </div>
                             </div>
 

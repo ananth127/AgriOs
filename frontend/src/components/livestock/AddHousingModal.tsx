@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '@/lib/api';
 import { X, Home, Save, Info } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface AddHousingModalProps {
     isOpen: boolean;
@@ -10,6 +11,7 @@ interface AddHousingModalProps {
 }
 
 export const AddHousingModal: React.FC<AddHousingModalProps> = ({ isOpen, onClose, onSuccess, farmId }) => {
+    const t = useTranslations('Livestock');
     const [isLoading, setIsLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -32,7 +34,7 @@ export const AddHousingModal: React.FC<AddHousingModalProps> = ({ isOpen, onClos
             onClose();
         } catch (error) {
             console.error("Failed to create housing", error);
-            alert("Failed to create shelter. Please try again.");
+            alert(t('failed_create_shelter'));
         } finally {
             setIsLoading(false);
         }
@@ -44,7 +46,7 @@ export const AddHousingModal: React.FC<AddHousingModalProps> = ({ isOpen, onClos
                 <div className="flex justify-between items-center p-6 border-b border-white/5">
                     <h2 className="text-xl font-bold text-white flex items-center gap-2">
                         <Home className="w-5 h-5 text-blue-400" />
-                        Add New Shelter
+                        {t('add_new_shelter_modal')}
                     </h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
                         <X className="w-6 h-6" />
@@ -53,11 +55,11 @@ export const AddHousingModal: React.FC<AddHousingModalProps> = ({ isOpen, onClos
 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Structure Name</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('structure_name')}</label>
                         <input
                             type="text"
                             required
-                            placeholder="e.g. Main Barn, East Coop"
+                            placeholder={t('structure_name_placeholder')}
                             className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-colors"
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -66,21 +68,21 @@ export const AddHousingModal: React.FC<AddHousingModalProps> = ({ isOpen, onClos
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">Type</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">{t('type')}</label>
                             <select
                                 className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500"
                                 value={formData.type}
                                 onChange={e => setFormData({ ...formData, type: e.target.value })}
                             >
-                                <option value="Barn">Barn</option>
-                                <option value="Stable">Stable</option>
-                                <option value="Coop">Coop</option>
+                                <option value="Barn">{t('barn')}</option>
+                                <option value="Stable">{t('stable')}</option>
+                                <option value="Coop">{t('coop')}</option>
                                 <option value="Pasture">Pasture</option>
                                 <option value="Aquarium">Aquarium</option>
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">Capacity</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">{t('capacity')}</label>
                             <input
                                 type="number"
                                 min="1"
@@ -112,14 +114,14 @@ export const AddHousingModal: React.FC<AddHousingModalProps> = ({ isOpen, onClos
                             onClick={onClose}
                             className="flex-1 px-4 py-3 rounded-xl font-medium text-slate-400 hover:bg-white/5 transition-colors"
                         >
-                            Cancel
+                            {t('cancel')}
                         </button>
                         <button
                             type="submit"
                             disabled={isLoading}
                             className="flex-1 px-4 py-3 rounded-xl font-bold bg-blue-600 hover:bg-blue-500 text-white transition-colors flex items-center justify-center gap-2"
                         >
-                            {isLoading ? 'Creating...' : <><Save className="w-4 h-4" /> Create Shelter</>}
+                            {isLoading ? t('creating') : <><Save className="w-4 h-4" /> {t('create_shelter')}</>}
                         </button>
                     </div>
                 </form>

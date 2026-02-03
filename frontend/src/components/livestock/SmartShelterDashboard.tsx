@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { Card } from '@/components/ui/Card';
 import {
@@ -36,6 +36,15 @@ export function SmartShelterDashboard({ housingId, housingName, onClose }: Smart
     const [lightsOn, setLightsOn] = useState(true);
     const [statsExpanded, setStatsExpanded] = useState(false);
 
+    const loadDevices = useCallback(async () => {
+        try {
+            const data = await api.livestock.smart.getDevices(housingId);
+            setDevices((data as any[]) || []);
+        } catch (e) {
+            console.error(e);
+        }
+    }, [housingId]);
+
     // Fetch Initial Data
     useEffect(() => {
         loadDevices();
@@ -57,16 +66,9 @@ export function SmartShelterDashboard({ housingId, housingName, onClose }: Smart
         }, 3000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [loadDevices]);
 
-    const loadDevices = async () => {
-        try {
-            const data = await api.livestock.smart.getDevices(housingId);
-            setDevices((data as any[]) || []);
-        } catch (e) {
-            console.error(e);
-        }
-    };
+
 
     const loadSuggestions = async () => {
         try {

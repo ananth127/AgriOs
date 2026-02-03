@@ -9,7 +9,7 @@ import { Link, usePathname } from '@/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import {
-    LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Menu, X, Calculator, LogIn, LogOut, Briefcase, Stethoscope, BookOpen
+    LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Menu, X, Calculator, LogIn, LogOut, Briefcase, Stethoscope, BookOpen, Activity
 } from 'lucide-react';
 import { useConnectionHealth } from '@/hooks/useConnectionHealth';
 import { startNavigationProgress } from '@/components/NavigationLoader';
@@ -30,6 +30,7 @@ export default function NavBar({ locale }: { locale: string }) {
 
     const links = [
         { href: '/', label: tSidebar('menu_overview'), icon: LayoutDashboard },
+        { href: '/smart-monitor', label: "Smart Monitor", icon: Activity },
         { href: '/farms', label: tSidebar('menu_my_farms'), icon: Tractor },
         { href: '/crops', label: tSidebar('menu_crops_registry'), icon: Sprout },
         { href: '/farm-management', label: tSidebar('menu_management'), icon: Briefcase },
@@ -40,7 +41,7 @@ export default function NavBar({ locale }: { locale: string }) {
         { href: '/marketplace', label: tSidebar('menu_marketplace'), icon: ShoppingBag },
         { href: '/drone', label: tSidebar('menu_drone_ai'), icon: Camera },
         { href: '/calculator', label: tSidebar('menu_calculator'), icon: Calculator },
-        { href: '/docs', label: tSidebar('menu_docs'), icon: Users },
+        { href: '/docs', label: tSidebar('menu_docs'), icon: BookOpen },
     ];
 
     return (
