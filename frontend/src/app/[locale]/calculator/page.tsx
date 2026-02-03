@@ -284,14 +284,14 @@ export default function CalculatorPage() {
                     <div>
                         <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-yellow-400 bg-clip-text text-transparent flex items-center gap-3">
                             <Calculator className="w-8 h-8 text-yellow-400" />
-                            Complete Farming Calculator
+                            {t('complete_analysis')}
                         </h1>
-                        <p className="text-slate-400 mt-2">Professional farm planning & analysis tools</p>
+                        <p className="text-slate-400 mt-2">{t('professional_tools')}</p>
                     </div>
                     <div className="flex gap-2">
                         <button className="px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-500/30 transition-all flex items-center gap-2">
                             <HelpCircle className="w-4 h-4" />
-                            Help
+                            {t('help')}
                         </button>
                     </div>
                 </div>
@@ -325,29 +325,29 @@ export default function CalculatorPage() {
                         {/* Basic Inputs */}
                         <Card className="border-white/10 bg-slate-900/50 p-6">
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                <Sprout className="w-5 h-5 text-green-400" /> Basic Details
+                                <Sprout className="w-5 h-5 text-green-400" /> {t('basic_details')}
                             </h3>
                             <div className="space-y-3">
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Crop</label>
+                                    <label className="block text-sm text-slate-400 mb-1">{t('crop_label')}</label>
                                     <select className="w-full bg-slate-800 border border-white/10 rounded-lg p-2 text-white text-sm" value={crop} onChange={(e) => handleCropChange(e.target.value)}>
                                         {Object.keys(CROP_DATA).map(c => <option key={c} value={c}>{c}</option>)}
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Land Area (Acres)</label>
+                                    <label className="block text-sm text-slate-400 mb-1">{t('land_area_acres')}</label>
                                     <input type="number" className="w-full bg-slate-800 border border-white/10 rounded-lg p-2 text-white text-sm" value={acres} onChange={(e) => setAcres(parseFloat(e.target.value) || 0)} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Expected Yield (Q/Acre)</label>
+                                    <label className="block text-sm text-slate-400 mb-1">{t('expected_yield')}</label>
                                     <input type="number" step="0.1" className="w-full bg-slate-800 border border-white/10 rounded-lg p-2 text-white text-sm" value={yieldPerAcre} onChange={(e) => setYieldPerAcre(parseFloat(e.target.value) || 0)} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Market Price (₹/Q)</label>
+                                    <label className="block text-sm text-slate-400 mb-1">{t('market_price')}</label>
                                     <input type="number" className="w-full bg-slate-800 border border-white/10 rounded-lg p-2 text-white text-sm" value={pricePerQuintal} onChange={(e) => setPricePerQuintal(parseFloat(e.target.value) || 0)} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Subsidy (%)</label>
+                                    <label className="block text-sm text-slate-400 mb-1">{t('subsidy_percent')}</label>
                                     <input type="number" max="100" className="w-full bg-slate-800 border border-white/10 rounded-lg p-2 text-white text-sm" value={subsidyPercent} onChange={(e) => setSubsidyPercent(parseFloat(e.target.value) || 0)} />
                                 </div>
                             </div>
@@ -356,7 +356,7 @@ export default function CalculatorPage() {
                         {/* Cost Inputs */}
                         <Card className="border-white/10 bg-slate-900/50 p-6">
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                <DollarSign className="w-5 h-5 text-yellow-400" /> Costs (₹/Acre)
+                                <DollarSign className="w-5 h-5 text-yellow-400" /> {t('costs_per_acre')}
                             </h3>
                             <div className="space-y-2">
                                 {[
@@ -387,7 +387,7 @@ export default function CalculatorPage() {
                         {/* Weather Inputs */}
                         <Card className="border-white/10 bg-slate-900/50 p-6">
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                <CloudRain className="w-5 h-5 text-blue-400" /> Climate Factors
+                                <CloudRain className="w-5 h-5 text-blue-400" /> {t('climate_factors')}
                             </h3>
                             <div className="space-y-3">
                                 <div>

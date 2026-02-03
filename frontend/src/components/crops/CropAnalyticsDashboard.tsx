@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { format } from "date-fns";
 import { Loader2, ArrowRight, Plus, Pencil, Trash2, X, Save, Clock, Settings, ArrowUpRight } from 'lucide-react';
 import { Link } from '@/navigation';
+import { useTranslations } from 'next-intl';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -38,6 +39,7 @@ interface CropDashboardProps {
 }
 
 export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle, onClose, visibleMetrics: initialVisibleMetrics, onUpdateMetrics }) => {
+    const t = useTranslations('Crops');
     const defaultMetrics = ['Water Usage', 'Financials', 'Soil Health', 'Machinery', 'Timeline', 'Harvest Projections', 'IoT Network'];
     const activeMetrics = initialVisibleMetrics || defaultMetrics;
 
@@ -174,7 +176,7 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
             // Revert on failure
             updatedValves[index] = valve;
             setStats((prev: any) => ({ ...prev, valves: updatedValves }));
-            alert("Failed to switch device. Check connection.");
+            alert(t('failed_switch_device'));
         }
     };
 
@@ -217,7 +219,7 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                 }
             } else if (editingItem.type === 'valve') {
                 // Per user request: Valves should be added in IoT/Irrigation control
-                alert("Please go to the Smart Irrigation section to configure new valves and hardware.");
+                alert(t('go_to_smart_irrigation'));
                 return;
             }
 
@@ -239,12 +241,12 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
 
         } catch (error) {
             console.error("Failed to save item", error);
-            alert("Failed to save. Check console.");
+            alert(t('failed_to_save'));
         }
     };
 
     const handleDeleteItem = async (type: 'machinery' | 'valve', id: number) => {
-        if (!confirm('Are you sure?')) return;
+        if (!confirm(t('are_you_sure'))) return;
         try {
             await api.farmManagement.deleteAsset(id);
             // Refresh Local State
@@ -278,13 +280,13 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                         onClick={onClose}
                         className="flex items-center gap-2 text-slate-400 hover:text-white mb-2 transition-colors group"
                     >
-                        <span className="group-hover:-translate-x-1 transition-transform">←</span> Back to Crops
+                        <span className="group-hover:-translate-x-1 transition-transform">←</span> {t('back_to_crops')}
                     </button>
                     <h2 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-cyan-500 bg-clip-text text-transparent">
-                        {cropCycle.registry_name || "Crop"} Analytics
+                        {t('analytics_title', { crop: cropCycle.registry_name || t('crop_default_name', { id: cropCycle.id }) })}
                     </h2>
                     <p className="text-slate-400 text-sm mt-1">
-                        Cycle ID: <span className="font-mono text-white">#{cropCycle.id}</span> • Started: <span className="text-white">{cropCycle.sowing_date}</span>
+                        {t('cycle_id')}: <span className="font-mono text-white">#{cropCycle.id}</span> • {t('started')}: <span className="text-white">{cropCycle.sowing_date}</span>
                     </p>
                 </div>
                 <div className="flex gap-3">
@@ -293,14 +295,14 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                             onClick={() => setIsConfiguring(!isConfiguring)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 border ${isConfiguring ? 'bg-amber-500/20 text-amber-400 border-amber-500/50' : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'}`}
                         >
-                            {isConfiguring ? 'Done Editing' : 'Customize Dashboard'}
+                            {isConfiguring ? t('done_editing') : t('customize_dashboard')}
                         </button>
                     )}
                     <button
                         onClick={handleSimulate}
                         className="bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
                     >
-                        🔄 Simulate Sensor Update
+                        🔄 {t('simulate_sensor_update')}
                     </button>
                     {/* Add more controls as needed */}
                 </div>
@@ -309,7 +311,7 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
             {/* Configuration Panel */}
             {isConfiguring && (
                 <div className="bg-slate-900 border border-amber-500/30 p-4 rounded-xl mb-6 animate-in slide-in-from-top-2">
-                    <h3 className="text-sm font-bold text-amber-500 uppercase tracking-widest mb-3">Manage Visible Widgets</h3>
+                    <h3 className="text-sm font-bold text-amber-500 uppercase tracking-widest mb-3">{t('manage_visible_widgets')}</h3>
                     <div className="flex flex-wrap gap-3">
                         {defaultMetrics.map(metric => (
                             <button
@@ -332,11 +334,11 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                     <div className="lg:col-span-1 block group">
                         <Card className="bg-slate-900 border-slate-800 h-full">
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle>Irrigation & IoT Network</CardTitle>
+                                <CardTitle>{t('irrigation_iot_network')}</CardTitle>
                                 {/* Main Pump Status Display */}
                                 <div className={`flex items-center gap-2 px-2 py-1 rounded-full text-[10px] font-bold border ${isPumpActive ? 'bg-green-500/20 border-green-500/50 text-green-400' : 'bg-slate-800 border-slate-700 text-slate-500'}`}>
                                     <div className={`w-1.5 h-1.5 rounded-full ${isPumpActive ? 'bg-green-500 animate-pulse' : 'bg-slate-500'}`} />
-                                    {isPumpActive ? 'PUMP ON' : 'PUMP OFF'}
+                                    {isPumpActive ? t('pump_on') : t('pump_off')}
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -344,7 +346,7 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                                     {/* VALVES SECTION */}
                                     <div className="space-y-2">
                                         <div className="flex justify-between items-center">
-                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Valves</h4>
+                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('active_valves')}</h4>
                                             <button
                                                 onClick={() => {
                                                     // As per requirement, redirect to Smart Irrigation
@@ -357,17 +359,17 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                                                 }}
                                                 className="text-xs flex items-center gap-1 text-green-400 hover:text-green-300 bg-green-900/20 px-2 py-1 rounded-full font-bold transition-all hover:bg-green-900/40"
                                             >
-                                                <Plus className="w-3 h-3" /> Add Valves
+                                                <Plus className="w-3 h-3" /> {t('add_valves')}
                                             </button>
                                         </div>
                                         {/* Editing Form for Valve */}
                                         {editingItem?.type === 'valve' && (
                                             <div className="bg-slate-800 p-3 rounded-lg border border-amber-500/50 mb-2 animate-in fade-in slide-in-from-top-2">
                                                 <form onSubmit={handleSaveItem} className="space-y-2">
-                                                    <input name="name" defaultValue={editingItem.data?.name} placeholder="Valve Name" className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs" required />
+                                                    <input name="name" defaultValue={editingItem.data?.name} placeholder={t('valve_name_placeholder')} className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs" required />
                                                     <div className="flex gap-2">
-                                                        <input name="type" defaultValue={editingItem.data?.type} placeholder="Type (e.g. Drip)" className="w-1/2 bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs" />
-                                                        <input name="nextSchedule" defaultValue={editingItem.data?.nextSchedule} placeholder="Schedule" className="w-1/2 bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs" />
+                                                        <input name="type" defaultValue={editingItem.data?.type} placeholder={t('type_placeholder')} className="w-1/2 bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs" />
+                                                        <input name="nextSchedule" defaultValue={editingItem.data?.nextSchedule} placeholder={t('schedule_placeholder')} className="w-1/2 bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs" />
                                                     </div>
                                                     <div className="flex justify-end gap-2 pt-1">
                                                         <button type="button" onClick={() => setEditingItem(null)} className="p-1 hover:bg-slate-700 rounded"><X className="w-3 h-3" /></button>
@@ -391,7 +393,7 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                                                     {/* Suggestion Badge */}
                                                     {isSuggested && !isActive && (
                                                         <div className="absolute top-0 right-0 bg-amber-500 text-slate-900 text-[9px] font-bold px-1.5 py-0.5 rounded-bl-lg">
-                                                            SUGGESTED
+                                                            {t('suggested')}
                                                         </div>
                                                     )}
 
@@ -403,7 +405,7 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                                                             <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-blue-400 animate-pulse' : 'bg-slate-600'}`} />
                                                             <div>
                                                                 <span className={`font-bold text-sm block ${isActive ? 'text-blue-100' : 'text-slate-300'}`}>{valve.name} <span className="text-[10px] text-slate-500 font-normal">({valve.type})</span></span>
-                                                                <span className="text-[10px] text-slate-500 block">{isActive ? 'Flowing • 120L/min' : `Last: ${valve.lastActive}`}</span>
+                                                                <span className="text-[10px] text-slate-500 block">{isActive ? t('flowing') + ' • 120L/min' : `${t('last')}: ${valve.lastActive}`}</span>
                                                             </div>
                                                         </div>
 
@@ -427,7 +429,7 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                                                     {/* Suggestion Text */}
                                                     {isSuggested && !isActive && (
                                                         <div className="mt-1 text-[10px] text-amber-500/80 font-medium pl-4">
-                                                            Recommendation: Turn ON for 45m
+                                                            {t('recommendation_turn_on')}
                                                         </div>
                                                     )}
                                                 </div>

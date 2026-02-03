@@ -70,6 +70,7 @@ export const PurchaseModal: React.FC<PurchaseModalProps> = ({ isOpen, onClose, i
                         <div className="flex gap-4 bg-slate-900 border border-white/10 p-3 rounded-lg">
                             <div className="w-16 h-16 bg-slate-800 rounded-md overflow-hidden">
                                 {item.image_url ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
                                     <img src={item.image_url} className="w-full h-full object-cover" alt="" />
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-xl">📦</div>

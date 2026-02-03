@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 import { Modal } from '@/components/ui/Modal';
 import { Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface RegisterAnimalProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface RegisterAnimalProps {
 }
 
 export const RegisterAnimalModal: React.FC<RegisterAnimalProps> = ({ isOpen, onClose, onSuccess, farmId }) => {
+    const t = useTranslations('Livestock');
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         name: '',
@@ -52,36 +54,36 @@ export const RegisterAnimalModal: React.FC<RegisterAnimalProps> = ({ isOpen, onC
             onClose();
         } catch (error) {
             console.error("Failed to register animal", error);
-            alert("Failed to register animal");
+            alert(t('failed_register_animal'));
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title={`Add New ${formData.species}`}>
+        <Modal isOpen={isOpen} onClose={onClose} title={t('register_animal_title', { species: formData.species })}>
             <form onSubmit={handleSubmit} className="space-y-4 max-h-[80vh] overflow-y-auto px-1">
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Species</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('species_label')}</label>
                         <select
                             className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
                             value={formData.species}
                             onChange={e => setFormData({ ...formData, species: e.target.value })}
                         >
-                            <option value="Cow">Cow</option>
-                            <option value="Buffalo">Buffalo</option>
-                            <option value="Goat">Goat</option>
-                            <option value="Sheep">Sheep</option>
-                            <option value="Poultry">Poultry</option>
+                            <option value="Cow">{t('cow')}</option>
+                            <option value="Buffalo">{t('buffalo')}</option>
+                            <option value="Goat">{t('goat')}</option>
+                            <option value="Sheep">{t('sheep')}</option>
+                            <option value="Poultry">{t('poultry')}</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Name (Optional)</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('name_optional')}</label>
                         <input
                             type="text"
                             className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                            placeholder="e.g. Bella"
+                            placeholder={t('name_placeholder')}
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
                         />
@@ -90,21 +92,21 @@ export const RegisterAnimalModal: React.FC<RegisterAnimalProps> = ({ isOpen, onC
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Tag ID (Auto if empty)</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('tag_id_auto')}</label>
                         <input
                             type="text"
                             className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                            placeholder="Auto-generated"
+                            placeholder={t('auto_generated')}
                             value={formData.tag_id}
                             onChange={e => setFormData({ ...formData, tag_id: e.target.value })}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Breed</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('breed')}</label>
                         <input
                             type="text"
                             className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                            placeholder="e.g. Gir / Mixed"
+                            placeholder={t('breed_placeholder')}
                             value={formData.breed}
                             onChange={e => setFormData({ ...formData, breed: e.target.value })}
                         />
@@ -113,58 +115,58 @@ export const RegisterAnimalModal: React.FC<RegisterAnimalProps> = ({ isOpen, onC
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Gender</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('gender')}</label>
                         <select
                             className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
                             value={formData.gender}
                             onChange={e => setFormData({ ...formData, gender: e.target.value })}
                         >
-                            <option value="Female">Female</option>
-                            <option value="Male">Male</option>
+                            <option value="Female">{t('female')}</option>
+                            <option value="Male">{t('male')}</option>
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Purpose</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('purpose_label')}</label>
                         <select
                             className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
                             value={formData.purpose}
                             onChange={e => setFormData({ ...formData, purpose: e.target.value })}
                         >
-                            <option value="Dairy">Dairy (Milk)</option>
-                            <option value="Meat">Meat</option>
-                            <option value="Breeding">Breeding</option>
-                            <option value="Work">Farm Work</option>
-                            <option value="Sale">For Sale</option>
+                            <option value="Dairy">{t('dairy_milk')}</option>
+                            <option value="Meat">{t('meat')}</option>
+                            <option value="Breeding">{t('breeding')}</option>
+                            <option value="Work">{t('farm_work')}</option>
+                            <option value="Sale">{t('for_sale')}</option>
                         </select>
                     </div>
                 </div>
 
                 {/* Origin Section */}
                 <div className="p-3 bg-white/5 rounded-lg border border-white/10">
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Origin</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">{t('origin_label')}</label>
                     <div className="flex bg-slate-900 rounded-lg p-1 mb-3">
                         <button
                             type="button"
                             onClick={() => setFormData({ ...formData, origin: 'BORN' })}
                             className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${formData.origin === 'BORN' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
                         >
-                            Born on Farm
+                            {t('born_on_farm')}
                         </button>
                         <button
                             type="button"
                             onClick={() => setFormData({ ...formData, origin: 'PURCHASED' })}
                             className={`flex-1 py-1.5 rounded-md text-sm font-medium transition-colors ${formData.origin === 'PURCHASED' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
                         >
-                            Purchased
+                            {t('purchased_from')}
                         </button>
                     </div>
 
                     {formData.origin === 'PURCHASED' && (
                         <div>
-                            <label className="block text-xs font-medium text-slate-400 mb-1">Seller Details (Name / Mobile / Farm ID)</label>
+                            <label className="block text-xs font-medium text-slate-400 mb-1">{t('seller_details')}</label>
                             <textarea
                                 className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white text-sm"
-                                placeholder="e.g. Bought from Krishna Farm (9876543210)"
+                                placeholder={t('seller_placeholder')}
                                 value={formData.source_details}
                                 onChange={e => setFormData({ ...formData, source_details: e.target.value })}
                                 rows={2}
@@ -180,7 +182,7 @@ export const RegisterAnimalModal: React.FC<RegisterAnimalProps> = ({ isOpen, onC
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Date of Birth</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('date_of_birth')}</label>
                         <input
                             type="date"
                             required
@@ -190,7 +192,7 @@ export const RegisterAnimalModal: React.FC<RegisterAnimalProps> = ({ isOpen, onC
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Weight (kg)</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('weight_kg')}</label>
                         <input
                             type="number"
                             className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
@@ -205,7 +207,7 @@ export const RegisterAnimalModal: React.FC<RegisterAnimalProps> = ({ isOpen, onC
                     disabled={loading}
                     className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg mt-4 flex justify-center items-center gap-2"
                 >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Register Animal'}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('register_animal_button')}
                 </button>
             </form>
         </Modal>

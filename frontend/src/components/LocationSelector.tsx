@@ -99,11 +99,13 @@ interface LocationSelectorProps {
     onSelect: (lat: number, lng: number, name: string, method: 'manual' | 'gps') => void;
     zones?: Zone[];
     onUpdateZone?: (zoneId: number | string, data: any) => Promise<void>;
+    simpleMode?: boolean;
 }
 
-export default function LocationSelector({ isOpen, onClose, onSelect, zones = [], onUpdateZone }: LocationSelectorProps) {
+export default function LocationSelector({ isOpen, onClose, onSelect, zones = [], onUpdateZone, simpleMode = false }: LocationSelectorProps) {
     const t = useTranslations('LocationSelector');
     const tGlobal = useTranslations('Global');
+    const tFarms = useTranslations('Farms');
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [position, setPosition] = useState<L.LatLng | null>(null);
@@ -351,7 +353,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect, zones = []
                 </div>
 
                 {/* Sidebar Overlay: Farm Details & Zones */}
-                {position && (
+                {!simpleMode && position && (
                     <div className="absolute top-24 left-4 z-[1001] w-72 flex flex-col gap-3 animate-in slide-in-from-left-4 duration-300">
 
                         {/* 1. Main Info Card - Swaps between Farm Overview and Zone Details */}
@@ -360,16 +362,16 @@ export default function LocationSelector({ isOpen, onClose, onSelect, zones = []
                                 onClick={() => handleZoneSelect('all')}
                                 className={`bg-slate-900/95 backdrop-blur-xl rounded-xl border border-white/10 p-4 shadow-2xl cursor-pointer hover:border-green-500/50 transition-all group ring-2 ring-green-500/50`}
                             >
-                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">Current Farm</p>
-                                <h3 className="text-lg font-bold text-white leading-tight mb-3">View All / My Location</h3>
+                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1">{tFarms('current_farm')}</p>
+                                <h3 className="text-lg font-bold text-white leading-tight mb-3">{tFarms('view_all_location')}</h3>
 
                                 <div className="flex items-center gap-6">
                                     <div>
-                                        <p className="text-[10px] text-slate-500 mb-0.5">Owners</p>
-                                        <p className="text-sm font-semibold text-white">Self</p>
+                                        <p className="text-[10px] text-slate-500 mb-0.5">{tFarms('owners')}</p>
+                                        <p className="text-sm font-semibold text-white">{tFarms('self')}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[10px] text-slate-500 mb-0.5">Soil Type</p>
+                                        <p className="text-[10px] text-slate-500 mb-0.5">{tFarms('soil_type')}</p>
                                         <p className="text-sm font-semibold text-green-400">Loamy</p>
                                     </div>
                                 </div>
@@ -379,8 +381,8 @@ export default function LocationSelector({ isOpen, onClose, onSelect, zones = []
                                 {isEditingZone ? (
                                     <div className="space-y-3">
                                         <div className="flex justify-between items-center mb-1">
-                                            <h3 className="text-sm font-bold text-white">Edit Zone</h3>
-                                            <button onClick={() => setIsEditingZone(false)} className="text-xs text-slate-400 hover:text-white">Cancel</button>
+                                            <h3 className="text-sm font-bold text-white">{tGlobal('edit')}</h3>
+                                            <button onClick={() => setIsEditingZone(false)} className="text-xs text-slate-400 hover:text-white">{tGlobal('cancel')}</button>
                                         </div>
                                         <div>
                                             <label className="text-[10px] text-slate-400 uppercase font-bold">Crop</label>
@@ -411,7 +413,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect, zones = []
                                             onClick={handleSaveZone}
                                             className="w-full bg-green-600 hover:bg-green-500 text-white text-xs font-bold py-2 rounded transition-colors"
                                         >
-                                            Save Changes
+                                            {tGlobal('save_changes')}
                                         </button>
                                     </div>
                                 ) : (
@@ -428,7 +430,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect, zones = []
                                                     onClick={() => handleStartEdit(displayZones.find(z => String(z.id) === activeZone)!)}
                                                     className="bg-slate-800 hover:bg-slate-700 text-white text-xs px-3 py-1.5 rounded transition-colors"
                                                 >
-                                                    Edit
+                                                    {tGlobal('edit')}
                                                 </button>
                                             )}
                                         </div>
@@ -457,7 +459,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect, zones = []
                                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                                 className="p-3 bg-white/5 border-b border-white/5 flex items-center justify-between cursor-pointer hover:bg-white/10 transition-colors"
                             >
-                                <h4 className="text-sm font-bold text-white">Active Zones</h4>
+                                <h4 className="text-sm font-bold text-white">{tFarms('active_zones')}</h4>
                                 <div className="flex items-center gap-2">
                                     <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-medium">{displayZones.length} Active</span>
                                     <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />

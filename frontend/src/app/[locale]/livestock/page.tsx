@@ -10,6 +10,7 @@ import { EditAnimalModal } from '@/components/livestock/EditAnimalModal';
 import { LivestockDetailModal } from '@/components/livestock/LivestockDetailModal';
 import { LogProductionModal } from '@/components/livestock/LogProductionModal';
 import { Trash2, Pencil, Leaf, Activity } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { LivestockMainDashboard } from '@/components/livestock/LivestockMainDashboard';
 import { LivestockCategoryDashboard } from '@/components/livestock/LivestockCategoryDashboard';
@@ -20,6 +21,7 @@ import { AddHousingModal } from '@/components/livestock/AddHousingModal';
 import { AddFeedPlanModal } from '@/components/livestock/AddFeedPlanModal';
 
 export default function LivestockPage() {
+    const t = useTranslations('Livestock');
     const router = useRouter();
     const searchParams = useSearchParams();
     const animalIdParam = searchParams.get('animalId');
@@ -145,35 +147,35 @@ export default function LivestockPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 pb-20">
+        <div className="min-h-screen bg-slate-950 pb-20 md:pb-20 pb-[calc(80px+env(safe-area-inset-bottom))]">
             {/* Header */}
-            <div className="bg-slate-900 border-b border-white/5 px-8 py-8 mb-8">
+            <div className="bg-slate-900 border-b border-white/5 px-4 py-6 md:px-8 md:py-8 mb-4 md:mb-8">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
                             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
                                 <Activity className="w-5 h-5" />
                             </div>
-                            <span className="text-blue-400 font-bold uppercase tracking-wider text-xs">Farm Operations</span>
+                            <span className="text-blue-400 font-bold uppercase tracking-wider text-xs">{t('farm_operations')}</span>
                         </div>
-                        <h1 className="text-4xl font-bold text-white mb-1">Livestock Management</h1>
-                        <p className="text-slate-400 max-w-xl">
-                            Monitor herd health, track production, and manage breeding cycles efficiently.
+                        <h1 className="text-2xl md:text-4xl font-bold text-white mb-1">{t('page_title')}</h1>
+                        <p className="text-slate-400 max-w-xl text-sm md:text-base hidden md:block">
+                            {t('page_subtitle')}
                         </p>
                     </div>
 
                     {!selectedCategory && (
                         <button
                             onClick={() => setIsRegisterOpen(true)}
-                            className="bg-green-500 hover:bg-green-400 text-slate-950 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 shadow-lg shadow-green-900/20"
+                            className="w-full md:w-auto bg-green-500 hover:bg-green-400 text-slate-950 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 shadow-lg shadow-green-900/20"
                         >
-                            + Register Animal
+                            + {t('register_animal')}
                         </button>
                     )}
                 </div>
             </div>
 
-            <main className="max-w-7xl mx-auto px-6 space-y-6">
+            <main className="max-w-7xl mx-auto px-4 md:px-6 space-y-6">
                 {selectedCategory ? (
                     <LivestockCategoryDashboard
                         category={selectedCategory}
@@ -199,23 +201,23 @@ export default function LivestockPage() {
                         onAddHousing={() => setIsAddHousingOpen(true)}
                         onAddFeedPlan={() => setIsAddFeedOpen(true)}
                         onDeleteHousing={async (id) => {
-                            if (!confirm("Delete this shelter? Animals will be unassigned.")) return;
+                            if (!confirm(t('confirm_delete_shelter'))) return;
                             try {
                                 await api.livestock.deleteHousing(id);
                                 fetchAnimals();
                             } catch (e) {
                                 console.error(e);
-                                alert("Failed to delete shelter");
+                                alert(t('failed_delete_shelter'));
                             }
                         }}
                         onDeleteFeedPlan={async (id) => {
-                            if (!confirm("Delete this feed plan?")) return;
+                            if (!confirm(t('confirm_delete_feed'))) return;
                             try {
                                 await api.livestock.deleteFeedPlan(id);
                                 fetchAnimals();
                             } catch (e) {
                                 console.error(e);
-                                alert("Failed to delete plan");
+                                alert(t('failed_delete_plan'));
                             }
                         }}
                     />
@@ -268,14 +270,14 @@ export default function LivestockPage() {
                         setViewingAnimal(null);
                     }}
                     onDelete={async () => {
-                        if (!confirm("Are you sure you want to delete this animal?")) return;
+                        if (!confirm(t('confirm_delete_animal'))) return;
                         try {
                             await api.livestock.delete(viewingAnimal.id);
                             setViewingAnimal(null);
                             await fetchAnimals(); // Refresh list
                         } catch (e) {
                             console.error("Failed to delete", e);
-                            alert("Failed to delete animal");
+                            alert(t('failed_delete_animal'));
                         }
                     }}
                     onPrintQr={(a) => setQrModalAnimal(a)}
