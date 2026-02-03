@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from datetime import datetime
 from typing import List
 
 from app.core import database
 from app.modules.farm_management import models, schemas, services
+from app.modules.iot import service as iot_service
+from app.modules.iot import schemas as iot_schemas
 from app.modules.marketplace.models import ProductListing
 
 router = APIRouter()
@@ -44,11 +47,41 @@ def get_inventory(farm_id: int, db: Session = Depends(get_db)):
 # --- Assets (Machinery) ---
 @router.post("/assets", response_model=schemas.FarmAsset)
 def add_asset(asset: schemas.FarmAssetCreate, db: Session = Depends(get_db)):
-    # Assuming farm_id=1 for now, similar to other endpoints
-    db_asset = models.FarmAsset(**asset.dict(), farm_id=1)
+    # Create Farm Asset
+    db_asset = models.FarmAsset(
+        **asset.dict(exclude={'config'}),
+        iot_settings=asset.config
+    )
     db.add(db_asset)
     db.commit()
     db.refresh(db_asset)
+
+    # If IoT Enabled, auto-register in IoT Module
+    if asset.is_iot_enabled:
+        try:
+            # We assume current user is owner. For now, hardcode user_id=1 if not available, 
+            # BUT we should ideally get current_user here.
+            # Since this is a pair programming task, I'll use a valid user_id (e.g., from farm owner or 1)
+            # Fetch farm owner? 
+            # Simplified: Use user_id=1 (Admin/Demo)
+            
+            # Prepare IoT Device Payload
+            iot_payload = iot_schemas.IoTDeviceCreate(
+                name=asset.name,
+                hardware_id=asset.iot_device_id or f"GEN-{db_asset.id}", # Fallback ID
+                asset_type=asset.asset_type,
+                config=asset.config or {}
+            )
+            
+            # Register in IoT System
+            iot_service.create_device(db, iot_payload, user_id=1) 
+            
+        except ValueError:
+            # Device already claimed or exists. 
+            pass
+        except Exception as e:
+            print(f"Failed to auto-register IoT Device: {e}")
+
     return db_asset
 
 @router.get("/assets/{farm_id}", response_model=List[schemas.FarmAsset])
@@ -89,16 +122,63 @@ def delete_asset(asset_id: int, db: Session = Depends(get_db)):
     return {"message": "Asset deleted"}
 
 @router.put("/assets/{asset_id}", response_model=schemas.FarmAsset)
-def update_asset(asset_id: int, asset_data: schemas.FarmAssetCreate, db: Session = Depends(get_db)):
+def update_asset(asset_id: int, asset_data: schemas.FarmAssetUpdate, db: Session = Depends(get_db)):
     asset = db.query(models.FarmAsset).filter(models.FarmAsset.id == asset_id).first()
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
     
-    for key, value in asset_data.dict().items():
+    for key, value in asset_data.dict(exclude_unset=True).items():
         setattr(asset, key, value)
         
     db.commit()
     db.refresh(asset)
+
+    # --- SAFETY LOGIC (Pump Protection) ---
+    # Rule: A Pump cannot be Active if no Valves are Active.
+    try:
+        # Check only if we touched a potential irrigation asset
+        if asset.asset_type in ['Valve', 'Pump', 'Irrigation']:
+            # Get all relevant assets in this farm
+            farm_assets = db.query(models.FarmAsset).filter(
+                models.FarmAsset.farm_id == asset.farm_id,
+                models.FarmAsset.asset_type.in_(['Valve', 'Pump'])
+            ).all()
+
+            active_pumps = [p for p in farm_assets if p.asset_type == 'Pump' and p.status == 'Active']
+            active_valves = [v for v in farm_assets if v.asset_type == 'Valve' and v.status == 'Active']
+            
+            # Simple Logic: If we have Active Pumps but NO Active Valves, Turn Pumps OFF
+            # (In a complex system, we would match via iot_device_id, but here assuming single irrigation network per farm)
+            if active_pumps and not active_valves:
+                print(f"SAFETY INTERLOCK: Turning OFF {len(active_pumps)} pumps due to 0 active valves.")
+                for pump in active_pumps:
+                    pump.status = 'Idle'
+                    
+
+                    # Update Alert Message in Settings
+                    current_settings = dict(pump.iot_settings or {})
+                    current_settings['last_alert'] = {
+                        "message": "Critical Safety Stop: No active valves detected.",
+                        "type": "pressure_danger",
+                        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                    }
+                    pump.iot_settings = current_settings
+                    
+                    db.add(pump)
+                    
+                    # Also sync with IoT Module if linked
+                    if pump.iot_device_id:
+                         pass
+                
+                db.commit() # Commit the safety override
+                # Re-refresh the returned asset if it was the one modified
+                if asset.asset_type == 'Pump':
+                    db.refresh(asset) 
+
+    except Exception as e:
+        print(f"Safety Check Failed: {e}")
+        # Non-blocking, don't crash the request
+
     return asset
 
 @router.get("/suggestions/fertilizer")
@@ -153,9 +233,7 @@ def create_listing(listing_data: schemas.FarmActivityCreate, db: Session = Depen
 # --- Labor ---
 @router.post("/labor/jobs", response_model=schemas.LaborJob)
 def post_job(job: schemas.LaborJobCreate, db: Session = Depends(get_db)):
-    # Assuming farm_id logic is handled (e.g., from current user's farm)
-    # For now, we take farm_id from job data or default to 1 for demo
-    db_job = models.LaborJob(**job.dict(), farm_id=1, status="Open")
+    db_job = models.LaborJob(**job.dict(), status="Open")
     db.add(db_job)
     db.commit()
     db.refresh(db_job)

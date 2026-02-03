@@ -69,6 +69,7 @@ export default function VoiceAssistant() {
         let scrollContainer: HTMLElement | null = null;
         let retryCount = 0;
         const maxRetries = 20; // Try for ~4 seconds
+        let timeoutId: NodeJS.Timeout;
 
         const attachListener = () => {
             scrollContainer = document.getElementById('scrolling-container');
@@ -79,13 +80,14 @@ export default function VoiceAssistant() {
                 if (scrollContainer.scrollTop > 300) setShowScrollTop(true);
             } else if (retryCount < maxRetries) {
                 retryCount++;
-                setTimeout(attachListener, 200);
+                timeoutId = setTimeout(attachListener, 200);
             }
         };
 
         attachListener();
 
         return () => {
+            if (timeoutId) clearTimeout(timeoutId);
             if (scrollContainer) scrollContainer.removeEventListener('scroll', handleScroll);
         };
     }, [pathname]);

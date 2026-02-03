@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 from datetime import date, datetime
 
 # --- Loans ---
@@ -12,7 +12,7 @@ class FarmLoanBase(BaseModel):
     linked_crop_cycle_id: Optional[int] = None
 
 class FarmLoanCreate(FarmLoanBase):
-    pass
+    farm_id: int
 
 class FarmLoan(FarmLoanBase):
     id: int
@@ -33,7 +33,7 @@ class FarmInventoryBase(BaseModel):
     cost_per_unit: float
 
 class FarmInventoryCreate(FarmInventoryBase):
-    pass
+    farm_id: int
 
 class FarmInventory(FarmInventoryBase):
     id: int
@@ -51,14 +51,25 @@ class FarmAssetBase(BaseModel):
     is_iot_enabled: bool = False
 
 class FarmAssetCreate(FarmAssetBase):
-    pass
+    farm_id: int
+    config: Optional[Dict[str, Any]] = {}
 
 class FarmAsset(FarmAssetBase):
     id: int
     farm_id: int
     iot_device_id: Optional[str] = None
+    iot_settings: Optional[Dict[str, Any]] = {}
     class Config:
         from_attributes = True
+
+class FarmAssetUpdate(BaseModel):
+    name: Optional[str] = None
+    asset_type: Optional[str] = None
+    purchase_date: Optional[date] = None
+    cost: Optional[float] = None
+    status: Optional[str] = None
+    is_iot_enabled: Optional[bool] = None
+    iot_device_id: Optional[str] = None
 
 # --- Activities ---
 class FarmActivityCreate(BaseModel):
@@ -89,6 +100,7 @@ class LaborJobCreate(BaseModel):
     wage_per_day: float
     provides_food: bool = False
     provides_travel: bool = False
+    farm_id: int
 
 class LaborJob(LaborJobCreate):
     id: int

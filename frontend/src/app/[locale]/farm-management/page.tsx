@@ -1,5 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from '@/navigation';
 import { useTranslations } from 'next-intl';
 import { FinancialDashboard } from '@/components/farm-management/FinancialDashboard';
 import { CropTimeline } from '@/components/farm-management/CropTimeline';
@@ -15,7 +17,32 @@ import { MachineryManager } from '@/components/farm-management/MachineryManager'
 
 export default function FarmManagementPage() {
     const t = useTranslations('FarmManagement');
-    const [activeTab, setActiveTab] = useState('overview');
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    // Initialize tab from URL or default to 'overview'
+    // Initialize tab from URL or default to 'overview'
+    // Normalize 'irrigation' -> 'iot'
+    const initialTab = searchParams.get('tab') || 'overview';
+    const [activeTab, setActiveTab] = useState(initialTab === 'irrigation' ? 'iot' : initialTab);
+
+    // Sync state if URL changes (e.g. back button)
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'irrigation') {
+            // Alias for iot
+            setActiveTab('iot');
+        } else if (tab) {
+            setActiveTab(tab);
+        }
+    }, [searchParams]);
+
+    const handleTabChange = (tab: string) => {
+        setActiveTab(tab);
+        // Update URL without full reload (using shallow replacement if possible, or just push)
+        router.push(`${pathname}?tab=${tab}`);
+    };
 
     // Real Data States
     const [farmId, setFarmId] = useState(1); // Default to farm 1 for demo
@@ -106,14 +133,14 @@ export default function FarmManagementPage() {
                         <button
                             key={tab}
                             type="button"
-                            onClick={() => setActiveTab(tab)}
+                            onClick={() => handleTabChange(tab)}
                             className={`px-4 py-2 text-sm font-medium border first:rounded-l-lg last:rounded-r-lg capitalize mb-1 md:mb-0
                                 ${activeTab === tab
                                     ? 'z-10 ring-2 ring-green-500 text-green-700 bg-white dark:bg-gray-700 dark:text-white dark:border-white'
                                     : 'bg-white border-gray-200 text-gray-900 hover:bg-gray-100 hover:text-blue-700 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:text-white dark:hover:bg-gray-700'
                                 }`}
                         >
-                            {t(`tabs.${tab}`)}
+                            {tab === 'iot' ? "IoT Devices" : t(`tabs.${tab}`)}
                         </button>
                     ))}
                 </div>
@@ -230,7 +257,7 @@ export default function FarmManagementPage() {
 
             {activeTab === 'machinery' && (
                 <div className="animate-in fade-in duration-500">
-                    <MachineryManager farmId={farmId} />
+                    <MachineryManager farmId={farmId} category="machinery" />
                 </div>
             )}
 
@@ -242,7 +269,7 @@ export default function FarmManagementPage() {
 
             {activeTab === 'iot' && (
                 <div className="animate-in fade-in duration-500">
-                    <IoTControl />
+                    <MachineryManager farmId={farmId} category="iot" />
                 </div>
             )}
 

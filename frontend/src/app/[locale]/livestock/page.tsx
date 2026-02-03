@@ -16,6 +16,8 @@ import { LivestockCategoryDashboard } from '@/components/livestock/LivestockCate
 
 import { QrPrintModal } from '@/components/livestock/QrPrintModal';
 import { SellLivestockModal } from '@/components/livestock/SellLivestockModal';
+import { AddHousingModal } from '@/components/livestock/AddHousingModal';
+import { AddFeedPlanModal } from '@/components/livestock/AddFeedPlanModal';
 
 export default function LivestockPage() {
     const router = useRouter();
@@ -32,9 +34,21 @@ export default function LivestockPage() {
     const [sellingAnimal, setSellingAnimal] = useState<any>(null); // For selling
     const farmId = 1; // Default
 
+    const [housing, setHousing] = useState<any[]>([]);
+    const [feedPlans, setFeedPlans] = useState<any[]>([]);
+    const [isAddHousingOpen, setIsAddHousingOpen] = useState(false);
+    const [isAddFeedOpen, setIsAddFeedOpen] = useState(false);
+    const [stats, setStats] = useState<any[]>([]);
+
     const fetchAnimals = async () => {
         try {
-            const data: any = await api.livestock.list(farmId);
+            // Concurrent fetching for better performance
+            const [data, housingData, feedData, statsData]: [any, any, any, any] = await Promise.all([
+                api.livestock.list(farmId),
+                api.livestock.getHousing(farmId),
+                api.livestock.getFeedPlans(),
+                api.livestock.getStats(farmId)
+            ]);
 
             // Onboarding Logic: If no animals found and never onboarded, create defaults
             if (Array.isArray(data) && data.length === 0) {
@@ -72,9 +86,13 @@ export default function LivestockPage() {
                         farm_id: farmId
                     };
 
+                    // Seed housing if none exists
+                    if (housingData.length === 0) {
+                        // We might want to seed housing here too, but simplest is to just proceed
+                        // api.livestock.createHousing(...)
+                    }
+
                     // Register them
-                    // We use Promise.all to do it in parallel
-                    // Note: If backend fails, we catch it.
                     try {
                         await Promise.all([
                             api.livestock.register(defaultCow),
@@ -87,7 +105,6 @@ export default function LivestockPage() {
                         setAnimals(seededData);
                     } catch (seedErr) {
                         console.error("Seeding failed, using mock state temporarily", seedErr);
-                        // Fallback: Show them locally even if backend failed (Authentication/Server error)
                         setAnimals([
                             { ...defaultCow, id: 'temp-1' },
                             { ...defaultGoat, id: 'temp-2' }
@@ -97,9 +114,13 @@ export default function LivestockPage() {
                 }
             }
 
-            setAnimals(data);
+            setAnimals(data || []);
+            setHousing(housingData || []);
+            setFeedPlans(feedData || []);
+            setStats(statsData || []);
+
         } catch (err) {
-            console.error("Failed to fetch livestock", err);
+            console.error("Failed to fetch livestock data", err);
         }
     };
 
@@ -167,11 +188,36 @@ export default function LivestockPage() {
                 ) : (
                     <LivestockMainDashboard
                         animals={animals}
+                        housing={housing}
+                        feedPlans={feedPlans}
+                        stats={stats}
                         onSelectCategory={setSelectedCategory}
                         onSelectAnimal={(a) => setViewingAnimal(a)}
                         onLog={(a) => setLoggingAnimal(a)}
                         onScanQr={(a) => setQrModalAnimal(a)}
                         onSell={(a) => setSellingAnimal(a)}
+                        onAddHousing={() => setIsAddHousingOpen(true)}
+                        onAddFeedPlan={() => setIsAddFeedOpen(true)}
+                        onDeleteHousing={async (id) => {
+                            if (!confirm("Delete this shelter? Animals will be unassigned.")) return;
+                            try {
+                                await api.livestock.deleteHousing(id);
+                                fetchAnimals();
+                            } catch (e) {
+                                console.error(e);
+                                alert("Failed to delete shelter");
+                            }
+                        }}
+                        onDeleteFeedPlan={async (id) => {
+                            if (!confirm("Delete this feed plan?")) return;
+                            try {
+                                await api.livestock.deleteFeedPlan(id);
+                                fetchAnimals();
+                            } catch (e) {
+                                console.error(e);
+                                alert("Failed to delete plan");
+                            }
+                        }}
                     />
                 )}
             </main>
@@ -183,12 +229,28 @@ export default function LivestockPage() {
                 farmId={farmId}
             />
 
+            <AddHousingModal
+                isOpen={isAddHousingOpen}
+                onClose={() => setIsAddHousingOpen(false)}
+                onSuccess={fetchAnimals}
+                farmId={farmId}
+            />
+
+            <AddFeedPlanModal
+                isOpen={isAddFeedOpen}
+                onClose={() => setIsAddFeedOpen(false)}
+                onSuccess={fetchAnimals}
+                housingList={housing}
+                animals={animals}
+            />
+
             {editingAnimal && (
                 <EditAnimalModal
                     isOpen={!!editingAnimal}
                     onClose={() => setEditingAnimal(null)}
                     onSuccess={fetchAnimals}
                     animal={editingAnimal}
+                    housingList={housing}
                 />
             )}
 

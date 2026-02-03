@@ -11,6 +11,8 @@ import {
     Leaf, Tractor
 } from 'lucide-react';
 
+import { FarmEcosystem } from '@/components/dashboard/FarmEcosystem';
+
 // Dynamic Imports with SSR disabled for heavy widgets
 const ProphetWidget = dynamic(() => import('@/components/dashboard/ProphetWidget'), { ssr: false });
 const WeatherWidget = dynamic(() => import('@/components/dashboard/WeatherWidget'), { ssr: false });
@@ -117,6 +119,34 @@ export default function DashboardView({ locale }: { locale: string }) {
         }
     };
 
+    // Real-time Data Fetching
+    const [realtime, setRealtime] = React.useState<any>(null);
+
+    React.useEffect(() => {
+        if (!token) return;
+
+        const fetchRealtime = async () => {
+            try {
+                const res = await fetch(`${API_BASE_URL}/dashboard/realtime`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const newData = await res.json();
+                    setRealtime((prev: any) => {
+                        // Simple check to avoid re-renders if data is identical
+                        if (JSON.stringify(prev) === JSON.stringify(newData)) return prev;
+                        return newData;
+                    });
+                }
+            } catch (e) { console.error("RT Fetch Error", e); }
+        };
+
+        fetchRealtime();
+        const interval = setInterval(fetchRealtime, 4000); // Poll every 4s
+        return () => clearInterval(interval);
+    }, [token]);
+
+
     return (
         <main className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white selection:bg-green-500/30 font-sans pb-20 transition-colors duration-300">
 
@@ -164,6 +194,95 @@ export default function DashboardView({ locale }: { locale: string }) {
             />
 
             <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-8 mt-6">
+
+                {/* 0. Real-time Status & Suggestions */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Active Operations */}
+                    <div className="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <span className="relative flex h-3 w-3">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                </span>
+                                {tDashboard('live_operations') || "Live Operations"}
+                            </h3>
+                            <Link href="/farm-management?tab=iot" className="text-xs font-bold text-blue-500 hover:text-blue-400">Manage Devices</Link>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {/* Dynamic Real-time Cards */}
+                            {realtime?.active_operations?.length > 0 ? (
+                                realtime.active_operations.map((op: any) => (
+                                    <div key={op.id} className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-100 dark:border-white/5 flex items-center justify-between hover:border-blue-500/30 transition-colors">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400 rounded-lg">
+                                                <Droplets className="w-5 h-5 animate-pulse" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white">{op.name}</p>
+                                                <p className="text-xs text-green-600 dark:text-green-400 font-medium">Running • {op.details}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-xs text-slate-400">Duration</span>
+                                            <p className="font-mono text-sm dark:text-white">{op.duration}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="col-span-2 p-6 text-center text-slate-400 bg-slate-50 dark:bg-slate-950/30 rounded-xl border border-dashed border-slate-200 dark:border-white/10">
+                                    <p className="text-sm">No active machinery or irrigation systems.</p>
+                                    <Link href="/farm-management?tab=iot" className="text-blue-500 text-xs mt-1 block hover:underline">Start a device</Link>
+                                </div>
+                            )}
+
+                            {/* Recent Log (Static for now, could be dynamic later) */}
+                            {(!realtime?.active_operations?.length) && (
+                                <Link href="/farm-management" className="block hover:scale-[1.02] transition-transform col-span-2 sm:col-span-1">
+                                    <div className="p-4 bg-slate-50 dark:bg-slate-950/50 rounded-xl border border-slate-100 dark:border-white/5 cursor-pointer hover:border-green-500/30">
+                                        <p className="text-xs text-slate-400 mb-2 uppercase tracking-wide">Recent Activity</p>
+                                        <ul className="space-y-2">
+                                            <li className="flex items-center justify-between text-sm">
+                                                <span className="text-slate-600 dark:text-slate-300">✅ Zone 2 Irrigation</span>
+                                                <span className="text-slate-400 text-xs">10m ago</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Suggested Actions */}
+                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border border-amber-200 dark:border-amber-500/20 rounded-2xl p-5">
+                        <h3 className="text-lg font-bold text-amber-900 dark:text-amber-400 mb-3 flex items-center gap-2">
+                            <span className="text-amber-500">⚡</span> {tDashboard('suggested_actions') || "Suggested"}
+                        </h3>
+                        <div className="space-y-3">
+                            {realtime?.suggestions?.map((sugg: any) => (
+                                <Link key={sugg.id} href={sugg.action_link} className="block w-full text-left p-3 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-white/5 shadow-sm hover:shadow-md hover:border-amber-300 transition-all group">
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-medium text-slate-800 dark:text-slate-200 text-sm group-hover:text-amber-600 transition-colors">{sugg.title}</span>
+                                        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                                    </div>
+                                    <p className="text-xs text-slate-400 mt-1">{sugg.reason}</p>
+                                    <span className={`inline-block mt-2 text-[10px] px-1.5 py-0.5 rounded border ${sugg.severity === 'High' ? 'text-red-500 bg-red-50 border-red-200' : 'text-slate-400 border-slate-200'}`}>
+                                        {sugg.severity} Priority
+                                    </span>
+                                </Link>
+                            ))}
+                            {(!realtime?.suggestions?.length) && (
+                                <p className="text-sm text-slate-500 italic">No urgent suggestions.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* 0.5 Farm Ecosystem Monitor (Chain Mechanism) */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 rounded-2xl p-5 shadow-sm">
+                    <FarmEcosystem />
+                </div>
 
                 {/* 1. Hero Cards: Weather & Crop Doctor */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

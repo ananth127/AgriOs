@@ -43,7 +43,7 @@ export default function NavigationLoader() {
     if (progress === 0) return null;
 
     return (
-        <div className="fixed top-0 left-0 w-full h-[3px] z-[9999] pointer-events-none">
+        <div className="fixed top-0 left-0 w-full h-[3px] z-[110] pointer-events-none">
             <div
                 className="h-full bg-green-500 transition-all duration-300 ease-out shadow-[0_0_10px_rgba(34,197,94,0.7)]"
                 style={{ width: `${progress}%` }}

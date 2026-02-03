@@ -38,41 +38,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const logout = useCallback(() => {
         localStorage.removeItem('access_token');
+        localStorage.removeItem('user_data');
         setToken(null);
         setUser(null);
         router.push('/auth/login');
     }, [router]);
 
     useEffect(() => {
-        // Check local storage on load
+        // Optimistic Load: Check local storage immediately
         const storedToken = localStorage.getItem('access_token');
+        const storedUser = localStorage.getItem('user_data');
+
         if (storedToken) {
             setToken(storedToken);
-            // Fetch user profile
+            if (storedUser) {
+                try {
+                    setUser(JSON.parse(storedUser));
+                } catch (e) {
+                    console.error("Failed to parse stored user", e);
+                }
+            }
+        }
+
+        // Unblock UI immediately if we have data, or if we have nothing
+        setLoading(false);
+
+        // Background Verification (Revalidate)
+        if (storedToken) {
             fetch(`${API_BASE_URL}/auth/me`, {
                 headers: {
                     'Authorization': `Bearer ${storedToken}`
                 }
             })
-                .then(res => {
-                    if (res.ok) return res.json();
-                    throw new Error('Failed to fetch user');
-                })
-                .then(userData => {
-                    setUser(userData);
+                .then(async res => {
+                    if (res.ok) {
+                        const userData = await res.json();
+                        setUser(userData);
+                        // Update cache with fresh data
+                        localStorage.setItem('user_data', JSON.stringify(userData));
+                    } else if (res.status === 401) {
+                        console.warn("Token expired or invalid during check, logging out.");
+                        logout();
+                    } else {
+                        console.error(`Auth check failed with status: ${res.status}`);
+                    }
                 })
                 .catch((err) => {
-                    console.error("Auth check failed", err);
-                    logout(); // clear invalid token
-                })
-                .finally(() => setLoading(false));
-        } else {
-            setLoading(false);
+                    console.error("Auth check failed (network/other)", err);
+                });
         }
     }, [logout]);
 
     const login = (newToken: string, newUser: User) => {
         localStorage.setItem('access_token', newToken);
+        localStorage.setItem('user_data', JSON.stringify(newUser));
         setToken(newToken);
         setUser(newUser);
         router.push('/');

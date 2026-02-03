@@ -57,7 +57,7 @@ def load_plain_env() -> dict:
     env_vars = {}
     
     if not env_path.exists():
-        print("⚠️  .env file not found!")
+        print(".env file not found!")
         return {}
     
     try:
@@ -82,11 +82,11 @@ def load_plain_env() -> dict:
                     
                     env_vars[key] = value
         
-        print(f"✅ Loaded {len(env_vars)} variables from .env (production mode)")
+        print(f"Loaded {len(env_vars)} variables from .env (production mode)")
         return env_vars
     
     except Exception as e:
-        print(f"❌ Failed to load .env: {e}")
+        print(f"Failed to load .env: {e}")
         return {}
 
 
@@ -104,7 +104,7 @@ def decrypt_env_to_memory(password: str = None) -> dict:
     
     # Check if .env.enc exists
     if not env_enc_path.exists():
-        print("⚠️  .env.enc file not found!")
+        print(".env.enc file not found!")
         return {}
     
     # Get password from environment variable or prompt
@@ -114,10 +114,10 @@ def decrypt_env_to_memory(password: str = None) -> dict:
     if password is None:
         # Always prompt for password (more secure)
         try:
-            password = getpass.getpass("🔐 Enter .env decryption password: ")
+            password = getpass.getpass("Enter .env decryption password: ")
         except Exception:
             # Fallback for environments where getpass doesn't work
-            print("🔐 Enter .env decryption password: ", end='', flush=True)
+            print("Enter .env decryption password: ", end='', flush=True)
             password = input()
     
     try:
@@ -158,11 +158,11 @@ def decrypt_env_to_memory(password: str = None) -> dict:
                 
                 env_vars[key] = value
         
-        print(f"✅ Decrypted {len(env_vars)} variables from .env.enc (development mode)")
+        print(f"Decrypted {len(env_vars)} variables from .env.enc (development mode)")
         return env_vars
     
     except Exception as e:
-        print(f"❌ Decryption failed: {e}")
+        print(f"Decryption failed: {e}")
         return {}
 
 
@@ -176,10 +176,10 @@ def load_env_with_decryption():
     dev_mode = is_dev_mode()
     
     if dev_mode:
-        print("🔧 Running in DEVELOPMENT mode (encrypted .env.enc)")
+        print("Running in DEVELOPMENT mode (encrypted .env.enc)")
         env_vars = decrypt_env_to_memory()
     else:
-        print("🚀 Running in PRODUCTION mode (plain .env)")
+        print("Running in PRODUCTION mode (plain .env)")
         env_vars = load_plain_env()
     
     if env_vars:
@@ -187,12 +187,12 @@ def load_env_with_decryption():
         for key, value in env_vars.items():
             os.environ[key] = value
         
-        print(f"✅ Loaded {len(env_vars)} environment variables into memory")
+        print(f"Loaded {len(env_vars)} environment variables into memory")
         
         # Show loaded keys (not values for security)
-        print(f"📋 Variables: {', '.join(env_vars.keys())}")
+        print(f"Variables: {', '.join(env_vars.keys())}")
     else:
-        print("⚠️  No environment variables loaded")
+        print("No environment variables loaded")
 
 
 if __name__ == "__main__":
@@ -209,11 +209,11 @@ if __name__ == "__main__":
         env_vars = load_plain_env()
     
     if env_vars:
-        print(f"\n✅ Successfully loaded {len(env_vars)} variables")
-        print("📋 Variables:")
+        print(f"\nSuccessfully loaded {len(env_vars)} variables")
+        print("Variables:")
         for key in env_vars.keys():
             print(f"  - {key}")
         sys.exit(0)
     else:
-        print("\n❌ Failed to load environment variables")
+        print("\nFailed to load environment variables")
         sys.exit(1)
