@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { API_BASE_URL } from "@/lib/constants";
 import { motion, AnimatePresence } from "framer-motion";
 import { CloudLightning, Loader2 } from "lucide-react";
@@ -8,6 +8,7 @@ import { CloudLightning, Loader2 } from "lucide-react";
 export default function ServerWakeupIndicator() {
     const [isVisible, setIsVisible] = useState(false);
     const [isWakingUp, setIsWakingUp] = useState(false);
+    const isVisibleRef = useRef(false);
 
     useEffect(() => {
         // Check if we've already done this in this session
@@ -21,6 +22,7 @@ export default function ServerWakeupIndicator() {
             // Set a timeout to show the indicator if the request takes more than 1.5s
             timeoutId = setTimeout(() => {
                 setIsVisible(true);
+                isVisibleRef.current = true;
                 setIsWakingUp(true);
             }, 1000);
 
@@ -46,7 +48,7 @@ export default function ServerWakeupIndicator() {
 
                 // If it was visible, wait a moment before hiding to show "Connected" state if desired,
                 // or just hide it.
-                if (isVisible) {
+                if (isVisibleRef.current) {
                     setIsWakingUp(false);
                     // Keep the "Connected" message for 2 seconds then hide
                     setTimeout(() => {
