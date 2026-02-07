@@ -1,21 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.core import database
+from app.core.database import get_db
+from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.models import User
+from app.core.ownership import require_admin
 from . import service, schemas
 
 router = APIRouter()
 
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 @router.post("/", response_model=schemas.RegistryItem)
-def create_registry_item(item: schemas.RegistryCreate, db: Session = Depends(get_db)):
+def create_registry_item(item: schemas.RegistryCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    require_admin(current_user)
     return service.create_registry_item(db=db, item=item)
 
+# Public read endpoints (reference data)
 @router.get("/search", response_model=schemas.RegistryItem)
 def search_crop(query: str, db: Session = Depends(get_db)):
     """

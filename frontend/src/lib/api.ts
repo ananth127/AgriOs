@@ -55,10 +55,17 @@ async function fetchAPI<T>(endpoint: string, method: RequestMethod = "GET", body
             requestCache.set(cacheKey, { data, timestamp: Date.now() });
         }
 
-        // 3. Invalidate cache on mutations (POST/PUT/DELETE) to ensure freshness
+        // 3. Invalidate related cache entries on mutations (POST/PUT/DELETE)
         if (method !== "GET") {
-            requestCache.clear(); // Simple strategy: clear all on any write to avoid stale state.
-            console.log("🧹 Cache cleared due to mutation");
+            // Extract the base resource path (e.g. "/farm-management/assets/1" -> "/farm-management")
+            const basePath = "/" + endpoint.split("/").filter(Boolean)[0];
+            const keysToDelete: string[] = [];
+            requestCache.forEach((_, key) => {
+                if (key.startsWith(basePath)) {
+                    keysToDelete.push(key);
+                }
+            });
+            keysToDelete.forEach(k => requestCache.delete(k));
         }
 
         return data;
@@ -91,6 +98,9 @@ export const api = {
         get: (id: number) => fetchAPI(`/farms/${id}`),
         update: (id: number, data: any) => fetchAPI(`/farms/${id}`, "PUT", data),
         delete: (id: number) => fetchAPI(`/farms/${id}`, "DELETE"),
+        detectBoundaries: (lat: number, lng: number, zoom: number = 18) => fetchAPI("/farms/detect-boundaries", "POST", { lat, lng, zoom }),
+        createZone: (farmId: number, data: any) => fetchAPI(`/farms/${farmId}/zones`, "POST", data),
+        deleteZone: (zoneId: number) => fetchAPI(`/farms/zones/${zoneId}`, "DELETE"),
     },
     prophet: {
         predict: (data: any) => fetchAPI("/prophet/predict", "POST", data),

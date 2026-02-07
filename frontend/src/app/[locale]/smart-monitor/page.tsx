@@ -10,8 +10,9 @@ import {
     Move, ZoomIn, ZoomOut, RotateCw, RotateCcw, Crosshair, Eye, Shield, Zap
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { getUserFarmId } from '@/lib/userFarm';
 
-import { AddAssetModal } from '@/components/farm-management/AddAssetModal'; // Import Modal
+import { AddAssetModal } from '@/components/farm-management/AddAssetModal';
 
 export default function SmartMonitorPage() {
     const searchParams = useSearchParams();
@@ -45,16 +46,15 @@ export default function SmartMonitorPage() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Get Farm ID
-                const farmRes = await api.farmManagement.getUserFarmId();
-                const fId = farmRes.farm_id;
+                // 1. Get Farm ID (cached after first call)
+                const fId = await getUserFarmId();
                 setFarmId(fId);
 
-                // 2. Fetch IoT Devices
-                const devices = await api.iot.getDevices() as any[];
-
-                // 3. Fetch Farm Assets (to get Cameras)
-                const assets = await api.farmManagement.getAssets(fId) as any[];
+                // 2. Fetch IoT Devices + Farm Assets in parallel
+                const [devices, assets] = await Promise.all([
+                    api.iot.getDevices() as Promise<any[]>,
+                    api.farmManagement.getAssets(fId) as Promise<any[]>,
+                ]);
 
                 // Filter Cameras
                 const cameras = assets
@@ -126,7 +126,7 @@ export default function SmartMonitorPage() {
         };
 
         fetchData();
-        const interval = setInterval(fetchData, 10000);
+        const interval = setInterval(fetchData, 30000);
         return () => clearInterval(interval);
     }, [targetId]);
 

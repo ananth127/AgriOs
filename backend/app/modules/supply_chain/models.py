@@ -7,6 +7,7 @@ class ProductBatch(Base):
     __tablename__ = "supply_chain_batches"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     crop_cycle_id = Column(Integer, index=True) # Optional link to source crop
     product_name = Column(String)
     quantity = Column(Float)

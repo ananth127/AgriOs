@@ -3,7 +3,7 @@ import { trackLocationSelect, trackCurrentLocation } from '@/lib/analytics';
 import { useTranslations } from 'next-intl';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polygon } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import '../styles/leaflet-patched.css';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import { Search, MapPin, X, Loader2, ChevronDown, Layout, Check, Grid } from 'lucide-react';

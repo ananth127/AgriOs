@@ -28,6 +28,28 @@ export default function FarmsPage() {
         }
     ), [t]);
 
+    // Helper to parse WKT
+    const parseWKT = (wkt: string): [number, number][] => {
+        if (!wkt) return [];
+        try {
+            const matches = wkt.match(/-?\d+\.\d+/g);
+            if (matches && matches.length >= 2) {
+                const points: [number, number][] = [];
+                for (let i = 0; i < matches.length; i += 2) {
+                    const x = parseFloat(matches[i]); // Lon
+                    const y = parseFloat(matches[i + 1]); // Lat
+                    if (!isNaN(x) && !isNaN(y)) {
+                        points.push([y, x]); // Leaflet uses [Lat, Lon]
+                    }
+                }
+                return points;
+            }
+        } catch (e) {
+            console.warn("Failed to parse WKT", wkt);
+        }
+        return [];
+    };
+
     const fetchFarms = useCallback(() => {
         api.farms.list()
             .then((data: any) => {
@@ -36,44 +58,36 @@ export default function FarmsPage() {
                     const processedFarms = data.map(f => {
                         let lat = f.latitude;
                         let lon = f.longitude;
-                        let boundary: [number, number][] = [];
+                        let boundary: [number, number][] = f.boundary || [];
 
-                        if (!lat && typeof f.geometry === 'string') {
-                            try {
-                                // Simple WKT parser for POLYGON((x y, ...)) or POINT(x y)
-                                // Matches all float numbers
-                                const matches = f.geometry.match(/-?\d+\.\d+/g);
-                                if (matches && matches.length >= 2) {
-                                    // WKT Order is usually (Lon Lat)
-                                    let totalLat = 0, totalLon = 0, count = 0;
-                                    const points: [number, number][] = [];
+                        // 1. Parse Farm Geometry
+                        if (typeof f.geometry === 'string') {
+                            const parsed = parseWKT(f.geometry);
+                            if (parsed.length > 0) {
+                                boundary = parsed;
 
-                                    for (let i = 0; i < matches.length; i += 2) {
-                                        const x = parseFloat(matches[i]);   // Lon
-                                        const y = parseFloat(matches[i + 1]); // Lat
-                                        if (!isNaN(x) && !isNaN(y)) {
-                                            totalLon += x;
-                                            totalLat += y;
-                                            count++;
-                                            points.push([y, x]); // Leaflet uses [Lat, Lon]
-                                        }
-                                    }
-
-                                    if (count > 0) {
-                                        lat = totalLat / count;
-                                        lon = totalLon / count;
-                                        boundary = points;
-                                    }
+                                // Calculate centroid key if lat/lon missing
+                                if (!lat) {
+                                    let totalLat = 0, totalLon = 0;
+                                    parsed.forEach(p => { totalLat += p[0]; totalLon += p[1]; });
+                                    lat = totalLat / parsed.length;
+                                    lon = totalLon / parsed.length;
                                 }
-                            } catch (e) {
-                                console.warn("Failed to parse WKT", f.geometry);
                             }
                         }
+
+                        // 2. Parse Zone Geometries
+                        const processedZones = (f.zones || []).map((z: any) => ({
+                            ...z,
+                            boundary: z.geometry ? parseWKT(z.geometry) : []
+                        }));
+
                         return {
                             ...f,
                             latitude: lat,
                             longitude: lon,
-                            boundary: f.boundary || boundary
+                            boundary: boundary,
+                            zones: processedZones
                         };
                     });
 
@@ -118,9 +132,18 @@ export default function FarmsPage() {
         farms.find(f => f.id === selectedFarmId) || farms[0]
         , [farms, selectedFarmId]);
 
-    // Ensure we always have 4 zones
+    // Ensure we always have at least 4 zones (or show all if more)
     const displayZones = useMemo(() => {
         const zones = currentFarm?.zones || [];
+
+        // 1. Map existing actual zones
+        const mappedZones = zones.map((z: any) => ({
+            ...z,
+            id: String(z.id),
+            name: z.name || `Zone ${z.id}`,
+            isPlaceholder: false
+        }));
+
         const quadrants = [
             { id: '1', defaultName: 'Zone 1 (North-East)', type: 'NE' },
             { id: '2', defaultName: 'Zone 2 (South-East)', type: 'SE' },
@@ -128,23 +151,20 @@ export default function FarmsPage() {
             { id: '4', defaultName: 'Zone 4 (North-West)', type: 'NW' },
         ];
 
-        return quadrants.map((q, idx) => {
-            const propZone = zones[idx];
-            if (propZone) {
-                return {
-                    ...propZone,
-                    id: String(propZone.id),
-                    name: propZone.name || q.defaultName,
-                    isPlaceholder: false
-                };
+        // 2. Pad with placeholders if fewer than 4
+        const result = [...mappedZones];
+        if (result.length < 4) {
+            for (let i = result.length; i < 4; i++) {
+                const q = quadrants[i];
+                result.push({
+                    id: `placeholder-${q.id}`,
+                    name: q.defaultName,
+                    details: { crop: 'Empty', status: 'Available' },
+                    isPlaceholder: true
+                });
             }
-            return {
-                id: `placeholder-${q.id}`,
-                name: q.defaultName,
-                details: { crop: 'Empty', status: 'Available' },
-                isPlaceholder: true
-            };
-        });
+        }
+        return result;
     }, [currentFarm]);
 
     const [viewCenter, setViewCenter] = useState<[number, number] | null>(null);
@@ -193,7 +213,20 @@ export default function FarmsPage() {
         setActiveZone(String(zone.id));
         setIsZonesExpanded(false);
 
-        // Move to zone center
+        // Priority 1: Use actual Geometry Centroid
+        if (zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 0) {
+            let totalLat = 0, totalLon = 0;
+            zone.boundary.forEach((p: [number, number]) => {
+                totalLat += p[0];
+                totalLon += p[1];
+            });
+            const centerLat = totalLat / zone.boundary.length;
+            const centerLon = totalLon / zone.boundary.length;
+            setViewCenter([centerLat, centerLon]);
+            return;
+        }
+
+        // Priority 2: Fallback to Quadrant Logic (for placeholders)
         if (currentFarm && currentFarm.latitude && currentFarm.longitude) {
             // The ZoneGrid in FarmMap uses a fixed size 'd = 0.00045'
             // To center on the quadrant, we need d/2 = 0.000225
@@ -214,6 +247,55 @@ export default function FarmsPage() {
         }
     };
 
+    // Dynamically import BoundaryTools to avoid Leaflet SSR issues
+    const BoundaryTools = useMemo(() => dynamic(
+        () => import('@/components/farms/BoundaryTools'),
+        { ssr: false }
+    ), []);
+
+    const [isDrawingMode, setIsDrawingMode] = useState(false);
+
+    const handleZoneCreate = async (geometryWKT: string, details: any) => {
+        if (!selectedFarmId) {
+            alert(t('custom_error_select_farm_first') || "Please select a farm first.");
+            // Fallback string if translation missing
+            return;
+        }
+
+        const name = prompt(t('prompt_zone_name') || "Enter name for this new zone:", `Zone ${farms.find(f => f.id === selectedFarmId)?.zones?.length + 1 || 1} (AI Detected)`);
+        if (!name) return;
+
+        try {
+            await api.farms.createZone(selectedFarmId, {
+                name,
+                geometry: geometryWKT,
+                details: {
+                    ...details,
+                    status: 'Active',
+                    crop: details.crop_prediction || 'Unknown'
+                }
+            });
+            // Refresh
+            fetchFarms();
+            alert(t('success_zone_added') || "Zone added successfully!");
+        } catch (error) {
+            console.error("Failed to add zone", error);
+            alert(t('error_add_zone') || "Failed to add zone.");
+        }
+    };
+
+    const handleDeleteZone = async (zoneId: number) => {
+        if (confirm(t('confirm_delete') || "Are you sure you want to delete this zone?")) {
+            try {
+                await api.farms.deleteZone(zoneId);
+                fetchFarms();
+            } catch (error) {
+                console.error("Failed to delete zone", error);
+                alert("Failed to delete zone");
+            }
+        }
+    };
+
     return (
         <div className="flex h-full relative">
             {/* Map (Full background) */}
@@ -225,116 +307,121 @@ export default function FarmsPage() {
                     userLocation={userLocation}
                     activeZone={activeZone} // Pass activeZone if Map supports it (update later)
                     zones={displayZones}    // Pass zones for Grid
-                />
+                    onDeleteZone={handleDeleteZone}
+                >
+                    {selectedFarmId && <BoundaryTools onZoneCreated={handleZoneCreate} onDrawStateChange={setIsDrawingMode} />}
+                </FarmMap>
             </div>
 
             {/* Floating Overlay Panel - Dynamic Height */}
-            <div className="absolute top-0 left-0 right-0 z-10 p-2 md:p-4 w-full md:w-96 flex flex-col gap-2 md:gap-3 pointer-events-none max-h-screen overflow-hidden">
+            {!isDrawingMode && (
+                <div className="absolute top-0 left-0 z-10 p-2 md:p-4 w-[calc(100%-64px)] md:w-96 flex flex-col gap-2 md:gap-3 pointer-events-none max-h-screen overflow-hidden">
 
-                {/* 1. Search Bar (Above Farm) */}
-                <div className="pointer-events-auto relative shadow-xl flex gap-2">
-                    <div className="relative flex-1">
-                        <input
-                            type="text"
-                            placeholder={t('search_location')}
-                            className="w-full bg-slate-900/95 backdrop-blur text-white border border-white/20 rounded-xl px-3 py-2 md:px-4 md:py-3 shadow-2xl focus:outline-none focus:border-green-500 text-sm pl-11"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        />
+                    {/* 1. Search Bar (Above Farm) */}
+                    <div className="pointer-events-auto relative shadow-xl flex gap-2">
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                placeholder={t('search_location')}
+                                className="w-full bg-slate-900/95 backdrop-blur text-white border border-white/20 rounded-xl px-3 py-2 md:px-4 md:py-3 shadow-2xl focus:outline-none focus:border-green-500 text-sm pl-11"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                            />
+                            <button
+                                onClick={handleSearch}
+                                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white"
+                            >
+                                🔍
+                            </button>
+                        </div>
+                        {/* Add Farm Button */}
                         <button
-                            onClick={handleSearch}
-                            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white"
+                            onClick={() => setIsModalOpen(true)}
+                            className="bg-green-600 hover:bg-green-500 text-white rounded-xl px-4 flex items-center justify-center shadow-xl"
+                            title={t('add_new_farm')}
                         >
-                            🔍
+                            <Plus className="w-5 h-5" />
                         </button>
                     </div>
-                    {/* Add Farm Button */}
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-green-600 hover:bg-green-500 text-white rounded-xl px-4 flex items-center justify-center shadow-xl"
-                        title={t('add_new_farm')}
-                    >
-                        <Plus className="w-5 h-5" />
-                    </button>
-                </div>
 
-                {/* 2. Farm Selector (Compact) */}
-                <Card className="p-3 md:p-4 bg-slate-900/95 backdrop-blur border-white/10 shadow-xl pointer-events-auto shrink-0">
-                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{t('current_farm')}</label>
-                    <select
-                        className="w-full bg-transparent font-bold text-base md:text-lg mt-0.5 focus:outline-none cursor-pointer appearance-none text-white truncate pr-4"
-                        value={selectedFarmId ?? ''}
-                        onChange={(e) => setSelectedFarmId(e.target.value ? parseInt(e.target.value) : undefined)}
-                    >
-                        <option value="" className="bg-slate-900 text-slate-400">{t('view_all_location')}</option>
-                        {farms.length > 0 ? (
-                            farms.map(f => <option key={f.id} value={f.id} className="bg-slate-900">{f.name}</option>)
-                        ) : (
-                            <option value="" disabled>{t('no_farms')}</option>
-                        )}
-                    </select>
-                    <div className="mt-3 flex gap-4 text-xs">
-                        <div>
-                            <div className="text-slate-500">{t('owners')}</div>
-                            <div className="font-mono text-white">{t('self')}</div>
-                        </div>
-                        <div>
-                            <div className="text-slate-500">{t('soil_type')}</div>
-                            <div className="font-mono text-green-400">
-                                {currentFarm?.soil_profile?.type || tGlobal('unknown')}
+                    {/* 2. Farm Selector (Compact) */}
+                    <Card className="p-3 md:p-4 bg-slate-900/95 backdrop-blur border-white/10 shadow-xl pointer-events-auto shrink-0">
+                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{t('current_farm')}</label>
+                        <select
+                            className="w-full bg-transparent font-bold text-base md:text-lg mt-0.5 focus:outline-none cursor-pointer appearance-none text-white truncate pr-4"
+                            value={selectedFarmId ?? ''}
+                            onChange={(e) => setSelectedFarmId(e.target.value ? parseInt(e.target.value) : undefined)}
+                        >
+                            <option value="" className="bg-slate-900 text-slate-400">{t('view_all_location')}</option>
+                            {farms.length > 0 ? (
+                                farms.map(f => <option key={f.id} value={f.id} className="bg-slate-900">{f.name}</option>)
+                            ) : (
+                                <option value="" disabled>{t('no_farms')}</option>
+                            )}
+                        </select>
+                        <div className="mt-3 flex gap-4 text-xs">
+                            <div>
+                                <div className="text-slate-500">{t('owners')}</div>
+                                <div className="font-mono text-white">{t('self')}</div>
+                            </div>
+                            <div>
+                                <div className="text-slate-500">{t('soil_type')}</div>
+                                <div className="font-mono text-green-400">
+                                    {currentFarm?.soil_profile?.type || tGlobal('unknown')}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </Card>
+                    </Card>
 
-                {/* 3. Active Zones (Collapsible) */}
-                <Card className="p-0 bg-slate-900/95 backdrop-blur border-white/10 shadow-xl pointer-events-auto flex flex-col overflow-hidden shrink transition-all duration-300">
-                    <div
-                        className="p-2 md:p-3 border-b border-white/10 flex justify-between items-center cursor-pointer hover:bg-white/5 bg-slate-800/50"
-                        onClick={() => setIsZonesExpanded(!isZonesExpanded)}
-                    >
-                        <h3 className="font-semibold text-sm text-slate-300">
-                            {activeZone === 'all'
-                                ? t('active_zones')
-                                : displayZones.find(z => String(z.id) === activeZone)?.name || t('active_zones')
-                            }
-                        </h3>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-medium">{displayZones.length} Active</span>
-                            <span className={`text-slate-500 text-xs transition-transform ${isZonesExpanded ? 'rotate-180' : ''}`}>
-                                ▼
-                            </span>
+                    {/* 3. Active Zones (Collapsible) */}
+                    <Card className="p-0 bg-slate-900/95 backdrop-blur border-white/10 shadow-xl pointer-events-auto flex flex-col overflow-hidden shrink transition-all duration-300">
+                        <div
+                            className="p-2 md:p-3 border-b border-white/10 flex justify-between items-center cursor-pointer hover:bg-white/5 bg-slate-800/50"
+                            onClick={() => setIsZonesExpanded(!isZonesExpanded)}
+                        >
+                            <h3 className="font-semibold text-sm text-slate-300">
+                                {activeZone === 'all'
+                                    ? t('active_zones')
+                                    : displayZones.find(z => String(z.id) === activeZone)?.name || t('active_zones')
+                                }
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded font-medium">{displayZones.length} Active</span>
+                                <span className={`text-slate-500 text-xs transition-transform ${isZonesExpanded ? 'rotate-180' : ''}`}>
+                                    ▼
+                                </span>
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Collapsible Content */}
-                    <div className={`${isZonesExpanded ? 'max-h-[300px]' : 'max-h-0'} overflow-y-auto transition-all duration-300 ease-in-out`}>
-                        <div className="divide-y divide-white/5">
-                            {displayZones.map((zone) => (
-                                <div
-                                    key={zone.id}
-                                    onClick={() => handleZoneSelect(zone)}
-                                    className={`p-2 md:p-3 hover:bg-white/5 cursor-pointer transition-colors ${activeZone === String(zone.id) ? 'bg-green-500/10' : ''}`}
-                                >
-                                    <div className="flex justify-between items-center">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`font-medium text-sm ${activeZone === String(zone.id) ? 'text-green-400' : 'text-slate-200'}`}>
-                                                {zone.name}
-                                                {zone.details?.crop && !zone.isPlaceholder && <span className="text-slate-500 font-normal ml-1">- {zone.details.crop}</span>}
-                                            </span>
+                        {/* Collapsible Content */}
+                        <div className={`${isZonesExpanded ? 'max-h-[300px]' : 'max-h-0'} overflow-y-auto transition-all duration-300 ease-in-out`}>
+                            <div className="divide-y divide-white/5">
+                                {displayZones.map((zone) => (
+                                    <div
+                                        key={zone.id}
+                                        onClick={() => handleZoneSelect(zone)}
+                                        className={`p-2 md:p-3 hover:bg-white/5 cursor-pointer transition-colors ${activeZone === String(zone.id) ? 'bg-green-500/10' : ''}`}
+                                    >
+                                        <div className="flex justify-between items-center">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`font-medium text-sm ${activeZone === String(zone.id) ? 'text-green-400' : 'text-slate-200'}`}>
+                                                    {zone.name}
+                                                    {zone.details?.crop && !zone.isPlaceholder && <span className="text-slate-500 font-normal ml-1">- {zone.details.crop}</span>}
+                                                </span>
+                                            </div>
+                                            <div className={`h-1.5 w-1.5 rounded-full ${zone.isPlaceholder ? 'bg-slate-600' : 'bg-green-500'}`}></div>
                                         </div>
-                                        <div className={`h-1.5 w-1.5 rounded-full ${zone.isPlaceholder ? 'bg-slate-600' : 'bg-green-500'}`}></div>
+                                        <p className="text-[10px] text-slate-400 mt-1">
+                                            {zone.details?.status || (zone.isPlaceholder ? 'Available' : 'Active')}
+                                        </p>
                                     </div>
-                                    <p className="text-[10px] text-slate-400 mt-1">
-                                        {zone.details?.status || (zone.isPlaceholder ? 'Available' : 'Active')}
-                                    </p>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
-                    </div>
-                </Card>
-            </div>
+                    </Card>
+                </div>
+            )}
             <CreateFarmModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}

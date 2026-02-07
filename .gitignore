@@ -33,6 +33,7 @@ vertex-key.json
 .env.production
 .env.*.local
 backend/.env
+backend/.enva
 frontend/.env.local
 
 # Encrypted .env files are OK to commit
@@ -45,9 +46,13 @@ frontend/.env.local
 *.sqlite
 *.sqlite3
 sql_app.db
+archive/
 
 # IDE
 .vscode/
+.gemini/
+.claude/
+.opencode/
 .idea/
 *.swp
 *.swo
@@ -86,3 +91,4 @@ build/
 *.tmp
 *.temp
 .cache/
+nul

@@ -6,9 +6,31 @@ except Exception as e:
     print(f"Could not load encrypted .env: {e}")
     # Continue anyway - env vars might be set directly
 
+import os
+import traceback
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import text
+
 from app.core import database
+
+# --- Model imports (needed for create_all) ---
 from app.modules.registry import models as registry_models
+from app.modules.auth import models as auth_models
+from app.modules.knowledge_graph import models as kg_models
+from app.modules.diagnosis import models as diagnosis_models
+from app.modules.iot import models as iot_models
+from app.modules.machinery import models as mach_models
+from app.modules.labor import models as labor_models
+from app.modules.inventory import models as inv_models
+from app.modules.retailer import models as retail_models
+from app.modules.market_access import models as market_models
+from app.modules.fintech import models as fintech_models
+from app.modules.traceability import models as trace_models
+
+# --- Router imports ---
+from app.modules.auth import router as auth_router
 from app.modules.registry import router as registry_router
 from app.modules.farms import router as farms_router
 from app.modules.prophet import router as prophet_router
@@ -19,35 +41,33 @@ from app.modules.crops import router as crops_router
 from app.modules.livestock import router as livestock_router
 from app.modules.supply_chain import router as supply_router
 from app.modules.farm_management import routers as farm_mgmt_router
-
-from app.modules.auth import models as auth_models
-from app.modules.auth import router as auth_router
-from app.modules.knowledge_graph import models as kg_models
-from app.modules.diagnosis import models as diagnosis_models
-from app.modules.iot import models as iot_models
+from app.modules.weather import router as weather_router
+from app.modules.sync import router as sync_router
+from app.modules.ufsi import router as ufsi_router
+from app.modules.consent import router as consent_router
+from app.modules.diagnosis import router as diagnosis_router
+from app.modules.knowledge_graph import router as kg_router
 from app.modules.iot import router as iot_router
+from app.modules.dashboard import router as dashboard_router
+from app.modules.logging import router as logging_router
 
-# Create tables (Registry, Auth, etc)
-# Using database.Base ensures all imported models are created
+# Create tables
 database.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Agri-OS Backend")
 
-from fastapi.middleware.cors import CORSMiddleware
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Allow all origins for local dev
+    allow_origin_regex="https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-from fastapi.staticfiles import StaticFiles
-import os
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# --- Mount all routers ---
 app.include_router(auth_router.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(registry_router.router, prefix="/api/v1/registry", tags=["registry"])
 app.include_router(farms_router.router, prefix="/api/v1/farms", tags=["farms"])
@@ -58,189 +78,77 @@ app.include_router(voice_router.router, prefix="/api/v1/voice-search", tags=["vo
 app.include_router(crops_router.router, prefix="/api/v1/crops", tags=["crops"])
 app.include_router(livestock_router.router, prefix="/api/v1/livestock", tags=["livestock"])
 app.include_router(supply_router.router, prefix="/api/v1/supply-chain", tags=["supply_chain"])
-
 app.include_router(farm_mgmt_router.router, prefix="/api/v1/farm-management", tags=["farm_management"])
-
-from app.modules.weather import router as weather_router
 app.include_router(weather_router.router, prefix="/api/v1/weather", tags=["weather"])
-
-from app.modules.sync import router as sync_router
 app.include_router(sync_router.router, prefix="/api/v1/sync", tags=["sync"])
-
-# Phase 3: Farm Operations
-from app.modules.machinery import models as mach_models
-from app.modules.labor import models as labor_models
-from app.modules.inventory import models as inv_models
-# (Routers would go here, omitting for brevity in this step)
-
-# Phase 4: Commerce
-from app.modules.retailer import models as retail_models
-from app.modules.market_access import models as market_models
-
-# Phase 5: Fintech
-from app.modules.fintech import models as fintech_models
-
-# Phase 6: Traceability
-from app.modules.traceability import models as trace_models
-
-from app.modules.ufsi import router as ufsi_router
 app.include_router(ufsi_router.router, prefix="/api/v1/ufsi", tags=["ufsi"])
-
-from app.modules.consent import router as consent_router
-
-from app.modules.consent import router as consent_router
 app.include_router(consent_router.router, prefix="/api/v1/consent", tags=["consent"])
-
-from app.modules.diagnosis import router as diagnosis_router
 app.include_router(diagnosis_router.router, prefix="/api/v1/diagnosis", tags=["diagnosis"])
-from app.modules.knowledge_graph import router as kg_router
 app.include_router(kg_router.router, prefix="/api/v1/library", tags=["knowledge_graph"])
-
 app.include_router(iot_router.router, prefix="/api/v1/iot", tags=["iot"])
-
-from app.modules.dashboard import router as dashboard_router
 app.include_router(dashboard_router.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+app.include_router(logging_router, prefix="/api/v1", tags=["logging"])
 
-# Trigger Reload: Fixed Services Import
-
-# Trigger Reload: Added exception handling to routers
 
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Agri-OS Universal Backend"}
 
-from sqlalchemy import text
-from app.core import database
-import traceback
 
-@app.get("/fix-db")
-def fix_db():
+def _run_schema_migrations():
+    """Internal schema migration — runs at startup, not exposed as an endpoint."""
     try:
         with database.engine.connect() as connection:
-            # 1. Add filled_count to labor_jobs
-            try:
-                connection.execute(text("ALTER TABLE labor_jobs ADD COLUMN IF NOT EXISTS filled_count INTEGER DEFAULT 0;"))
-                connection.commit()
-            except Exception as e:
-                connection.rollback()
-                print(f"Labor jobs update skipped: {e}")
-            
-            # 2. Add diagnosis detailed columns
-            columns = [
-                "cause TEXT", 
-                "prevention TEXT", 
-                "treatment_organic TEXT", 
-                "treatment_chemical TEXT", 
-                "identified_crop VARCHAR"
-            ]
-            
-            for col_def in columns:
+            # Helper for safe column addition (works on both PostgreSQL and SQLite)
+            def _add_column(table, col_def):
                 try:
-                    connection.execute(text(f"ALTER TABLE diagnosis_logs ADD COLUMN {col_def};"))
+                    connection.execute(text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col_def};"))
                     connection.commit()
-                except Exception as db_err:
+                except Exception:
                     connection.rollback()
-                    print(f"Column likely exists or error adding {col_def}: {db_err}")
-
-            # 3. Add category and image_url to commercial_products
-            commercial_cols = ["category VARCHAR", "image_url VARCHAR"]
-            for col_def in commercial_cols:
-                try:
-                    connection.execute(text(f"ALTER TABLE commercial_products ADD COLUMN IF NOT EXISTS {col_def};"))
-                    connection.commit()
-                except Exception as e:
-                    connection.rollback()
-                    print(f"Commercial products update skipped for {col_def}: {e}")
-
-            # 4. Add listing_type, description, image_url to product_listings
-            listing_cols = ["listing_type VARCHAR DEFAULT 'SELL'", "description TEXT", "image_url VARCHAR", "category VARCHAR"]
-            for col_def in listing_cols:
-                try:
-                    connection.execute(text(f"ALTER TABLE product_listings ADD COLUMN IF NOT EXISTS {col_def};"))
-                    connection.commit()
-                except Exception as e:
-                    connection.rollback()
-                    print(f"Product listings update skipped for {col_def}: {e}")
-
-            # 5. Add created_at to product_listings
-            try:
-                connection.execute(text("ALTER TABLE product_listings ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();"))
-                connection.commit()
-            except Exception as e:
-                connection.rollback()
-                print(f"Product listings update skipped for created_at: {e}")
-
-            # 6. Add survey_number and boundary to users
-            user_cols = ["survey_number VARCHAR", "boundary JSON"]
-            for col_def in user_cols:
-                try:
-                    connection.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col_def};"))
-                    connection.commit()
-                except Exception as e:
-                    connection.rollback()
-                    print(f"Users update skipped for {col_def}: {e}")
-
-            # 7. Add QR columns to livestock
-            livestock_cols = ["qr_code VARCHAR", "qr_created_at TIMESTAMP"]
-            for col_def in livestock_cols:
-                try:
-                    connection.execute(text(f"ALTER TABLE livestock ADD COLUMN IF NOT EXISTS {col_def};"))
-                    connection.commit()
-                except Exception as e:
-                    connection.rollback()
-                    # Fallback for SQLite which might not like IF NOT EXISTS or TIMESTAMP syntax variations
                     try:
-                        # Simple ADD COLUMN without IF NOT EXISTS (catch error if duplicate)
-                        clean_col = col_def.replace("IF NOT EXISTS ", "")
-                        connection.execute(text(f"ALTER TABLE livestock ADD COLUMN {clean_col};"))
+                        connection.execute(text(f"ALTER TABLE {table} ADD COLUMN {col_def};"))
                         connection.commit()
                     except Exception as e2:
-                        print(f"Livestock update skipped for {col_def}: {e2}")
+                        connection.rollback()
+                        print(f"Migration skipped: {table}.{col_def.split()[0]} — {e2}")
 
-            # 8. Add missing profile columns to livestock
-            livestock_profile_cols = [
-                "name VARCHAR",
-                "gender VARCHAR DEFAULT 'Female'",
-                "purpose VARCHAR DEFAULT 'Dairy'",
-                "origin VARCHAR DEFAULT 'BORN'",
-                "source_details TEXT",
-                "parent_id INTEGER"
-            ]
-            for col_def in livestock_profile_cols:
-                try:
-                    connection.execute(text(f"ALTER TABLE livestock ADD COLUMN IF NOT EXISTS {col_def};"))
-                    connection.commit()
-                except Exception as e:
-                    connection.rollback()
-                    # Fallback for SQLite
-                    try:
-                        clean_col = col_def.replace("IF NOT EXISTS ", "")
-                        connection.execute(text(f"ALTER TABLE livestock ADD COLUMN {clean_col};"))
-                        connection.commit()
-                    except Exception as e2:
-                        print(f"Livestock profile update skipped for {col_def}: {e2}")
+            # 1. Labor jobs
+            _add_column("labor_jobs", "filled_count INTEGER DEFAULT 0")
 
-            return {"status": "success", "message": "Database schema updated."}
+            # 2. Diagnosis detailed columns
+            for col in ["cause TEXT", "prevention TEXT", "treatment_organic TEXT", "treatment_chemical TEXT", "identified_crop VARCHAR"]:
+                _add_column("diagnosis_logs", col)
+
+            # 3. Commercial products
+            for col in ["category VARCHAR", "image_url VARCHAR"]:
+                _add_column("commercial_products", col)
+
+            # 4. Product listings
+            for col in ["listing_type VARCHAR DEFAULT 'SELL'", "description TEXT", "image_url VARCHAR", "category VARCHAR"]:
+                _add_column("product_listings", col)
+            _add_column("product_listings", "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+
+            # 5. Users
+            for col in ["survey_number VARCHAR", "boundary JSON"]:
+                _add_column("users", col)
+
+            # 6. Livestock QR + profile columns
+            for col in ["qr_code VARCHAR", "qr_created_at TIMESTAMP", "name VARCHAR", "gender VARCHAR DEFAULT 'Female'", "purpose VARCHAR DEFAULT 'Dairy'", "origin VARCHAR DEFAULT 'BORN'", "source_details TEXT", "parent_id INTEGER"]:
+                _add_column("livestock", col)
+
+            # 7. Multi-user isolation: Add user_id to diagnosis_logs
+            _add_column("diagnosis_logs", "user_id INTEGER")
+
+            # 8. Multi-user isolation: Add user_id to supply_chain_batches
+            _add_column("supply_chain_batches", "user_id INTEGER")
+
+            print("Schema migrations completed.")
     except Exception as e:
-        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
+        print(f"Schema migration error: {e}")
 
-@app.get("/debug-financials-error")
-def debug_financials_error():
-    try:
-        from app.modules.farm_management import services
-        db = database.SessionLocal()
-        svc = services.FarmManagementService(db)
-        # Attempt to get financials for farm 1
-        return svc.get_financial_summary(1)
-    except Exception as e:
-        return {"status": "error", "message": str(e), "traceback": traceback.format_exc()}
-
-# Trigger Reload: New Env VARS loaded
 
 @app.on_event("startup")
 def startup_event():
-    # Run DB Fixes
-    print("Running startup DB checks...")
-    fix_db()
-    
-# Trigger Reload: Database schema updated
+    _run_schema_migrations()
+    print("Agri-OS Backend started.")

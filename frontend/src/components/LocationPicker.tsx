@@ -3,7 +3,7 @@
 import { trackLocationSelect, trackCurrentLocation } from '@/lib/analytics';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import '../styles/leaflet-patched.css';
 import { useEffect, useState } from 'react';
 import L from 'leaflet';
 

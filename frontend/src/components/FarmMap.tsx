@@ -1,7 +1,7 @@
 'use client';
 
 import { MapContainer, TileLayer, Polygon, Marker, Popup, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import '../styles/leaflet-patched.css';
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import L from 'leaflet';
@@ -24,12 +24,7 @@ function MapController({ center, zoom }: { center: [number, number], zoom: numbe
     return null;
 }
 
-interface FarmMapProps {
-    farms: any[];
-    selectedFarmId?: number;
-    viewCenter?: [number, number] | null;
-    userLocation?: [number, number] | null;
-}
+
 
 // Custom User Location Icon (Red)
 const userIcon = L.icon({
@@ -42,6 +37,7 @@ const userIcon = L.icon({
 });
 
 function ZoneGrid({ center, activeZoneId }: { center: L.LatLng | null, activeZoneId: string }) {
+    const t = useTranslations('FarmMap');
     if (!center) return null;
 
     // ~50m offset for visual grid (represents ~2.5 acres total)
@@ -50,11 +46,12 @@ function ZoneGrid({ center, activeZoneId }: { center: L.LatLng | null, activeZon
     const lng = center.lng;
 
     // Define 4 quadrants
+    // Define 4 quadrants
     const quadrants = [
-        { id: '1', name: 'Zone 1 (North-East)', color: 'blue', positions: [[lat, lng], [lat + d, lng], [lat + d, lng + d], [lat, lng + d]] as [number, number][] }, // NE
-        { id: '2', name: 'Zone 2 (South-East)', color: 'green', positions: [[lat, lng], [lat - d, lng], [lat - d, lng + d], [lat, lng + d]] as [number, number][] }, // SE
-        { id: '3', name: 'Zone 3 (South-West)', color: 'orange', positions: [[lat, lng], [lat - d, lng], [lat - d, lng - d], [lat, lng - d]] as [number, number][] }, // SW
-        { id: '4', name: 'Zone 4 (North-West)', color: 'purple', positions: [[lat, lng], [lat + d, lng], [lat + d, lng - d], [lat, lng - d]] as [number, number][] }, // NW
+        { id: '1', name: t('zone_ne'), color: 'blue', positions: [[lat, lng], [lat + d, lng], [lat + d, lng + d], [lat, lng + d]] as [number, number][] }, // NE
+        { id: '2', name: t('zone_se'), color: 'green', positions: [[lat, lng], [lat - d, lng], [lat - d, lng + d], [lat, lng + d]] as [number, number][] }, // SE
+        { id: '3', name: t('zone_sw'), color: 'orange', positions: [[lat, lng], [lat - d, lng], [lat - d, lng - d], [lat, lng - d]] as [number, number][] }, // SW
+        { id: '4', name: t('zone_nw'), color: 'purple', positions: [[lat, lng], [lat + d, lng], [lat + d, lng - d], [lat, lng - d]] as [number, number][] }, // NW
     ];
 
     return (
@@ -83,9 +80,11 @@ interface FarmMapProps {
     userLocation?: [number, number] | null;
     activeZone?: string;
     zones?: any[];
+    onDeleteZone?: (zoneId: number) => void;
+    children?: React.ReactNode;
 }
 
-export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocation, activeZone = 'all', zones }: FarmMapProps) {
+export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocation, activeZone = 'all', zones, onDeleteZone, children }: FarmMapProps) {
     const t = useTranslations('FarmMap');
     // Priority:
     // 1. View Center (Search Result)
@@ -204,6 +203,46 @@ export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocatio
                 </Marker>
             )}
 
+            {/* Real Zone Boundaries (from DB/Manual Draw) */}
+            {zones?.map((zone) => {
+                if (zone.boundary && Array.isArray(zone.boundary) && zone.boundary.length > 0) {
+                    const isSelected = activeZone === String(zone.id);
+                    return (
+                        <Polygon
+                            key={`zone-${zone.id}`}
+                            positions={zone.boundary}
+                            pathOptions={{
+                                color: zone.details?.color || (isSelected ? '#22c55e' : '#9333ea'), // Green if active, Purple otherwise
+                                weight: isSelected ? 3 : 2,
+                                fillColor: zone.details?.color || (isSelected ? '#22c55e' : '#9333ea'),
+                                fillOpacity: isSelected ? 0.4 : 0.2,
+                                dashArray: isSelected ? undefined : '5, 5'
+                            }}
+                        >
+                            <Popup>
+                                <div className="text-center">
+                                    <div className="font-bold">{zone.name}</div>
+                                    <div className="text-xs text-slate-500">{t('crop') || 'Crop'}: {zone.details?.crop || 'None'}</div>
+                                    <div className="text-xs text-slate-500">{t('status') || 'Status'}: {zone.details?.status || 'Active'}</div>
+                                    {onDeleteZone && !zone.isPlaceholder && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation(); // Prevent map click
+                                                onDeleteZone(zone.id);
+                                            }}
+                                            className="mt-2 text-[10px] bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded w-full"
+                                        >
+                                            Delete Zone
+                                        </button>
+                                    )}
+                                </div>
+                            </Popup>
+                        </Polygon>
+                    );
+                }
+                return null;
+            })}
+
             {farms.map((farm) => {
                 const hasBoundary = farm.boundary && Array.isArray(farm.boundary) && farm.boundary.length > 0;
                 const hasLocation = farm.latitude && farm.longitude;
@@ -245,6 +284,8 @@ export default function FarmMap({ farms, selectedFarmId, viewCenter, userLocatio
                     </div>
                 );
             })}
+            {/* Inject additional layers/controls */}
+            {children}
         </MapContainer>
     );
 }

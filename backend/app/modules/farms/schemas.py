@@ -39,6 +39,15 @@ class Zone(ZoneBase):
 class Farm(FarmBase):
     id: int
     zones: List[Zone] = []
-
+    
     class Config:
         from_attributes = True
+
+# AI Service Models
+class BoundaryRequest(BaseModel):
+    lat: float
+    lng: float
+    zoom: float
+
+class BoundaryResponse(BaseModel):
+    geojson: Dict[str, Any]

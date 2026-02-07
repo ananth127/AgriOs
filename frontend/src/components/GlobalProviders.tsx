@@ -2,7 +2,9 @@
 
 import { ThemeProvider } from 'next-themes';
 import NavigationLoader from './NavigationLoader';
-import ServerWakeupIndicator from './ServerWakeupIndicator';
+import dynamic from 'next/dynamic';
+
+const ServerWakeupIndicator = dynamic(() => import('./ServerWakeupIndicator'), { ssr: false });
 
 export default function GlobalProviders({ children }: { children: React.ReactNode }) {
     return (

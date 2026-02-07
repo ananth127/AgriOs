@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from '@/lib/auth-context';
@@ -5,7 +6,7 @@ import { usePathname, useRouter } from '@/navigation';
 import { Loader2 } from 'lucide-react';
 import AppPreview from '@/components/AppPreview';
 
-const PUBLIC_PATHS = ['/docs', '/auth/login', '/auth/signup', '/', '/features', '/use-cases', '/verify'];
+const PUBLIC_PATHS = ['/docs', '/auth/login', '/auth/signup', '/', '/features', '/use-cases', '/verify', '/marketplace', '/calculator', '/community', '/crop-doctor'];
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const router = useRouter(); // Auto-redirect needs router
@@ -28,8 +29,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return null;
     }
 
-    // Universal Loader: Wait for auth check to complete before rendering ANY page.
-    // This prevents "Flash of Unauthenticated Content" (Login buttons, etc.) for logged-in users.
+    // Optimization: Render Public Pages (like Landing) IMMEDIATELY
+    // Do not block on auth loading state. This improves First Contentful Paint (FCP).
+    // The page components themselves handle loading states if needed (e.g. Header buttons).
+    if (isPublic) {
+        return <>{children}</>;
+    }
+
+    // Universal Loader: Wait for auth check ONLY for protected routes.
     if (loading) {
         return (
             <div className="h-full w-full flex items-center justify-center bg-slate-950">
@@ -43,10 +50,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return <>{children}</>;
     }
 
-    // Case 2: Unauthenticated but Public Page -> Show the Page (e.g. Landing, Login)
-    if (isPublic) {
-        return <>{children}</>;
-    }
+
 
     // Case 3: Unauthenticated & Protected Route -> Show "App Preview" (SEO Friendly)
     // Instead of redirecting to login, we show a preview of what's behind the wall.

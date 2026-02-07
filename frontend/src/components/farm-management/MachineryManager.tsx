@@ -44,7 +44,8 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
     const fetchAssets = useCallback(async (silent = false) => {
         if (!silent) setLoading(true);
         try {
-            const data = await api.farmManagement.getAssets(farmId, { forceRefresh: silent });
+            // Only force-refresh on explicit (non-silent) loads; silent polls use cache
+            const data = await api.farmManagement.getAssets(farmId, { forceRefresh: !silent });
             const allAssets = Array.isArray(data) ? data : [];
 
             // Filter based on Category
@@ -102,11 +103,11 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
         }
     }, [assets, ignoredAlerts, category]);
 
-    // Polling for updates (every 2 seconds, silent)
+    // Polling for updates (every 30 seconds, silent)
     useEffect(() => {
         const interval = setInterval(() => {
             fetchAssets(true);
-        }, 2000);
+        }, 30000);
         return () => clearInterval(interval);
     }, [fetchAssets]);
 
@@ -148,10 +149,6 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
             alert(t('error_delete_asset'));
         }
     };
-
-    useEffect(() => {
-        fetchAssets();
-    }, [fetchAssets]);
 
     const title = category === 'iot' ? "IoT Devices & Smart Assets" : t('machinery_title');
     const addButtonText = category === 'iot' ? "Add New Device" : t('btn_add_asset');

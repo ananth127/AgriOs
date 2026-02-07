@@ -12,6 +12,7 @@ import { LogActivityModal } from '@/components/farm-management/LogActivityModal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { ContentLoader } from '@/components/ui/ContentLoader';
 import { api } from '@/lib/api';
+import { getUserFarmId } from '@/lib/userFarm';
 import { InventoryManager } from '@/components/farm-management/InventoryManager';
 import { MachineryManager } from '@/components/farm-management/MachineryManager';
 
@@ -57,29 +58,26 @@ export default function FarmManagementPage() {
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    // Fetch user's farm ID on mount
+    // Fetch user's farm ID on mount (cached after first call)
     useEffect(() => {
-        const fetchUserFarm = async () => {
-            try {
-                const response = await api.farmManagement.getUserFarmId();
-                setFarmId(response.farm_id);
-            } catch (error) {
-                console.error('Failed to fetch user farm ID:', error);
-                // Fallback to 1 for backward compatibility
-                setFarmId(1);
-            }
-        };
-        fetchUserFarm();
+        getUserFarmId()
+            .then(id => setFarmId(id))
+            .catch(() => setFarmId(1));
     }, []);
 
     // Fetch initial data
     const refreshData = useCallback(async () => {
-        if (!farmId) return; // Wait for farmId to be loaded
+        if (!farmId) return;
 
         setLoading(true);
         try {
-            // 1. Fetch Financials
-            const financials = await api.farmManagement.getFinancials(farmId) as any;
+            // Parallel fetch: financials, timeline, and crops all at once
+            const [financials, timeline, activeCrops] = await Promise.all([
+                api.farmManagement.getFinancials(farmId) as Promise<any>,
+                api.farmManagement.getTimeline(1) as Promise<any>,
+                api.crops.list(farmId) as Promise<any[]>,
+            ]);
+
             setFinancialStats({
                 totalInvestment: financials.total_investment,
                 totalRevenue: financials.estimated_revenue,
@@ -87,42 +85,22 @@ export default function FarmManagementPage() {
                 projectedProfit: 0
             });
 
-            // 2. Fetch Timeline (Using crop cycle 1 for demo)
-            const timeline = await api.farmManagement.getTimeline(1) as any;
             setTimelineEvents(timeline);
 
-            // 3. Fetch Suggestions based on Active Crops
-            const activeCrops = await api.crops.list(farmId);
-            const newSuggestions = [];
+            // Fetch one fertilizer + one pesticide suggestion in parallel (not per-crop loop)
+            const cropName = Array.isArray(activeCrops) && activeCrops.length > 0
+                ? (activeCrops[0] as any).name || "Wheat"
+                : "Wheat";
 
-            // Mocking a Registry lookup or reusing if available. For now assuming we have names.
-            // In a real scenario, we'd map registry_id to names.
-            // Using a hardcoded list of potential diseases for demo variety
-            const potentialDiseases = ["Aphids", "Rust", "Blight"];
+            const [fertSuggestion, pestSuggestion] = await Promise.all([
+                api.farmManagement.getFertilizerSuggestion(farmId, cropName) as Promise<any>,
+                api.farmManagement.getPesticideSuggestion(farmId, cropName, "Aphids") as Promise<any>,
+            ]);
 
-            if (Array.isArray(activeCrops)) {
-                // Fetch registry to map IDs to names if needed, or just guess for demo
-                // Ideally activeCrops items should return crop name joined.
-                // Assuming activeCrops returns simple objects, let's just make one call per crop
-
-                // Note: The previous api.crops.list returns raw DB objects. 
-                // We'll rely on the backend potentially returning names or just use a placeholder
-                // if we don't want to fetch the registry here.
-                // Or better: The backend service for suggestions takes a string.
-
-                for (const crop of (activeCrops as any[]).slice(0, 3)) { // Limit to 3 calls
-                    // Fetch Fertilizer Suggestion
-                    const fertParams = await api.farmManagement.getFertilizerSuggestion(farmId, "Wheat") as any; // Mock Name if not in object
-                    newSuggestions.push({ ...fertParams, type: 'Fertilizer' });
-
-                    // Randomly add a pesticide suggestion
-                    if (Math.random() > 0.5) {
-                        const pestParams = await api.farmManagement.getPesticideSuggestion(farmId, "Wheat", potentialDiseases[Math.floor(Math.random() * potentialDiseases.length)]) as any;
-                        newSuggestions.push({ ...pestParams, type: 'Pesticide' });
-                    }
-                }
-            }
-            // Remove duplicates or empties
+            const newSuggestions = [
+                { ...fertSuggestion, type: 'Fertilizer' },
+                { ...pestSuggestion, type: 'Pesticide' },
+            ];
             setSuggestions(newSuggestions);
 
         } catch (e) {

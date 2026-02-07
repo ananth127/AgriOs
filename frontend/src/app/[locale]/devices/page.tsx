@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
+import { getUserFarmId } from '@/lib/userFarm';
 import { Link } from '@/navigation';
 import { Plus, Router, Cpu, AlertTriangle, Settings, QrCode, Video, RefreshCw, ExternalLink } from 'lucide-react';
 import { SignalIndicator } from '@/components/iot/SignalIndicator';
@@ -26,12 +27,12 @@ export default function DevicesPage() {
     const fetchDevices = async (silent = false) => {
         if (!silent) setIsLoading(true);
         try {
-            // Get User Farm ID first
-            const farmRes = await api.farmManagement.getUserFarmId();
-            const farmId = farmRes.farm_id;
+            // Get User Farm ID (cached after first call)
+            const farmId = await getUserFarmId();
 
             // Fetch Assets from Farm Management that are IoT enabled
-            const assets = await api.farmManagement.getAssets(farmId, { forceRefresh: silent }) as any[];
+            // Only force-refresh on explicit (non-silent) loads; silent polls use cache
+            const assets = await api.farmManagement.getAssets(farmId, { forceRefresh: !silent }) as any[];
 
             // Filter: Only show IoT enabled devices (Valves, Pumps, Sensors, Cameras)
             const iotAssets = assets.filter((a: any) => a.is_iot_enabled || ['Valve', 'Pump', 'Sensor', 'Camera'].includes(a.asset_type));
@@ -44,11 +45,11 @@ export default function DevicesPage() {
         }
     };
 
-    // Polling for updates
+    // Polling for updates (30s — use WebSocket for real-time later)
     useEffect(() => {
         const interval = setInterval(() => {
             fetchDevices(true);
-        }, 5000); // Increased to 5s to reduce load
+        }, 30000);
         return () => clearInterval(interval);
     }, []);
 

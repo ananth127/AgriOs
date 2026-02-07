@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core import database
+from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.models import User
+from app.core.ownership import require_admin
 from . import models
 from typing import List, Optional
 from pydantic import BaseModel
@@ -80,10 +83,11 @@ def get_pest_details(
     return pest
 
 @router.post("/regulatory/sync")
-def sync_regulatory_data(db: Session = Depends(database.get_db)):
+def sync_regulatory_data(db: Session = Depends(database.get_db), current_user: User = Depends(get_current_user)):
     """
-    Force sync with CIBRC regulatory data (Mocked).
+    Force sync with CIBRC regulatory data (Mocked). Admin only.
     """
+    require_admin(current_user)
     from .regulatory import RegulatoryIngestionService
     svc = RegulatoryIngestionService(db)
     return svc.sync_banned_chemicals()

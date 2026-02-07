@@ -3,6 +3,7 @@ import { api } from '@/lib/api';
 import { Modal } from '@/components/ui/Modal';
 import { Loader2, MapPin } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 
 const LocationSelector = dynamic(() => import('@/components/LocationSelector'), {
@@ -18,6 +19,8 @@ interface CreateFarmProps {
 
 export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, onSuccess }) => {
     const { user } = useAuth();
+    const t = useTranslations('CreateFarmModal');
+    const tGlobal = useTranslations('Global');
     const [loading, setLoading] = useState(false);
     const [isMapOpen, setIsMapOpen] = useState(false);
     const [formData, setFormData] = useState<{
@@ -65,7 +68,7 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
             }));
 
             setLoading(false);
-            alert("Government Record Found! Boundary imported successfully.");
+            alert(t('govt_record_success'));
         }, 1500);
     };
 
@@ -73,7 +76,7 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
         e.preventDefault();
 
         if (!user?.id) {
-            alert("User not authenticated.");
+            alert(t('error_not_authenticated'));
             return;
         }
 
@@ -115,7 +118,7 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
             onClose();
         } catch (error) {
             console.error("Failed to create farm", error);
-            alert("Failed to create farm");
+            alert(t('error_create_farm'));
         } finally {
             setLoading(false);
         }
@@ -123,15 +126,15 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
 
     return (
         <>
-            <Modal isOpen={isOpen} onClose={onClose} title="Add New Farm">
+            <Modal isOpen={isOpen} onClose={onClose} title={t('title')}>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">Farm Name</label>
+                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('label_farm_name')}</label>
                         <input
                             type="text"
                             required
                             className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                            placeholder="e.g. Green Valley Estate"
+                            placeholder={t('placeholder_farm_name')}
                             value={formData.name}
                             onChange={e => setFormData({ ...formData, name: e.target.value })}
                         />
@@ -139,12 +142,12 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
 
                     {/* Survey Number Import Section */}
                     <div className="p-3 bg-slate-900 border border-white/5 rounded-lg mb-4">
-                        <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">Import Government Record</label>
+                        <label className="block text-xs font-bold text-green-400 uppercase tracking-wider mb-2">{t('label_govt_record')}</label>
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 className="flex-1 bg-slate-950 border border-white/10 rounded-lg p-2 text-white text-sm"
-                                placeholder="Enter Survey / Patta Number"
+                                placeholder={t('placeholder_survey_number')}
                                 value={formData.survey_number || ''}
                                 onChange={e => setFormData({ ...formData, survey_number: e.target.value })}
                             />
@@ -154,45 +157,45 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
                                 disabled={!formData.survey_number}
                                 className="px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Fetch
+                                {t('btn_fetch')}
                             </button>
                         </div>
                     </div>
 
                     <div className="space-y-2">
                         <div className="flex justify-between items-center">
-                            <label className="block text-sm font-medium text-slate-400">Location</label>
+                            <label className="block text-sm font-medium text-slate-400">{t('label_location')}</label>
                             <button
                                 type="button"
                                 onClick={() => setIsMapOpen(true)}
                                 className="text-xs flex items-center gap-1 text-green-400 hover:text-green-300 font-bold"
                             >
                                 <MapPin className="w-3 h-3" />
-                                Pick on Map
+                                {t('btn_pick_map')}
                             </button>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1">Latitude</label>
+                                <label className="block text-xs text-slate-500 mb-1">{t('label_latitude')}</label>
                                 <input
                                     type="number"
                                     step="any"
                                     required
                                     className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                                    placeholder="e.g. 18.5204"
+                                    placeholder={t('placeholder_latitude')}
                                     value={formData.location_lat}
                                     onChange={e => setFormData({ ...formData, location_lat: e.target.value })}
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs text-slate-500 mb-1">Longitude</label>
+                                <label className="block text-xs text-slate-500 mb-1">{t('label_longitude')}</label>
                                 <input
                                     type="number"
                                     step="any"
                                     required
                                     className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                                    placeholder="e.g. 73.8567"
+                                    placeholder={t('placeholder_longitude')}
                                     value={formData.location_lon}
                                     onChange={e => setFormData({ ...formData, location_lon: e.target.value })}
                                 />
@@ -202,7 +205,7 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">Total Area (Acres)</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">{t('label_area_acres')}</label>
                             <input
                                 type="number"
                                 className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
@@ -211,18 +214,18 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-slate-400 mb-1">Soil Type</label>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">{t('label_soil_type')}</label>
                             <select
                                 className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
                                 value={formData.soil_type}
                                 onChange={e => setFormData({ ...formData, soil_type: e.target.value })}
                             >
-                                <option value="Loam">Loam</option>
-                                <option value="Clay">Clay</option>
-                                <option value="Sandy">Sandy</option>
-                                <option value="Silt">Silt</option>
-                                <option value="Peat">Peat</option>
-                                <option value="Chalk">Chalk</option>
+                                <option value="Loam">{t('soil_loam')}</option>
+                                <option value="Clay">{t('soil_clay')}</option>
+                                <option value="Sandy">{t('soil_sandy')}</option>
+                                <option value="Silt">{t('soil_silt')}</option>
+                                <option value="Peat">{t('soil_peat')}</option>
+                                <option value="Chalk">{t('soil_chalk')}</option>
                             </select>
                         </div>
                     </div>
@@ -232,7 +235,7 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
                         disabled={loading}
                         className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 rounded-lg mt-4 flex justify-center items-center gap-2"
                     >
-                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create Farm'}
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : t('btn_create_farm')}
                     </button>
                 </form>
             </Modal>
@@ -247,7 +250,7 @@ export const CreateFarmModal: React.FC<CreateFarmProps> = ({ isOpen, onClose, on
                         location_lon: lng.toString()
                     }));
                 }}
-                simpleMode
+                simpleMode={true}
             />
         </>
     );

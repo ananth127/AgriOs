@@ -16,3 +16,22 @@
 ## Verification
 - All reported compilation errors should be resolved.
 - Build process should proceed without blocking errors from these files.
+## Critical Fixes (2026-02-07 Late Session)
+
+### Backend
+1. **Critical Syntax Error in Auth Service (`auth/service.py`)**:
+   - The `create_user` function definition was missing, leaving the logic orphaned in the module scope.
+   - **Fix**: Added `def create_user(db: Session, user: schemas.UserCreate):` signature to restore functionality.
+
+### Frontend
+1. **Duplicate Interface in FarmMap (`FarmMap.tsx`)**:
+   - `FarmMapProps` was defined twice, causing a TypeScript error.
+   - **Fix**: Removed the redundant interface definition.
+
+2. **Localization (`FarmMap.tsx`)**:
+   - Replaced hardcoded Zone names with translation keys (`zone_ne`, `zone_se`, etc.).
+   - Added missing keys to `en.json`.
+
+## Verification
+- All reported compilation errors should be resolved.
+- Build process should proceed without blocking errors from these files.

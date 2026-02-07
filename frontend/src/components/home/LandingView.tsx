@@ -4,10 +4,13 @@ import React from 'react';
 import { Link } from '@/navigation';
 import PublicHeader from '@/components/PublicHeader';
 import { useTranslations } from 'next-intl';
+import dynamic from 'next/dynamic';
 import { ArrowRight, Sprout, ScanLine, Users, Tractor, ShoppingBag } from 'lucide-react';
-import FeaturesSection from './sections/FeaturesSection';
-import UseCasesSection from './sections/UseCasesSection';
-import DocsSection from './sections/DocsSection';
+
+// Lazy load below-the-fold content for faster Time-to-Interactive
+const FeaturesSection = dynamic(() => import('./sections/FeaturesSection'));
+const UseCasesSection = dynamic(() => import('./sections/UseCasesSection'));
+const DocsSection = dynamic(() => import('./sections/DocsSection'));
 
 export default function LandingView({ locale }: { locale: string }) {
     const tDashboard = useTranslations('Dashboard');

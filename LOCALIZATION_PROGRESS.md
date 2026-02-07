@@ -24,6 +24,13 @@ This document tracks the progress of implementing comprehensive localization acr
    - `LivestockMainDashboard.tsx` - Fully localized
    - All animal management interfaces
 
+4. **Farm Management**
+   - `CreateFarmModal.tsx` - **✅ Newly Completed (2026-02-07)**
+   - `FarmMap.tsx` - **✅ Newly Completed (2026-02-07)**
+   - All labels, placeholders, error messages
+   - Soil type options, location inputs
+   - Government record import section
+
 ### 📝 Translation Keys Added (English)
 
 #### Crops Section
@@ -101,11 +108,7 @@ Based on the component list, the following files likely contain hardcoded string
    - `QRScannerModal.tsx`
    - `ValveSwitch.tsx`
 
-6. **Farms**
-   - `CreateFarmModal.tsx`
-   - `FarmMap.tsx`
-
-7. **Navigation & Layout**
+6. **Navigation & Layout**
    - `Sidebar.tsx`
    - `NavBar.tsx`
    - `PublicHeader.tsx`
@@ -186,10 +189,12 @@ Once all English keys are finalized:
 
 ## Progress Metrics
 
-- **Components Fully Localized**: 5/73 (~7%)
-- **Translation Keys in English**: 650+
+- **Components Fully Localized**: 7/73 (~9.6%)
+- **Translation Keys in English**: 680+
 - **Languages Supported**: 10
-- **Estimated Remaining Components**: ~68
+- **Estimated Remaining Components**: ~66
+
+**Last Updated**: 2026-02-07
 
 ## Testing Checklist
 

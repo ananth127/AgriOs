@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
 
-from app.core import database
+from app.core.database import get_db
 from app.modules.farm_management import models, schemas, services
 from app.modules.iot import service as iot_service
 from app.modules.iot import schemas as iot_schemas
@@ -13,29 +13,9 @@ from app.modules.auth.models import User
 from app.modules.farms import models as farm_models
 from app.modules.farms import user_farm_service
 from app.modules.iot import models as iot_models
+from app.core.ownership import verify_farm_ownership
 
 router = APIRouter()
-
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-def verify_farm_ownership(db: Session, farm_id: int, user_id: int, raise_error: bool = True):
-    """Helper to enforce strict farm ownership"""
-    farm = db.query(farm_models.FarmTable).filter(farm_models.FarmTable.id == farm_id).first()
-    if not farm:
-        if raise_error:
-             raise HTTPException(status_code=404, detail="Farm not found")
-        return None
-    
-    if farm.owner_id != user_id:
-        if raise_error:
-             raise HTTPException(status_code=403, detail="Not authorized to access this farm")
-        return None
-    return farm
 
 @router.get("/user-farm-id")
 def get_user_farm_id(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -134,30 +114,41 @@ def add_asset(asset: schemas.FarmAssetCreate, db: Session = Depends(get_db), cur
 def get_assets(farm_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # 1. Authorization: Ensure current user owns this farm
     if not verify_farm_ownership(db, farm_id, current_user.id, raise_error=False):
-         return [] # Don't crash, just show nothing
+         return []
 
     # 2. Fetch Assets
     assets = db.query(models.FarmAsset).filter(models.FarmAsset.farm_id == farm_id).all()
-    
-    # 3. Sync IoT Status
-    # Ensure Farm Asset status matches real IoT Device status
-    dirty = False
+
+    # 3. Bulk IoT Status Sync (single query instead of N+1)
+    iot_device_ids = []
     for asset in assets:
         if asset.is_iot_enabled and asset.iot_device_id:
             try:
-                # Try to resolve link
-                dev_id = int(asset.iot_device_id)
-                iot_dev = db.query(iot_models.IoTDevice).filter(iot_models.IoTDevice.id == dev_id).first()
-                if iot_dev and iot_dev.status != asset.status:
-                     asset.status = iot_dev.status
-                     db.add(asset)
-                     dirty = True
-            except:
-                pass 
-    
-    if dirty:
-        db.commit()
-        # No need to refresh all, they are updated in session objects returned
+                iot_device_ids.append(int(asset.iot_device_id))
+            except (ValueError, TypeError):
+                pass
+
+    if iot_device_ids:
+        iot_devices = db.query(iot_models.IoTDevice).filter(
+            iot_models.IoTDevice.id.in_(iot_device_ids)
+        ).all()
+        iot_status_map = {dev.id: dev.status for dev in iot_devices}
+
+        dirty = False
+        for asset in assets:
+            if asset.is_iot_enabled and asset.iot_device_id:
+                try:
+                    dev_id = int(asset.iot_device_id)
+                    iot_status = iot_status_map.get(dev_id)
+                    if iot_status and iot_status != asset.status:
+                        asset.status = iot_status
+                        db.add(asset)
+                        dirty = True
+                except (ValueError, TypeError):
+                    pass
+
+        if dirty:
+            db.commit()
 
     return assets
 
@@ -310,17 +301,19 @@ def log_activity(activity: schemas.FarmActivityCreate, db: Session = Depends(get
     return db_act
 
 @router.get("/timeline/")
-def get_all_timeline(farm_id: int = 1, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Verify ownership
+def get_all_timeline(farm_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if not verify_farm_ownership(db, farm_id, current_user.id, raise_error=False):
-        return [] # Return empty
-    
+        return []
     svc = services.FarmManagementService(db)
     return svc.get_farm_timeline(farm_id)
 
 @router.get("/timeline/{crop_cycle_id}")
-def get_timeline(crop_cycle_id: int, db: Session = Depends(get_db)):
-    # TODO: Add nested ownership check for crop cycle
+def get_timeline(crop_cycle_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    from app.modules.crops.models import CropCycle
+    cycle = db.query(CropCycle).filter(CropCycle.id == crop_cycle_id).first()
+    if not cycle:
+        raise HTTPException(status_code=404, detail="Crop cycle not found")
+    verify_farm_ownership(db, cycle.farm_id, current_user.id)
     svc = services.FarmManagementService(db)
     return svc.get_crop_timeline(crop_cycle_id)
 
@@ -359,11 +352,9 @@ def post_job(job: schemas.LaborJobCreate, db: Session = Depends(get_db), current
     return db_job
 
 @router.get("/labor/jobs", response_model=List[schemas.LaborJob])
-def get_jobs(farm_id: int = 1, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Verify ownership
+def get_jobs(farm_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     if not verify_farm_ownership(db, farm_id, current_user.id, raise_error=False):
         return []
-    
     return db.query(models.LaborJob).filter(models.LaborJob.farm_id == farm_id).all()
 
 @router.delete("/labor/jobs/{job_id}")
@@ -381,8 +372,13 @@ def delete_job(job_id: int, db: Session = Depends(get_db), current_user: User = 
 
 @router.post("/labor/applications/{app_id}/accept")
 def accept_application(app_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Should check if the job for this app belongs to a farm owned by user
-    # Simplified for now as it requires complex joins or modifying service
+    application = db.query(models.LaborApplication).filter(models.LaborApplication.id == app_id).first()
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    job = db.query(models.LaborJob).filter(models.LaborJob.id == application.job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    verify_farm_ownership(db, job.farm_id, current_user.id)
     svc = services.FarmManagementService(db)
     result = svc.accept_labor_application(app_id)
     if not result:

@@ -12,7 +12,7 @@ class DiagnosisService:
         self.kg_service = KnowledgeGraphService(db)
         self.hf_service = get_huggingface_service()
 
-    def perform_diagnosis(self, image_url: str, crop: str = "Unknown") -> models.DiagnosisLog:
+    def perform_diagnosis(self, image_url: str, crop: str = "Unknown", user_id: int = None) -> models.DiagnosisLog:
         """
         Perform AI-powered image diagnosis using Hugging Face (FREE)
         Falls back to mock if unavailable.
@@ -20,15 +20,15 @@ class DiagnosisService:
         
         if self.hf_service.is_available():
             try:
-                return self._huggingface_diagnosis(image_url, crop)
+                return self._huggingface_diagnosis(image_url, crop, user_id)
             except Exception as e:
                 print(f"⚠️ Hugging Face diagnosis failed: {e}. Using mock.")
-                return self._mock_diagnosis(image_url, crop)
+                return self._mock_diagnosis(image_url, crop, user_id)
         else:
             print("ℹ️ Hugging Face not configured. Using mock diagnosis.")
-            return self._mock_diagnosis(image_url, crop)
+            return self._mock_diagnosis(image_url, crop, user_id)
 
-    def _huggingface_diagnosis(self, image_url: str, crop: str) -> models.DiagnosisLog:
+    def _huggingface_diagnosis(self, image_url: str, crop: str, user_id: int = None) -> models.DiagnosisLog:
         """
         Use Hugging Face Vision AI (Hybrid Strategy) for diagnosis
         """
@@ -142,6 +142,7 @@ class DiagnosisService:
         
         # Create Log Entry
         diagnosis_entry = models.DiagnosisLog(
+            user_id=user_id,
             image_url=image_url,
             crop_name=crop,
             disease_detected=disease_name,
@@ -151,7 +152,7 @@ class DiagnosisService:
             prevention=result.get("prevention"),
             treatment_organic=result.get("treatment_organic"),
             treatment_chemical=result.get("treatment_chemical"),
-        identified_crop=result.get("identified_crop")
+            identified_crop=result.get("identified_crop")
         )
 
         # Drift Monitoring Logic
@@ -408,7 +409,7 @@ class DiagnosisService:
         print(f"❌ All Vertex AI models exhausted. Error: {last_error}")
         raise last_error
 
-    def _mock_diagnosis(self, image_url: str, crop: str) -> models.DiagnosisLog:
+    def _mock_diagnosis(self, image_url: str, crop: str, user_id: int = None) -> models.DiagnosisLog:
         """
         Fallback mock diagnosis (original logic).
         """
@@ -426,6 +427,7 @@ class DiagnosisService:
                 recommendation = self.kg_service.get_treatment_for_pest(disease_name)
         
         diagnosis_entry = models.DiagnosisLog(
+            user_id=user_id,
             image_url=image_url,
             crop_name=crop,
             disease_detected=disease_name,
@@ -435,12 +437,15 @@ class DiagnosisService:
 
         if confidence < 0.85:
             diagnosis_entry.is_flagged_for_review = True
-        
+
         self.db.add(diagnosis_entry)
         self.db.commit()
         self.db.refresh(diagnosis_entry)
-        
+
         return diagnosis_entry
 
-    def get_history(self, limit: int = 10):
-        return self.db.query(models.DiagnosisLog).order_by(models.DiagnosisLog.created_at.desc()).limit(limit).all()
+    def get_history(self, limit: int = 10, user_id: int = None):
+        query = self.db.query(models.DiagnosisLog)
+        if user_id:
+            query = query.filter(models.DiagnosisLog.user_id == user_id)
+        return query.order_by(models.DiagnosisLog.created_at.desc()).limit(limit).all()

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey
 from datetime import datetime
 from app.core.database import Base
 
@@ -6,6 +6,7 @@ class DiagnosisLog(Base):
     __tablename__ = "diagnosis_logs"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     image_url = Column(String)
     crop_name = Column(String, index=True)
     

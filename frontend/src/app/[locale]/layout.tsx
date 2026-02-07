@@ -56,6 +56,16 @@ export async function generateMetadata({
                 },
             ],
         },
+        manifest: '/manifest.json',
+        icons: {
+            icon: '/favicon.ico',
+            apple: '/icons/icon-192x192.png',
+        },
+        appleWebApp: {
+            capable: true,
+            statusBarStyle: 'default',
+            title: t('app_name'),
+        },
         twitter: {
             card: 'summary_large_image',
             title: `${t('app_name')} - ${t('app_tagline')}`,

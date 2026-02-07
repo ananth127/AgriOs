@@ -232,6 +232,7 @@ export default function SignupPage({ params: { locale } }: { params: { locale: s
                             isOpen={isLocationModalOpen}
                             onClose={() => setIsLocationModalOpen(false)}
                             onSelect={(lat, lng, name, method) => setLocation({ lat, lng, name, method })}
+                            simpleMode={true}
                         />
                     </div>
 

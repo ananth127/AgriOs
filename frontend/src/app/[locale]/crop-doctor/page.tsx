@@ -2,9 +2,16 @@
 
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
-import DiagnosisUploader from '@/components/diagnosis/DiagnosisUploader';
-import LibraryBrowser from '@/components/library/LibraryBrowser';
+import dynamic from 'next/dynamic';
 import { Stethoscope, BookOpen } from 'lucide-react';
+
+const DiagnosisUploader = dynamic(() => import('@/components/diagnosis/DiagnosisUploader'), {
+    loading: () => <div className="h-96 flex items-center justify-center text-slate-500">Loading AI Doctor...</div>
+});
+
+const LibraryBrowser = dynamic(() => import('@/components/library/LibraryBrowser'), {
+    loading: () => <div className="h-96 flex items-center justify-center text-slate-500">Loading Library...</div>
+});
 
 interface PageProps {
     params: { locale: string };
