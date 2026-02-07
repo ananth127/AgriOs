@@ -214,6 +214,9 @@ export const api = {
         getJobs: (farmId: number) => fetchAPI(`/farm-management/labor/jobs?farm_id=${farmId}`),
         deleteJob: (id: number) => fetchAPI(`/farm-management/labor/jobs/${id}`, "DELETE"),
         acceptApplication: (appId: number) => fetchAPI(`/farm-management/labor/applications/${appId}/accept`, "POST"),
+
+        // User Farm
+        getUserFarmId: () => fetchAPI<{ farm_id: number }>("/farm-management/user-farm-id"),
     },
     weather: {
         getAdvisory: (lat: number, lng: number) => fetchAPI(`/weather/advisory?lat=${lat}&lng=${lng}`),

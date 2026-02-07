@@ -41,6 +41,8 @@ def get_device_details(
          raise HTTPException(status_code=403, detail="Not authorized")
     return device
 
+from app.modules.farm_management import models as farm_mgmt_models
+
 @router.put("/devices/{device_id}", response_model=schemas.IoTDeviceResponse)
 def update_device_details(
     device_id: int,
@@ -54,7 +56,31 @@ def update_device_details(
     if device.user_id != current_user.id:
          raise HTTPException(status_code=403, detail="Not authorized")
          
-    return service.update_device(db, device_id, device_update)
+    updated_device = service.update_device(db, device_id, device_update)
+    
+    # --- SYNC: Update linked Farm Asset ---
+    if updated_device:
+        try:
+            # Find linked assets by Hardware ID or Device ID
+            # Linking logic: Asset.iot_device_id matches Device.hardware_id OR string(Device.id)
+            linked_assets = db.query(farm_mgmt_models.FarmAsset).filter(
+                (farm_mgmt_models.FarmAsset.iot_device_id == updated_device.hardware_id) | 
+                (farm_mgmt_models.FarmAsset.iot_device_id == str(updated_device.id))
+            ).all()
+            
+            for asset in linked_assets:
+                if asset.status != updated_device.status:
+                    print(f"SYNC: Updating Linked Farm Asset {asset.id} status to {updated_device.status}")
+                    asset.status = updated_device.status
+                    db.add(asset)
+            
+            if linked_assets:
+                db.commit()
+                
+        except Exception as e:
+            print(f"SYNC Error: Failed to update linked Farm Asset: {e}")
+
+    return updated_device
 
 
 # --- Commands ---

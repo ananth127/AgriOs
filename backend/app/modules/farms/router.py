@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core import database
 from . import service, schemas
+from app.modules.auth.dependencies import get_current_user
+from app.modules.auth.models import User
 
 router = APIRouter()
 
@@ -14,7 +16,9 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=schemas.Farm)
-def create_farm(farm: schemas.FarmCreate, db: Session = Depends(get_db)):
+def create_farm(farm: schemas.FarmCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Auto-assign to current user
+    farm.owner_id = current_user.id
     db_farm = service.create_farm(db=db, farm=farm)
     # Convert Geometry to WKT for Pydantic response if needed (PostGIS returns WKBElement)
     if hasattr(db_farm, "geometry") and hasattr(db_farm.geometry, "desc"):
@@ -25,9 +29,6 @@ def create_farm(farm: schemas.FarmCreate, db: Session = Depends(get_db)):
          except:
              pass
     return db_farm
-
-from app.modules.auth.dependencies import get_current_user
-from app.modules.auth.models import User
 
 @router.get("/", response_model=List[schemas.Farm])
 def read_farms(
@@ -51,17 +52,23 @@ def read_farms(
     return farms
 
 @router.get("/{farm_id}", response_model=schemas.Farm)
-def read_farm(farm_id: int, db: Session = Depends(get_db)):
+def read_farm(farm_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     db_farm = service.get_farm(db, farm_id=farm_id)
     if db_farm is None:
         raise HTTPException(status_code=404, detail="Farm not found")
+    # Strict Ownership Check
+    if db_farm.owner_id != current_user.id:
+        raise HTTPException(status_code=404, detail="Farm not found") # Hide existence
     return db_farm
 
 @router.put("/{farm_id}", response_model=schemas.Farm)
-def update_farm(farm_id: int, farm_update: schemas.FarmUpdate, db: Session = Depends(get_db)):
+def update_farm(farm_id: int, farm_update: schemas.FarmUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Check ownership first
+    db_farm = service.get_farm(db, farm_id=farm_id)
+    if not db_farm or db_farm.owner_id != current_user.id:
+         raise HTTPException(status_code=404, detail="Farm not found")
+         
     db_farm = service.update_farm(db, farm_id=farm_id, farm_update=farm_update)
-    if db_farm is None:
-        raise HTTPException(status_code=404, detail="Farm not found")
     # Geometry handling for response
     if hasattr(db_farm.geometry, "desc"):
          from geoalchemy2.shape import to_shape
@@ -73,10 +80,13 @@ def update_farm(farm_id: int, farm_update: schemas.FarmUpdate, db: Session = Dep
     return db_farm
 
 @router.delete("/{farm_id}", response_model=schemas.Farm)
-def delete_farm(farm_id: int, db: Session = Depends(get_db)):
+def delete_farm(farm_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Check ownership first
+    db_farm = service.get_farm(db, farm_id=farm_id)
+    if not db_farm or db_farm.owner_id != current_user.id:
+         raise HTTPException(status_code=404, detail="Farm not found")
+
     db_farm = service.delete_farm(db, farm_id=farm_id)
-    if db_farm is None:
-        raise HTTPException(status_code=404, detail="Farm not found")
     return db_farm
 
 @router.put("/zones/{zone_id}", response_model=schemas.Zone)

@@ -56,40 +56,65 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
     const [timeline, setTimeline] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // State for Link Valve Modal
+    const [showValveSelector, setShowValveSelector] = useState(false);
+    const [availableValves, setAvailableValves] = useState<any[]>([]);
+
     const fetchAnalyticsData = async (silent = false) => {
         if (!cropCycle) return;
         if (!silent) setLoading(true);
 
         try {
+            const farmId = cropCycle.farm_id || 1;
+
             // 1. Fetch Timeline
             const eventsReq = api.farmManagement.getTimeline(cropCycle.id);
             // 2. Fetch Assets with cache bust for polling
-            const farmId = cropCycle.farm_id || 1;
             const assetsReq = api.farmManagement.getAssets(farmId, { forceRefresh: silent });
+            // 3. Fetch Financials
+            const financialsReq = api.farmManagement.getFinancials(farmId);
 
-            const [events, assets] = await Promise.all([eventsReq, assetsReq]) as [any[], any[]];
+            const [events, assets, financials] = await Promise.all([eventsReq, assetsReq, financialsReq]) as [any[], any[], any];
 
             // Filter Assets
             const machines = assets.filter((a: any) => !a.is_iot_enabled && a.asset_type !== 'Valve');
 
+            // IoT Enabled devices (Sensors) - assuming assets with is_iot_enabled=true AND not 'Valve' are sensors/others
+            // OR we can fetch from api.iot.getDevices() but that is global. 
+            // Better to rely on "linked" assets here if possible. 
+            // For now, if no linked sensors, show empty.
+            const sensors = assets.filter((a: any) => a.is_iot_enabled && a.asset_type !== 'Valve');
+
             // User requested ONLY valves in this list. 
-            // Previously it was mixed Pump/Valve. Filtering strictly for Valve now.
             const valves = assets.filter((a: any) => a.asset_type === 'Valve');
 
             setTimeline(events || []);
 
-            // 3. Set Stats 
+            // 3. Set Stats (REAL DATA ONLY)
             setStats({
-                waterUsageLitres: Math.floor(Math.random() * 50000) + 10000,
-                fertilizerCost: Math.floor(Math.random() * 5000) + 1000,
-                laborCost: Math.floor(Math.random() * 8000) + 2000,
-                projectedYieldKg: Math.floor(Math.random() * 2000) + 500,
-                soilHealthTrend: [6.5, 6.6, 6.5, 6.7, 6.8, 6.8],
-                moistureTrend: [40, 35, 30, 60, 55, 50],
-                iotDevices: [],
+                waterUsageLitres: financials?.water_usage || 0,
+                fertilizerCost: financials?.cost_breakdown?.fertilizer || 0,
+                laborCost: financials?.cost_breakdown?.labor || 0,
+                projectedYieldKg: cropCycle.estimated_yield || 0,
+
+                // For trends, we ideally need a historical API. 
+                // Since we don't have one readily available in the context, we return empty structure.
+                // The charts should handle empty data gracefully or show "No Data".
+                soilHealthTrend: [],
+                moistureTrend: [],
+
+                iotDevices: sensors.map(s => ({
+                    name: s.name,
+                    type: s.asset_type,
+                    status: s.status,
+                    battery: 'N/A', // Not in generic asset model
+                    lastReading: 'No recent data' // Needs telemetry API
+                })),
+
                 valves: valves.map(v => ({
                     id: v.id,
                     name: v.name,
+                    iot_device_id: v.iot_device_id, // Critical for API updates
                     lastActive: 'Unknown',
                     status: v.status || 'Idle',
                     type: v.asset_type,
@@ -126,35 +151,19 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
     }, [cropCycle]);
 
     const handleSimulate = () => {
-        setLoading(true);
-        setTimeout(() => {
-            setStats({
-                waterUsageLitres: Math.floor(Math.random() * 50000) + 10000,
-                fertilizerCost: Math.floor(Math.random() * 5000) + 1000,
-                laborCost: Math.floor(Math.random() * 8000) + 2000,
-                projectedYieldKg: Math.floor(Math.random() * 2000) + 500,
-                soilHealthTrend: Array(6).fill(0).map(() => 6 + Math.random()),
-                moistureTrend: Array(6).fill(0).map(() => 30 + Math.random() * 40),
-                iotDevices: [
-                    { name: 'Soil Sensor A1', type: 'Moisture/pH', status: Math.random() > 0.2 ? 'Active' : 'Offline', battery: Math.floor(Math.random() * 100), lastReading: `${Math.floor(20 + Math.random() * 60)}% | ${6 + Math.random().toFixed(1)}pH` },
-                    { name: 'Weather Stn', type: 'Env Monitor', status: 'Active', battery: 92, lastReading: '28°C | 42%' }
-                ],
-                valves: [
-                    { name: 'North Sector (V1)', lastActive: 'Just now', status: 'Active', nextSchedule: 'Running' },
-                    { name: 'South Sector (V2)', lastActive: 'Yesterday', status: 'Idle', nextSchedule: 'Tomorrow, 06:00' }
-                ],
-                machinery: [
-                    { name: 'John Deere 5050D', status: Math.random() > 0.5 ? 'In Use (Field 2)' : 'Idle' },
-                    { name: 'DJI Agras Drone', status: 'Standby' }
-                ]
-            });
-            setLoading(false);
-        }, 800);
+        // Just refresh real data instead of faking it
+        fetchAnalyticsData(true);
     };
 
     const toggleValve = async (index: number) => {
         if (!stats) return;
         const valve = stats.valves[index];
+
+        if (!valve.iot_device_id) {
+            alert(t('alert_no_linked_device')); // Ensure you add this key or just use fallback text
+            return;
+        }
+
         const newStatus = valve.status === 'Active' ? 'Idle' : 'Active';
 
         // Optimistic Update
@@ -169,8 +178,8 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
         setStats((prev: any) => ({ ...prev, valves: updatedValves }));
 
         try {
-            // Persist to DB
-            await api.iot.update(valve.id, { status: newStatus });
+            // Persist to DB using the IOT DEVICE ID
+            await api.iot.update(valve.iot_device_id, { status: newStatus });
         } catch (error) {
             console.error("Failed to update valve status", error);
             // Revert on failure
@@ -271,6 +280,48 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
 
     const isPumpActive = stats.valves?.some((v: any) => v.status === 'Active');
 
+
+
+    const handleOpenValveSelection = async () => {
+        try {
+            // Fetch all IoT devices
+            // Note: In a real app we might filter for 'Valve' type devices specifically if the API supports it,
+            // or filter client side.
+            const devices = await api.iot.getDevices() as any[];
+            setAvailableValves(devices);
+            setShowValveSelector(true);
+        } catch (error) {
+            console.error("Failed to fetch devices", error);
+            alert(t('failed_to_fetch_devices'));
+        }
+    };
+
+    const handleSelectValve = async (device: any) => {
+        if (!cropCycle) return;
+        const farmId = cropCycle.farm_id || 1;
+
+        try {
+            // Create a Farm Asset that represents this IoT Device in this Farm context
+            await api.farmManagement.addAsset({
+                name: device.name || `Valve ${device.device_id}`,
+                asset_type: 'Valve',
+                farm_id: farmId,
+                is_iot_enabled: true,
+                iot_device_id: device.device_id, // Link to the IoT Device
+                status: 'Active',
+                purchase_date: new Date().toISOString().split('T')[0],
+                cost: 0
+            });
+
+            // Refresh analytics
+            fetchAnalyticsData(true);
+            setShowValveSelector(false);
+        } catch (error) {
+            console.error("Failed to link valve", error);
+            alert(t('failed_to_link_valve'));
+        }
+    };
+
     return (
         <div className="w-full space-y-6 animate-in fade-in duration-300 relative">
             {/* Header / Nav */}
@@ -304,7 +355,6 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                     >
                         🔄 {t('simulate_sensor_update')}
                     </button>
-                    {/* Add more controls as needed */}
                 </div>
             </div>
 
@@ -348,36 +398,14 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                                         <div className="flex justify-between items-center">
                                             <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">{t('active_valves')}</h4>
                                             <button
-                                                onClick={() => {
-                                                    // As per requirement, redirect to Smart Irrigation
-                                                    // We can use a link or just show the alert from handleSave logic, 
-                                                    // but a direct link is better UX if we know the path.
-                                                    // However, to keep it consistent with the "Edit" flow which is modal-based, 
-                                                    // we'll leave the button to trigger the modal, then the modal save will alert??
-                                                    // Better: Redirect immediately.
-                                                    window.location.href = "/farm-management?tab=iot";
-                                                }}
+                                                onClick={handleOpenValveSelection}
                                                 className="text-xs flex items-center gap-1 text-green-400 hover:text-green-300 bg-green-900/20 px-2 py-1 rounded-full font-bold transition-all hover:bg-green-900/40"
                                             >
                                                 <Plus className="w-3 h-3" /> {t('add_valves')}
                                             </button>
                                         </div>
                                         {/* Editing Form for Valve */}
-                                        {editingItem?.type === 'valve' && (
-                                            <div className="bg-slate-800 p-3 rounded-lg border border-amber-500/50 mb-2 animate-in fade-in slide-in-from-top-2">
-                                                <form onSubmit={handleSaveItem} className="space-y-2">
-                                                    <input name="name" defaultValue={editingItem.data?.name} placeholder={t('valve_name_placeholder')} className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs" required />
-                                                    <div className="flex gap-2">
-                                                        <input name="type" defaultValue={editingItem.data?.type} placeholder={t('type_placeholder')} className="w-1/2 bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs" />
-                                                        <input name="nextSchedule" defaultValue={editingItem.data?.nextSchedule} placeholder={t('schedule_placeholder')} className="w-1/2 bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs" />
-                                                    </div>
-                                                    <div className="flex justify-end gap-2 pt-1">
-                                                        <button type="button" onClick={() => setEditingItem(null)} className="p-1 hover:bg-slate-700 rounded"><X className="w-3 h-3" /></button>
-                                                        <button type="submit" className="p-1 bg-green-600 hover:bg-green-500 rounded text-white"><Save className="w-3 h-3" /></button>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        )}
+                                        {/* Simplified editing for Linked Valves can go here if needed, but we rely on Link Logic primarily now */}
 
                                         {stats.valves?.map((valve: any, idx: number) => {
                                             const isActive = valve.status === 'Active';
@@ -420,21 +448,18 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
 
                                                             {/* Actions */}
                                                             <div className="flex flex-col gap-1 opacity-10 hover:opacity-100 transition-opacity">
-                                                                <button onClick={() => setEditingItem({ type: 'valve', id: valve.id, data: valve })} className="text-slate-400 hover:text-blue-400"><Pencil className="w-3 h-3" /></button>
                                                                 <button onClick={() => handleDeleteItem('valve', valve.id)} className="text-slate-400 hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
                                                             </div>
                                                         </div>
                                                     </div>
-
-                                                    {/* Suggestion Text */}
-                                                    {isSuggested && !isActive && (
-                                                        <div className="mt-1 text-[10px] text-amber-500/80 font-medium pl-4">
-                                                            {t('recommendation_turn_on')}
-                                                        </div>
-                                                    )}
                                                 </div>
                                             )
                                         })}
+                                        {(!stats.valves || stats.valves.length === 0) && (
+                                            <div className="text-center py-4 bg-slate-950/50 rounded border border-dashed border-white/10">
+                                                <p className="text-xs text-slate-500">No valves linked.</p>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* SENSORS SECTION */}
@@ -648,7 +673,41 @@ export const CropAnalyticsDashboard: React.FC<CropDashboardProps> = ({ cropCycle
                     </Card>
                 )}
             </div>
-        </div>
 
+            {/* MODAL: IoT Device Selector */}
+            {showValveSelector && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in">
+                    <Card className="w-full max-w-lg bg-slate-950 border-slate-800 max-h-[80vh] flex flex-col">
+                        <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                            <h2 className="text-xl font-bold">Select IoT Valve</h2>
+                            <button onClick={() => setShowValveSelector(false)}><X className="w-5 h-5 text-slate-400 hover:text-white" /></button>
+                        </div>
+                        <div className="p-4 overflow-y-auto flex-1 space-y-2">
+                            {availableValves.length === 0 ? (
+                                <p className="text-center text-slate-500 py-8">No IoT devices found.</p>
+                            ) : (
+                                availableValves.map((device) => (
+                                    <div key={device.device_id} className="flex justify-between items-center p-3 bg-slate-900 rounded-lg border border-white/10 hover:border-green-500/50 transition-all">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-white">{device.name || device.device_id}</span>
+                                                <span className="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">{device.type || 'Unknown'}</span>
+                                            </div>
+                                            <p className="text-xs text-slate-500">ID: {device.device_id} • Status: {device.status || 'Offline'}</p>
+                                        </div>
+                                        <button
+                                            onClick={() => handleSelectValve(device)}
+                                            className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded"
+                                        >
+                                            Select
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </Card>
+                </div>
+            )}
+        </div>
     );
 };

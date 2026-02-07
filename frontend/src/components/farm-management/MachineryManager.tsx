@@ -57,51 +57,11 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
                 }
             });
 
-            if (filtered.length === 0) {
-                // Auto-create default asset for category
-                const payload = category === 'iot' ? {
-                    name: "Smart Valve Left-Sector",
-                    asset_type: "Valve",
-                    is_iot_enabled: true,
-                    iot_device_id: "DEMO-V-01",
-                    status: "Active",
-                    farm_id: farmId,
-                    purchase_date: new Date().toISOString().split('T')[0],
-                    cost: 1200,
-                    config: { sensors: ['Flow Meter'] }
-                } : {
-                    name: "John Deere 5050D",
-                    asset_type: "Tractor",
-                    is_iot_enabled: false,
-                    status: "Idle",
-                    farm_id: farmId,
-                    purchase_date: new Date().toISOString().split('T')[0],
-                    cost: 850000
-                };
-
-                // Optimistic Update
-                setAssets([{ ...payload, id: Date.now() }]);
-
-                try {
-                    await api.farmManagement.addAsset(payload);
-                    // Silent refresh
-                    const refreshedData = await api.farmManagement.getAssets(farmId, { forceRefresh: true });
-                    const newAll = Array.isArray(refreshedData) ? refreshedData : [];
-                    const newFiltered = newAll.filter((asset: any) => {
-                        const isIotType = ['Valve', 'Pump', 'Sensor', 'IoT Device', 'Weather Station'].includes(asset.asset_type) || asset.is_iot_enabled;
-                        return category === 'iot' ? isIotType : !isIotType;
-                    });
-                    if (newFiltered.length > 0) setAssets(newFiltered);
-                } catch (createErr) {
-                    console.error("Failed to persist default asset", createErr);
-                    // Keep optimistic
-                }
-            } else {
-                setAssets(filtered);
-            }
+            setAssets(filtered);
 
         } catch (error) {
             console.error('Failed to fetch assets:', error);
+            setAssets([]); // Set empty on error
         } finally {
             if (!silent) setLoading(false);
         }

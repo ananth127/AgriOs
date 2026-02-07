@@ -53,6 +53,7 @@ class FarmAssetBase(BaseModel):
 class FarmAssetCreate(FarmAssetBase):
     farm_id: int
     config: Optional[Dict[str, Any]] = {}
+    iot_device_id: Optional[str] = None
 
 class FarmAsset(FarmAssetBase):
     id: int

@@ -44,7 +44,7 @@ export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSucces
                 name: formData.name,
                 asset_type: formData.asset_type,
                 purchase_date: formData.purchase_date,
-                cost: parseFloat(formData.cost),
+                cost: formData.cost ? parseFloat(formData.cost) : 0,
                 is_iot_enabled: formData.is_iot_enabled,
                 iot_device_id: formData.is_iot_enabled ? formData.iot_device_id : undefined,
                 config: {
@@ -106,55 +106,31 @@ export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSucces
                             </>
                         )}
 
-                        {(category === 'all') && <option value="IoT Device">{t('type_iot_device') || "Generic IoT Device"}</option>}
+                        {(category === 'all') && (
+                            <>
+                                <option value="Camera">CCTV / IP Camera</option>
+                                <option value="IoT Device">{t('type_iot_device') || "Generic IoT Device"}</option>
+                            </>
+                        )}
                     </select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('label_purchase_date')}</label>
-                        <input
-                            type="date"
-                            required
-                            className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                            value={formData.purchase_date}
-                            onChange={e => setFormData({ ...formData, purchase_date: e.target.value })}
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-slate-400 mb-1">{t('label_cost_rs')}</label>
-                        <input
-                            type="number"
-                            required
-                            className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-white"
-                            value={formData.cost}
-                            onChange={e => setFormData({ ...formData, cost: e.target.value })}
-                        />
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    <input
-                        type="checkbox"
-                        id="iot_check"
-                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                        checked={formData.is_iot_enabled}
-                        onChange={e => setFormData({ ...formData, is_iot_enabled: e.target.checked })}
-                    />
-                    <label htmlFor="iot_check" className="text-sm font-medium text-slate-300">{t('label_iot_enabled_long')}</label>
-                </div>
-
-                {formData.is_iot_enabled && (
+                {/* Stream URL for Cameras */}
+                {formData.asset_type === 'Camera' && (
                     <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 animate-in fade-in slide-in-from-top-2">
-                        <label className="block text-xs font-bold text-green-400 mb-1 uppercase tracking-wider">Hardware ID / MAC Address</label>
+                        <label className="block text-xs font-bold text-blue-400 mb-1 uppercase tracking-wider">Stream URL (RTSP / HTTP)</label>
                         <input
                             type="text"
-                            className="w-full bg-black border border-green-500/30 rounded p-2 text-white font-mono text-sm"
-                            placeholder="e.g. A1:B2:C3:D4"
-                            value={formData.iot_device_id}
-                            onChange={e => setFormData({ ...formData, iot_device_id: e.target.value })}
+                            className="w-full bg-black border border-blue-500/30 rounded p-2 text-white font-mono text-sm"
+                            placeholder="http://192.168.1.50:8080/video"
+                            value={formData.is_iot_enabled ? formData.iot_device_id : ''}
+                            onChange={e => setFormData({
+                                ...formData,
+                                is_iot_enabled: true, // Auto-enable IoT for cameras
+                                iot_device_id: e.target.value // Store URL in device ID for now, or config
+                            })}
                         />
-                        <p className="text-[10px] text-slate-500 mt-1">This ID is required to sync controls with the physical device.</p>
+                        <p className="text-[10px] text-slate-500 mt-1">Enter the local IP stream URL. (e.g. http://... or rtsp://...)</p>
                     </div>
                 )}
 

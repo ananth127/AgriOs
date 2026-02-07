@@ -45,7 +45,7 @@ export default function FarmManagementPage() {
     };
 
     // Real Data States
-    const [farmId, setFarmId] = useState(1); // Default to farm 1 for demo
+    const [farmId, setFarmId] = useState<number | null>(null); // Will be fetched dynamically
     const [financialStats, setFinancialStats] = useState({
         totalInvestment: 0,
         totalRevenue: 0,
@@ -57,8 +57,25 @@ export default function FarmManagementPage() {
     const [isActivityModalOpen, setIsActivityModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    // Fetch user's farm ID on mount
+    useEffect(() => {
+        const fetchUserFarm = async () => {
+            try {
+                const response = await api.farmManagement.getUserFarmId();
+                setFarmId(response.farm_id);
+            } catch (error) {
+                console.error('Failed to fetch user farm ID:', error);
+                // Fallback to 1 for backward compatibility
+                setFarmId(1);
+            }
+        };
+        fetchUserFarm();
+    }, []);
+
     // Fetch initial data
     const refreshData = useCallback(async () => {
+        if (!farmId) return; // Wait for farmId to be loaded
+
         setLoading(true);
         try {
             // 1. Fetch Financials
@@ -118,6 +135,18 @@ export default function FarmManagementPage() {
     useEffect(() => {
         refreshData();
     }, [refreshData]);
+
+    // Show loading while farmId is being fetched
+    if (farmId === null) {
+        return (
+            <div className="p-4 md:p-8 flex items-center justify-center min-h-screen">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+                    <p className="text-gray-500 dark:text-gray-400">{t('loading_farm')}</p>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="p-4 md:p-8 space-y-8">

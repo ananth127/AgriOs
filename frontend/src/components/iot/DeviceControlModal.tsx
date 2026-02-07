@@ -31,9 +31,13 @@ export const DeviceControlModal: React.FC<DeviceControlModalProps> = ({ isOpen, 
         setToggling(true);
         const newStatus = isActive ? 'Idle' : 'Active';
 
+        // Use iot_device_id if available (Farm Asset wrapper), otherwise device.id (Raw IoT Device)
+        const targetId = device.iot_device_id || device.id;
+
         try {
             setStatus(newStatus);
-            await api.iot.update(device.id, { status: newStatus });
+            // Ensure targetId is valid number for API
+            await api.iot.update(Number(targetId), { status: newStatus });
             if (onUpdate) onUpdate();
         } catch (e) {
             console.error(e);

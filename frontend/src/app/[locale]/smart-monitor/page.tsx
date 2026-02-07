@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 import { api } from '@/lib/api';
 
+import { AddAssetModal } from '@/components/farm-management/AddAssetModal'; // Import Modal
+
 export default function SmartMonitorPage() {
     const searchParams = useSearchParams();
     const initialType = searchParams.get('type') || 'ALL';
@@ -19,6 +21,10 @@ export default function SmartMonitorPage() {
     const [activeTab, setActiveTab] = useState(initialType);
     const [spotlightIndex, setSpotlightIndex] = useState(0);
     const [items, setItems] = useState<any[]>([]);
+
+    // Header Actions State
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [farmId, setFarmId] = useState<number | null>(null);
 
     // Advanced Controls State
     const [isPtzEnabled, setIsPtzEnabled] = useState(false);
@@ -35,42 +41,51 @@ export default function SmartMonitorPage() {
         { id: 4, src: 'https://images.unsplash.com/photo-1589923188900-85dae523342b?q=80&w=400', time: '10:39 AM', label: 'Sensor Alert' },
     ]);
 
-    // Fetch Real IoT Device Data
+    // Fetch Real Data (IoT Devices + Camera Assets)
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // Fetch all IoT devices
+                // 1. Get Farm ID
+                const farmRes = await api.farmManagement.getUserFarmId();
+                const fId = farmRes.farm_id;
+                setFarmId(fId);
+
+                // 2. Fetch IoT Devices
                 const devices = await api.iot.getDevices() as any[];
 
-                // Transform API data to match UI format
-                const transformedItems = devices.map((device: any, index: number) => {
+                // 3. Fetch Farm Assets (to get Cameras)
+                const assets = await api.farmManagement.getAssets(fId) as any[];
+
+                // Filter Cameras
+                const cameras = assets
+                    .filter((a: any) => a.asset_type === 'Camera')
+                    .map((cam: any) => ({
+                        id: `CAM-${cam.id}`,
+                        type: 'CAMERA',
+                        name: cam.name,
+                        status: 'ACTIVE', // Assume active if present
+                        isOnline: true,
+                        hasPTZ: true, // Assume PTZ capability for fun/demo
+                        imageUrl: cam.iot_device_id, // Stream URL stored here
+                        contextLink: '/farm-management?tab=iot',
+                        contextLabel: 'Camera Settings',
+                        _raw: cam
+                    }));
+
+                // Transform IoT Devices
+                const transformedIoT = devices.map((device: any, index: number) => {
                     const type = device.asset_type || 'DEVICE';
-                    // Mock capabilities based on type/index
-                    const hasPTZ = type === 'CCTV' || type === 'DRONE' || index % 2 === 0;
+                    const hasPTZ = type === 'CCTV' || type === 'DRONE';
 
                     let contextLink = '/';
                     let contextLabel = 'View Dashboard';
 
                     switch (type) {
-                        case 'CROP':
-                            contextLink = '/crops';
-                            contextLabel = 'Crop Analytics';
-                            break;
-                        case 'LIVESTOCK':
-                            contextLink = '/livestock';
-                            contextLabel = 'Livestock Health';
-                            break;
-                        case 'MACHINERY':
-                            contextLink = '/farm-management';
-                            contextLabel = 'Fleet Management';
-                            break;
-                        case 'LABOR':
-                            contextLink = '/farm-management';
-                            contextLabel = 'Task Board';
-                            break;
-                        default:
-                            contextLink = '/dashboard';
-                            contextLabel = 'Main Dashboard';
+                        case 'CROP': contextLink = '/crops'; contextLabel = 'Crop Analytics'; break;
+                        case 'LIVESTOCK': contextLink = '/livestock'; contextLabel = 'Livestock Health'; break;
+                        case 'MACHINERY': contextLink = '/farm-management'; contextLabel = 'Fleet Management'; break;
+                        case 'LABOR': contextLink = '/farm-management'; contextLabel = 'Task Board'; break;
+                        default: contextLink = '/dashboard'; contextLabel = 'Main Dashboard';
                     }
 
                     return {
@@ -82,27 +97,31 @@ export default function SmartMonitorPage() {
                         hasPTZ,
                         contextLink,
                         contextLabel,
-                        // Merge telemetry data
                         ...device.last_telemetry,
-                        // Keep original for reference
                         _raw: device
                     };
                 });
 
-                setItems(transformedItems);
+                // Merge: Cameras first for visibility
+                const mergedItems = [...cameras, ...transformedIoT];
+                setItems(mergedItems);
 
-                // If targetId is specified, find and spotlight it
-                if (targetId && transformedItems.length > 0) {
-                    const targetIndex = transformedItems.findIndex(
+                // Spotlight Logic
+                if (targetId && mergedItems.length > 0) {
+                    const targetIndex = mergedItems.findIndex(
                         (item: any) => item.id === targetId || item._raw?.id?.toString() === targetId
                     );
                     if (targetIndex !== -1) {
                         setSpotlightIndex(targetIndex);
                     }
+                } else if (cameras.length > 0 && items.length === 0) {
+                    // Default to first camera if no previous items
+                    setSpotlightIndex(0);
                 }
+
             } catch (error) {
-                console.error("Failed to fetch IoT devices:", error);
-                setItems([]);
+                console.error("Failed to fetch smart monitor data:", error);
+                // Don't clear items on single failure, allows stale data survival
             }
         };
 
@@ -110,6 +129,9 @@ export default function SmartMonitorPage() {
         const interval = setInterval(fetchData, 10000);
         return () => clearInterval(interval);
     }, [targetId]);
+
+
+
 
     // Filter Logic
     const filteredItems = useMemo(() => {
@@ -192,7 +214,7 @@ export default function SmartMonitorPage() {
     };
 
     // Swipe Logic for Tab Switching (Bottom/List Area)
-    const tabs = ['ALL', 'CROP', 'LIVESTOCK', 'MACHINERY', 'LABOR'];
+    const tabs = ['ALL', 'CAMERA', 'CROP', 'LIVESTOCK', 'MACHINERY', 'LABOR'];
     const handleTabSwipe = (e: any, { offset, velocity }: any) => {
         const swipe = Math.abs(offset.x) * velocity.x;
         const currentIndex = tabs.indexOf(activeTab);
@@ -213,6 +235,21 @@ export default function SmartMonitorPage() {
     return (
         <div className="min-h-screen bg-slate-950 p-4 lg:p-6 pb-20 space-y-6" ref={topRef}>
 
+            {/* Add Asset Modal */}
+            {showAddModal && farmId && (
+                <AddAssetModal
+                    isOpen={showAddModal}
+                    onClose={() => setShowAddModal(false)}
+                    farmId={farmId}
+                    onSuccess={() => {
+                        setShowAddModal(false);
+                        // Trigger immediate refresh? Effect will pick it up on next interval or we can refetch.
+                        // Ideally call fetchData() but it is inside useEffect. 
+                        // We can force re-render or let polling handle it. Best is let polling handle it for simplicity safely.
+                    }}
+                />
+            )}
+
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
@@ -223,20 +260,31 @@ export default function SmartMonitorPage() {
                     <p className="text-slate-400 text-sm">Real-time centralized monitoring with AI-Predictive Analytics</p>
                 </div>
 
-                {/* Tabs */}
-                <div className="flex bg-slate-900 p-1 rounded-xl border border-white/5 overflow-x-auto max-w-full">
-                    {tabs.map(tab => (
-                        <button
-                            key={tab}
-                            onClick={() => { setActiveTab(tab); setSpotlightIndex(0); }}
-                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                                : 'text-slate-400 hover:text-white hover:bg-white/5'
-                                }`}
-                        >
-                            {tab}
-                        </button>
-                    ))}
+                <div className="flex items-center gap-3">
+                    {/* Add Camera Button */}
+                    <button
+                        onClick={() => setShowAddModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl font-bold shadow-lg transition-transform active:scale-95 text-xs uppercase tracking-wider"
+                    >
+                        <Camera className="w-4 h-4" />
+                        Add Camera
+                    </button>
+
+                    {/* Tabs */}
+                    <div className="flex bg-slate-900 p-1 rounded-xl border border-white/5 overflow-x-auto max-w-full">
+                        {tabs.map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => { setActiveTab(tab); setSpotlightIndex(0); }}
+                                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${activeTab === tab
+                                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
 
@@ -276,11 +324,92 @@ export default function SmartMonitorPage() {
                                             transition={{ type: "spring", stiffness: 100 }}
                                             className="w-full h-full"
                                         >
-                                            <img
-                                                src={currentSpotlight.imageUrl || "https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=1200"}
-                                                className="w-full h-full object-cover"
-                                                alt="Live Feed"
-                                            />
+                                            {/* Unified Video Player Logic */}
+                                            {(() => {
+                                                const url = currentSpotlight.imageUrl;
+
+                                                // 1. Check for RTSP (Protocol Check)
+                                                if (url && url.trim().startsWith('rtsp://')) {
+                                                    return (
+                                                        <div className="w-full h-full flex flex-col items-center justify-center bg-slate-950 text-white border-2 border-slate-800 rounded-lg">
+                                                            <div className="w-16 h-16 rounded-full bg-slate-900 flex items-center justify-center mb-4 border border-slate-800 shadow-xl animate-pulse">
+                                                                <Video className="w-6 h-6 text-orange-500" />
+                                                            </div>
+                                                            <h3 className="font-bold text-base mb-1">RTSP Stream Detected</h3>
+                                                            <p className="text-[10px] text-slate-500 mb-4 text-center max-w-xs font-mono break-all px-4 bg-black/50 py-1 rounded">
+                                                                {url}
+                                                            </p>
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    onClick={() => navigator.clipboard.writeText(url)}
+                                                                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-white text-[10px] font-bold rounded border border-white/10 transition-colors"
+                                                                >
+                                                                    Copy URL
+                                                                </button>
+                                                                <a
+                                                                    href={url}
+                                                                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold rounded shadow-lg shadow-blue-500/20 transition-colors"
+                                                                >
+                                                                    Open Stream
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                // 2. Check for Valid HTTP Stream (Iframe Candidate)
+                                                // If it's http/https and NOT an image extension, treat as stream
+                                                const isStreamConfig = url && (url.startsWith('http') || url.startsWith('/'))
+                                                    && !url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i)
+                                                    && !url.includes('action=stream'); // MJPEG is usually handled better by IMG tag
+
+                                                if (isStreamConfig) {
+                                                    return (
+                                                        <iframe
+                                                            src={url}
+                                                            className="w-full h-full border-0 pointer-events-auto bg-black"
+                                                            title="Live Feed"
+                                                            allowFullScreen
+                                                            onError={(e) => {
+                                                                // Hide iframe and show error? iframe onerror is unreliable.
+                                                                // relying on visual 'blank' if it fails, or fallback.
+                                                            }}
+                                                        />
+                                                    );
+                                                }
+
+                                                // 3. Fallback to Image (MJPEG or Snapshot) or Placeholder
+                                                // If URL exists, try to show it. If it fails, show "Signal Lost"
+                                                if (url && url.length > 5) {
+                                                    return (
+                                                        <img
+                                                            src={url}
+                                                            className="w-full h-full object-cover"
+                                                            alt="Live Feed"
+                                                            onError={(e) => {
+                                                                // Show Signal Lost Placeholder on Error
+                                                                e.currentTarget.style.display = 'none';
+                                                                // We can't easily swap to a div here in React via generic logic without state,
+                                                                // but we can ensure the parent background shows "Signal Lost"
+                                                                // Or simpler: swap src to a known placeholder if available, or just fail.
+                                                                // Better: Use a reliable fallback image that looks like "Static"
+                                                                e.currentTarget.src = "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop"; // Cyberpunk static / tech background
+                                                            }}
+                                                        />
+                                                    );
+                                                }
+
+                                                // 4. No URL Configured -> Signal Lost State
+                                                return (
+                                                    <div className="w-full h-full flex flex-col items-center justify-center bg-black/90 text-slate-600">
+                                                        <div className="w-20 h-20 border-2 border-dashed border-slate-700/50 rounded-full flex items-center justify-center mb-2">
+                                                            <Wifi className="w-8 h-8 opacity-20" />
+                                                        </div>
+                                                        <span className="text-xs font-mono tracking-widest uppercase text-slate-700">Signal Lost</span>
+                                                        <span className="text-[10px] text-slate-800 mt-1">Check Connection or URL</span>
+                                                    </div>
+                                                );
+                                            })()}
                                         </motion.div>
 
                                         {/* AI Overlay Layer */}

@@ -23,9 +23,13 @@ export const IoTControl: React.FC = () => {
 
     const loadAssets = async () => {
         try {
+            // Get User Farm ID first
+            const farmRes = await api.farmManagement.getUserFarmId();
+            const farmId = farmRes.farm_id;
+
             // Using ID 1 as default for demo/pair-programming context
             // In production, this comes from the active farm context
-            const allAssets = await api.farmManagement.getAssets(1) as any[];
+            const allAssets = await api.farmManagement.getAssets(farmId) as any[];
 
             // Filter for IoT enabled assets relevant to irrigation
             const irrigationAssets = allAssets.filter((item: any) =>
