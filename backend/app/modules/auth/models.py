@@ -12,6 +12,7 @@ class User(Base):
     full_name = Column(String)
     role = Column(String, default="farmer") # farmer, buyer, expert, admin
     is_active = Column(Boolean, default=True)
+    unique_id = Column(String, unique=True, index=True, nullable=True) # 12-digit ID
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     phone_number = Column(String, nullable=True)

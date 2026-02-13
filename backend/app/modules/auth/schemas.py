@@ -37,6 +37,7 @@ class UserUpdate(BaseModel):
 class User(UserBase):
     id: int
     is_active: bool
+    unique_id: Optional[str] = None
     created_at: Optional[datetime] = None
 
     class Config:

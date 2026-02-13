@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { usePathname, useRouter } from '@/navigation';
 import { Loader2 } from 'lucide-react';
@@ -23,11 +24,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         return pathname.startsWith(path);
     });
 
-    // Redirect authenticated users away from guest pages (Login/Signup)
-    if (!loading && isAuthenticated && isGuestOnly) {
-        router.push('/');
-        return null;
-    }
+    useEffect(() => {
+        // Redirect authenticated users away from guest pages (Login/Signup)
+        if (!loading && isAuthenticated && isGuestOnly) {
+            router.push('/');
+        }
+    }, [loading, isAuthenticated, isGuestOnly, router]);
 
     // Optimization: Render Public Pages (like Landing) IMMEDIATELY
     // Do not block on auth loading state. This improves First Contentful Paint (FCP).

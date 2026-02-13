@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from '@/navigation';
 import { useAuth } from '@/lib/auth-context';
-import { API_BASE_URL } from '@/lib/constants';
+import { api } from '@/lib/api';
 import { ArrowLeft, Loader2, Save } from 'lucide-react';
 import { Link } from '@/navigation';
 import { useTranslations } from 'next-intl';
@@ -17,33 +17,37 @@ export default function NewDevicePage() {
     const [hardwareId, setHardwareId] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
 
+    // Smart Options
+    const [assetType, setAssetType] = useState('Device'); // Device, Pump, Valve, Sensor
+    const [parentPumpId, setParentPumpId] = useState<string>('');
+    const [pumps, setPumps] = useState<any[]>([]);
+
+    useEffect(() => {
+        api.iot.getDevices().then((data: any) => {
+            if (Array.isArray(data)) {
+                setPumps(data.filter((d: any) => d.asset_type === 'Pump'));
+            }
+        }).catch(console.error);
+    }, []);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            const res = await fetch(`${API_BASE_URL}/iot/devices`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    name,
-                    hardware_id: hardwareId,
-                    phone_number: phoneNumber || null
-                })
+            await api.iot.registerDevice({
+                name,
+                hardware_id: hardwareId,
+                phone_number: phoneNumber || null,
+                asset_type: assetType,
+                parent_device_id: (assetType === 'Valve' && parentPumpId) ? parseInt(parentPumpId) : null
             });
 
-            if (res.ok) {
-                router.push('/devices');
-            } else {
-                const err = await res.json();
-                alert(err.detail || "Failed to register device");
-            }
-        } catch (e) {
+            router.push('/devices');
+        } catch (e: any) {
             console.error(e);
-            alert("Network Error");
+            const msg = e.response?.data?.detail || "Failed to register device";
+            alert(msg);
         } finally {
             setLoading(false);
         }
@@ -85,17 +89,51 @@ export default function NewDevicePage() {
                         />
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Device SIM Number (Optional)</label>
-                        <input
-                            type="tel"
-                            placeholder="+91..."
-                            className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-500"
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                        />
-                        <p className="text-xs text-slate-400 mt-1">Required only if you want the server to send SMS *to* the device.</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Type</label>
+                            <select
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-500"
+                                value={assetType}
+                                onChange={e => setAssetType(e.target.value)}
+                            >
+                                <option value="Device">Generic</option>
+                                <option value="Pump">Pump</option>
+                                <option value="Valve">Valve</option>
+                                <option value="Sensor">Sensor</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Device SIM (Optional)</label>
+                            <input
+                                type="text"
+                                placeholder="+91..."
+                                className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-green-500"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                            />
+                        </div>
                     </div>
+
+                    {/* Conditional: Parent Pump for Valves */}
+                    {assetType === 'Valve' && (
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 dark:border-blue-500/20">
+                            <label className="block text-sm font-bold text-blue-800 dark:text-blue-300 mb-2">Link directly to a Pump?</label>
+                            <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
+                                Associates this valve with a pump. The system will prevent the pump from running if no valves are open.
+                            </p>
+                            <select
+                                className="w-full bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-500/30 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
+                                value={parentPumpId}
+                                onChange={e => setParentPumpId(e.target.value)}
+                            >
+                                <option value="">-- No Linked Pump --</option>
+                                {pumps.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name} ({p.hardware_id})</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
 
                     <button
                         type="submit"

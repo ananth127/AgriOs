@@ -80,16 +80,45 @@ export function SmartShelterDashboard({ housingId, housingName, onClose }: Smart
     };
 
     const handleAction = async (action: string, label: string) => {
-        // Toggle logic (mock)
-        if (label === "Main Lights") setLightsOn(!lightsOn);
+        // 1. Try to find the real device matching this label
+        // This assumes device names in DB match these labels, or we just grab the first matching type
+        // For "Main Lights", look for device with name "Light" or just use the first device for now if strict matching isn't possible
+        // Ideally, we'd map these controls to specific device IDs. 
+        // For this fix, let's try to find a device by name.
+        const targetDevice = devices.find(d => d.name.toLowerCase().includes(label.toLowerCase()) || d.asset_type.toLowerCase().includes(label.split(' ')[1]?.toLowerCase() || ''));
 
-        // Log the action to learn pattern
-        try {
-            const deviceId = devices.length > 0 ? devices[0].id : 1;
-            await api.livestock.smart.logAction(deviceId, action, `User toggled ${label}`);
-            console.log("Action logged:", action);
-        } catch (e) {
-            console.error(e);
+        if (targetDevice) {
+            // --- SAFETY CHECK (Standardized) ---
+            const isOrphanValve = targetDevice.asset_type === 'Valve' && !targetDevice.parent_device_id && targetDevice.status !== 'Active';
+            if (isOrphanValve && action === 'TURN_ON') {
+                alert("Cannot turn on Valve: No connected Pump found. Please link a pump in settings.");
+                return;
+            }
+
+            try {
+                await api.iot.sendCommand(targetDevice.id, {
+                    command: action,
+                    payload: {}
+                });
+                console.log(`Command ${action} sent to ${targetDevice.name}`);
+
+                // Optimistic UI Update
+                if (label === "Main Lights") setLightsOn(action === 'TURN_ON');
+
+            } catch (e: any) {
+                console.error("Command failed", e);
+                alert(`Failed to control ${label}: ${e.message || "Unknown Error"}`);
+            }
+        } else {
+            console.warn(`No linked device found for ${label}. Falling back to simulation.`);
+            // Fallback: Toggle logic (mock)
+            if (label === "Main Lights") setLightsOn(!lightsOn);
+
+            // Log the action to learn pattern (Legacy)
+            try {
+                const deviceId = devices.length > 0 ? devices[0].id : 1;
+                await api.livestock.smart.logAction(deviceId, action, `User toggled ${label}`);
+            } catch (e) { console.error(e); }
         }
     };
 

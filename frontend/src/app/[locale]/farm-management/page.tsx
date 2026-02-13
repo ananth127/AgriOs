@@ -74,7 +74,7 @@ export default function FarmManagementPage() {
             // Parallel fetch: financials, timeline, and crops all at once
             const [financials, timeline, activeCrops] = await Promise.all([
                 api.farmManagement.getFinancials(farmId) as Promise<any>,
-                api.farmManagement.getTimeline(1) as Promise<any>,
+                api.farmManagement.getTimeline(farmId) as Promise<any>,
                 api.crops.list(farmId) as Promise<any[]>,
             ]);
 

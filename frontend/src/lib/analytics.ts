@@ -1,6 +1,12 @@
 
 import ReactGA from 'react-ga4';
 
+declare global {
+    interface Window {
+        dataLayer: any[];
+    }
+}
+
 const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID || 'G-P5FE6JQJM8';
 
 // Local fallback state (since GA4 sets user properties per session, we can also track locally for immediate events)
@@ -22,18 +28,62 @@ const getLocationString = (context: string = '') => {
 
 export const initAnalytics = () => {
     if (GA_MEASUREMENT_ID) {
+        // Initialize GA4
         ReactGA.initialize(GA_MEASUREMENT_ID);
+        // Explicitly set the config if needed for immediate tracking, though initialize does this.
+        // We can also ensure dataLayer exists if we want to mix usage.
+        if (typeof window !== 'undefined') {
+            window.dataLayer = window.dataLayer || [];
+        }
         //console.log(`[Analytics] Initialized with ID: ${GA_MEASUREMENT_ID}`);
     }
 };
 
-export const setUserLoginStatus = (isLoggedIn: boolean) => {
+// Enhanced User Tracking
+export const setUserInfo = (user: { id: number | string; role: string; email?: string; location_name?: string; latitude?: number; longitude?: number }) => {
+    if (!user) return;
+
+    // Set User ID (Standard GA feature)
+    // Note: Do NOT send PII (Email, Phone, Name) as User Properties unless hashed.
+    // We use ID which is internal and safe.
+    ReactGA.set({ userId: user.id.toString() });
+
+    console.log(`[Analytics] Set User Info: ID=${user.id}, Role=${user.role}`);
+
+    // Set Custom User Properties
+    const userProperties: Record<string, any> = {
+        user_role: user.role,
+        user_account_type: user.role, // Alias for clarity
+        // sending location name is usually okay, but coords can be sensitive. 
+        // We already have setUserLocation for that, but let's sync here too if available.
+        user_location: user.location_name || 'Unknown',
+    };
+
+    // Add coordinates if available (GA4 allows this for map visualization if configured)
+    if (user.latitude && user.longitude) {
+        userProperties.user_latitude = user.latitude;
+        userProperties.user_longitude = user.longitude;
+        // Update local state
+        currentUserLocation = { lat: user.latitude, lng: user.longitude, name: user.location_name || '' };
+    }
+
+    ReactGA.gtag('set', 'user_properties', userProperties);
+};
+
+export const setUserLoginStatus = (isLoggedIn: boolean, user?: any) => {
     isUserLoggedIn = isLoggedIn;
     const status = isLoggedIn ? 'logged_in' : 'logged_out';
     //console.log(`[Analytics] Set User Status: ${status}`);
+
+    // Basic status
     ReactGA.gtag('set', 'user_properties', {
         login_status: status
     });
+
+    // If logged in and user data provided, set it immediately
+    if (isLoggedIn && user) {
+        setUserInfo(user);
+    }
 };
 
 export const setUserLocation = (lat: number, lng: number, name: string) => {
@@ -140,5 +190,24 @@ export const trackGlobalClick = (element: HTMLElement, pageName: string) => {
         category: "User Interaction",
         action: `Click ${type}`,
         label: finalLabel,
+    });
+};
+
+export const trackScroll = (pageName: string, depthPercentage: number) => {
+    //console.log(`[Analytics] Scroll Depth: ${depthPercentage}% on ${pageName}`);
+    ReactGA.event({
+        category: "User Interaction",
+        action: "Scroll",
+        label: `${pageName} - ${depthPercentage}%`,
+        value: depthPercentage
+    });
+};
+
+export const trackFormInteraction = (pageName: string, fieldName: string, interactionType: 'focus' | 'blur' | 'change', details?: string) => {
+    //console.log(`[Analytics] Form Interaction: ${fieldName} (${interactionType}) on ${pageName}`);
+    ReactGA.event({
+        category: "Form Interaction",
+        action: `${interactionType} - ${fieldName}`,
+        label: `${pageName}${details ? ` - ${details}` : ''}`,
     });
 };

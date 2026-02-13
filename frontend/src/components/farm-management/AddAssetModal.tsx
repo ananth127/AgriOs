@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { trackEvent } from '@/lib/analytics';
 import { Modal } from '@/components/ui/Modal';
@@ -16,15 +16,28 @@ interface CreateProps {
 export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSuccess, farmId, category = 'all' }) => {
     const t = useTranslations('FarmManagement');
     const [loading, setLoading] = useState(false);
+    const [pumps, setPumps] = useState<any[]>([]);
+    const [parentDeviceId, setParentDeviceId] = useState<string>('');
+
     const [formData, setFormData] = useState({
         name: '',
         asset_type: category === 'irrigation' ? 'Valve' : 'Tractor',
         purchase_date: new Date().toISOString().split('T')[0],
         cost: '',
-        is_iot_enabled: category === 'irrigation', // Default to true if context is irrigation
+        is_iot_enabled: category === 'irrigation',
         iot_device_id: '',
         sensors: [] as string[]
     });
+
+    // Fetch Pumps when adding a Valve
+    useEffect(() => {
+        if (isOpen && formData.asset_type === 'Valve') {
+            api.iot.getDevices().then(devices => {
+                const pumpList = Array.isArray(devices) ? devices.filter((d: any) => d.asset_type === 'Pump') : [];
+                setPumps(pumpList);
+            }).catch(console.error);
+        }
+    }, [isOpen, formData.asset_type]);
 
     const toggleSensor = (sensor: string) => {
         setFormData(prev => ({
@@ -49,6 +62,7 @@ export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSucces
                 iot_device_id: formData.is_iot_enabled ? formData.iot_device_id : undefined,
                 config: {
                     sensors: formData.sensors,
+                    parent_device_id: parentDeviceId ? parseInt(parentDeviceId) : undefined,
                     // Auto-generate capabilities based on settings
                     capabilities: formData.sensors
                 }
@@ -114,6 +128,26 @@ export const AddAssetModal: React.FC<CreateProps> = ({ isOpen, onClose, onSucces
                         )}
                     </select>
                 </div>
+
+                {/* Valve -> Pump Connector */}
+                {formData.asset_type === 'Valve' && (
+                    <div className="bg-slate-900 p-3 rounded-lg border border-slate-800 animate-in fade-in slide-in-from-top-2">
+                        <label className="block text-xs font-bold text-blue-400 mb-1 uppercase tracking-wider">Connect to Pump (Source)</label>
+                        <select
+                            className="w-full bg-black border border-blue-500/30 rounded p-2 text-white text-sm"
+                            value={parentDeviceId}
+                            onChange={e => setParentDeviceId(e.target.value)}
+                        >
+                            <option value="">-- No Direct Pump Connection --</option>
+                            {pumps.map(pump => (
+                                <option key={pump.id} value={pump.id}>
+                                    {pump.name} ({pump.hardware_id})
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-[10px] text-slate-500 mt-1">Select the main pump this valve controls flow from.</p>
+                    </div>
+                )}
 
                 {/* Stream URL for Cameras */}
                 {formData.asset_type === 'Camera' && (

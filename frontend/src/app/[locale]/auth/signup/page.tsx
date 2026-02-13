@@ -57,10 +57,18 @@ export default function SignupPage({ params: { locale } }: { params: { locale: s
             const count = phoneNumber.split(digit).length - 1;
             if (count > 4) {
                 setError('Invalid number');
+                trackUserAction('signup_error', 'Form Error', { error: 'Invalid number pattern' });
                 setLoading(false);
                 return;
             }
         }
+
+        trackUserAction('attempt_signup', 'Form Submission', {
+            role,
+            has_location: !!location,
+            has_name: !!fullName,
+            phone_length: phoneNumber.length
+        });
 
         try {
             // Auto-generate email from phone number
@@ -101,6 +109,7 @@ export default function SignupPage({ params: { locale } }: { params: { locale: s
 
         } catch (err: any) {
             setError(err.message);
+            trackUserAction('signup_error', 'API Error', { message: err.message });
         } finally {
             setLoading(false);
         }
@@ -139,6 +148,7 @@ export default function SignupPage({ params: { locale } }: { params: { locale: s
                                 required
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
+                                onBlur={() => trackUserAction('input_complete', 'Form Interaction', { field: 'fullName', value: fullName })}
                                 className="w-full bg-slate-950/50 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-green-500/50 transition-colors"
                                 placeholder="Your Name"
                             />
@@ -157,6 +167,7 @@ export default function SignupPage({ params: { locale } }: { params: { locale: s
                                     const val = e.target.value.replace(/\D/g, '');
                                     if (val.length <= 10) setPhoneNumber(val);
                                 }}
+                                onBlur={() => trackUserAction('input_complete', 'Form Interaction', { field: 'phoneNumber', value: phoneNumber, valid: phoneNumber.length === 10 })}
                                 className={`w-full bg-slate-950/50 border rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-slate-600 focus:outline-none transition-colors ${phoneNumber.length === 0 || (phoneNumber.length === 10 && /^[6-9]/.test(phoneNumber))
                                     ? 'border-green-500/50 focus:border-green-500' // Green if empty or valid length & prefix
                                     : 'border-red-500/50 focus:border-red-500'     // Red otherwise (while typing or invalid)
@@ -182,6 +193,7 @@ export default function SignupPage({ params: { locale } }: { params: { locale: s
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                onBlur={() => trackUserAction('input_complete', 'Form Interaction', { field: 'password', length: password.length, value: '[REDACTED]' })}
                                 className="w-full bg-slate-950/50 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-white placeholder:text-slate-600 focus:outline-none focus:border-green-500/50 transition-colors"
                                 placeholder="Create a password"
                             />
@@ -194,7 +206,10 @@ export default function SignupPage({ params: { locale } }: { params: { locale: s
                             <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                             <select
                                 value={role}
-                                onChange={(e) => setRole(e.target.value)}
+                                onChange={(e) => {
+                                    setRole(e.target.value);
+                                    trackUserAction('role_change', 'Form Interaction', { role: e.target.value });
+                                }}
                                 className="w-full bg-slate-950/50 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-white appearance-none focus:outline-none focus:border-green-500/50 transition-colors cursor-pointer"
                             >
                                 {roles.map(r => (
@@ -209,7 +224,10 @@ export default function SignupPage({ params: { locale } }: { params: { locale: s
 
                         {/* Selector Trigger */}
                         <div
-                            onClick={() => setIsLocationModalOpen(true)}
+                            onClick={() => {
+                                setIsLocationModalOpen(true);
+                                trackUserAction('open_location_modal', 'Form Interaction');
+                            }}
                             className="w-full bg-slate-950/50 border border-white/10 rounded-lg py-3 px-4 text-white hover:bg-slate-900/80 cursor-pointer transition-colors flex items-center justify-between group"
                         >
                             <div className="flex items-center gap-3">
@@ -231,7 +249,10 @@ export default function SignupPage({ params: { locale } }: { params: { locale: s
                         <LocationSelector
                             isOpen={isLocationModalOpen}
                             onClose={() => setIsLocationModalOpen(false)}
-                            onSelect={(lat, lng, name, method) => setLocation({ lat, lng, name, method })}
+                            onSelect={(lat, lng, name, method) => {
+                                setLocation({ lat, lng, name, method });
+                                trackUserAction('select_location_signup', 'Form Interaction', { method, name });
+                            }}
                             simpleMode={true}
                         />
                     </div>

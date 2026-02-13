@@ -17,7 +17,7 @@ class FarmLoanCreate(FarmLoanBase):
 class FarmLoan(FarmLoanBase):
     id: int
     farm_id: int
-    outstanding_balance: float
+    outstanding_balance: Optional[float] = None
     repayment_schedule: Optional[Any] = None
     class Config:
         from_attributes = True

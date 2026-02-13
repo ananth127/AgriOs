@@ -57,6 +57,7 @@ class ProductListing(Base):
     
     available_date = Column(Date, nullable=True) # For future harvest selling
     is_active = Column(Boolean, default=True)
+    is_default = Column(Boolean, default=False)
     
     location = Column(get_geo_column('POINT', srid=4326), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

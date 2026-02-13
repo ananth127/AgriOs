@@ -48,11 +48,11 @@ frontend/.env.local
 sql_app.db
 archive/
 
-# IDE
-# .vscode/
-# .gemini/
-# .claude/
-# .opencode/
+IDE
+.vscode/
+.gemini/
+.claude/
+.opencode/
 .idea/
 *.swp
 *.swo

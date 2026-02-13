@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
-import { Power, RefreshCw, Clock, Calendar, QrCode, X, Download } from 'lucide-react';
+import { Power, RefreshCw, Clock, Calendar, QrCode, X, Download, AlertTriangle } from 'lucide-react';
 import { api } from '@/lib/api';
 
 interface DeviceControlModalProps {
@@ -11,6 +11,7 @@ interface DeviceControlModalProps {
 }
 
 export const DeviceControlModal: React.FC<DeviceControlModalProps> = ({ isOpen, onClose, device, onUpdate }) => {
+    const [timerMinutes, setTimerMinutes] = useState<string>('');
     const [toggling, setToggling] = useState(false);
     // Local status for immediate feedback, initialized from props
     const [status, setStatus] = useState(device?.status || 'Idle');
@@ -24,25 +25,51 @@ export const DeviceControlModal: React.FC<DeviceControlModalProps> = ({ isOpen, 
         }
     }, [device?.status]);
 
-    const isActive = status === 'Active';
+    const isActive = status === 'Active' || status === 'Running';
+    // Check if it's a Valve without a parent Pump (and current status is NOT active)
+    const isOrphanValve = device?.asset_type === 'Valve' && !device.parent_device_id && !isActive;
 
     const handleToggle = async () => {
         if (!device) return;
-        setToggling(true);
-        const newStatus = isActive ? 'Idle' : 'Active';
 
-        // Use iot_device_id if available (Farm Asset wrapper), otherwise device.id (Raw IoT Device)
-        const targetId = device.iot_device_id || device.id;
+        if (isOrphanValve) {
+            alert("Cannot turn on Valve: No connected Pump found. Please link a pump in settings.");
+            return;
+        }
+
+        setToggling(true);
+
+        const action = isActive ? 'TURN_OFF' : 'TURN_ON';
+
+        let targetId = device.id;
+        // If device.id is not a number (e.g. wrapper object), try to parse it or use iot_device_id
+        if (isNaN(Number(targetId))) {
+            if (device.iot_device_id && !isNaN(Number(device.iot_device_id))) {
+                targetId = Number(device.iot_device_id);
+            } else if (typeof device.id === 'string' && !isNaN(parseInt(device.id))) {
+                targetId = parseInt(device.id);
+            }
+        }
 
         try {
-            setStatus(newStatus);
-            // Ensure targetId is valid number for API
-            await api.iot.update(Number(targetId), { status: newStatus });
+            // Optimistic Update
+            const prevStatus = status;
+            setStatus(isActive ? 'Idle' : 'Active');
+
+            // Send Command
+            await api.iot.sendCommand(Number(targetId), {
+                command: action,
+                payload: {
+                    duration_minutes: timerMinutes ? parseInt(timerMinutes) : undefined
+                }
+            });
+
             if (onUpdate) onUpdate();
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            setStatus(isActive ? 'Active' : 'Idle');
-            alert("Command Failed");
+            setStatus(isActive ? 'Active' : 'Idle'); // Revert
+            const msg = e.response?.data?.detail || e.message || "Command Failed";
+            alert(`Error: ${msg}`);
         } finally {
             setToggling(false);
         }
@@ -50,10 +77,16 @@ export const DeviceControlModal: React.FC<DeviceControlModalProps> = ({ isOpen, 
 
     if (!device) return null;
 
-    // Mock Stats
-    const usageHours = device.usage_hours || Math.floor(Math.random() * 50) + 10;
-    const lastUsed = device.last_active || 'Today, 10:30 AM';
-    const battery = device.battery_level || 94;
+    // Real Stats
+    const totalMinutes = device.total_runtime_minutes || 0;
+    const usageHours = (totalMinutes / 60).toFixed(1);
+
+    let lastUsed = 'Never';
+    if (device.last_active_at) {
+        lastUsed = new Date(device.last_active_at).toLocaleString(undefined, {
+            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+    }
 
     // QR Code - Generate Full URL for scanning
     // Directs to Farm Management IoT Tab and auto-opens this device
@@ -72,18 +105,26 @@ export const DeviceControlModal: React.FC<DeviceControlModalProps> = ({ isOpen, 
                         <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`} />
                         {isActive ? 'Online & Running' : 'Standby / Idle'}
                     </span>
-                    <span>Battery: {battery}%</span>
+                    <span>Battery: {device.battery_level || 100}%</span>
                 </div>
 
                 {/* Big Control Button */}
-                <div className="flex justify-center py-4">
+                <div className="flex flex-col items-center justify-center py-4 gap-4">
+                    {isOrphanValve && (
+                        <div className="bg-amber-500/10 text-amber-500 border border-amber-500/20 p-3 rounded-lg flex items-center gap-2 text-sm font-medium w-full justify-center">
+                            <AlertTriangle className="w-4 h-4" />
+                            No Pump Connected. Cannot Start.
+                        </div>
+                    )}
                     <button
                         onClick={handleToggle}
-                        disabled={toggling}
-                        className={`w-40 h-40 rounded-full flex flex-col items-center justify-center shadow-2xl transition-all duration-500 active:scale-95 border-8 relative overflow-hidden
+                        disabled={toggling || isOrphanValve}
+                        className={`w-40 h-40 rounded-full flex flex-col items-center justify-center shadow-2xl transition-all duration-500 border-8 relative overflow-hidden
                             ${isActive
                                 ? 'bg-green-500 border-green-200 shadow-green-500/50 text-white'
-                                : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-300 shadow-slate-200/50'
+                                : isOrphanValve
+                                    ? 'bg-slate-100 dark:bg-slate-900 border-amber-200/50 text-slate-300 opacity-50 cursor-not-allowed'
+                                    : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-300 shadow-slate-200/50 active:scale-95'
                             }
                         `}
                     >
@@ -95,6 +136,25 @@ export const DeviceControlModal: React.FC<DeviceControlModalProps> = ({ isOpen, 
                         )}
                         <span className="font-bold text-lg relative z-10">{isActive ? 'ON' : 'OFF'}</span>
                     </button>
+
+                    {/* Timer Input (Only when OFF and valid) */}
+                    {!isActive && !isOrphanValve && (
+                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-200 dark:border-white/10">
+                            <Clock className="w-4 h-4 text-slate-400" />
+                            <input
+                                type="number"
+                                placeholder="Timer (min)"
+                                className="w-24 bg-transparent outline-none text-sm"
+                                value={timerMinutes}
+                                onChange={e => setTimerMinutes(e.target.value)}
+                            />
+                        </div>
+                    )}
+                    {isActive && device.target_turn_off_at && (
+                        <div className="text-xs text-amber-500 font-mono bg-amber-500/10 px-2 py-1 rounded">
+                            Auto-off at {new Date(device.target_turn_off_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </div>
+                    )}
                 </div>
 
                 {/* Timeline / Usage Stats */}
@@ -110,7 +170,7 @@ export const DeviceControlModal: React.FC<DeviceControlModalProps> = ({ isOpen, 
                         <div className="flex items-center gap-2 text-xs text-slate-400 uppercase tracking-wider font-bold mb-1">
                             <Calendar className="w-3 h-3" /> Last Active
                         </div>
-                        <p className="text-base font-semibold text-slate-700 dark:text-slate-200 truncate">{lastUsed}</p>
+                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 truncate">{lastUsed}</p>
                         <p className="text-[10px] text-slate-400">Timestamp</p>
                     </div>
                 </div>

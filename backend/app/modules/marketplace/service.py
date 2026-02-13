@@ -31,6 +31,20 @@ def create_listing(db: Session, listing: schemas.ListingCreate, provider_id: int
     return db_listing
 
 def create_product_listing(db: Session, listing: schemas.ProductListingCreate, seller_id: int):
+    # --- DEFAULT DATA STRATEGY: AUTO-CLEANUP ---
+    # Check if user has any default items. If so, delete them as the user is now creating real content.
+    default_items = db.query(models.ProductListing).filter(
+        models.ProductListing.seller_id == seller_id, 
+        models.ProductListing.is_default == True
+    ).all()
+    
+    if default_items:
+        print(f"🧹 Default Data Strategy: Cleaning up {len(default_items)} default listings for user {seller_id}")
+        for item in default_items:
+            db.delete(item)
+        # We don't commit here, we let the final commit handle everything or flush
+        db.flush()
+
     # Optional Location
     loc = None
     if listing.latitude and listing.longitude:
@@ -48,7 +62,8 @@ def create_product_listing(db: Session, listing: schemas.ProductListingCreate, s
         price=listing.price,
         price_unit=listing.price_unit,
         available_date=listing.available_date,
-        location=loc
+        location=loc,
+        is_default=False # Explicitly false for user-created items
     )
     db.add(db_prod)
     db.commit()
@@ -116,7 +131,7 @@ def search_commercial_products(db: Session, ingredient: str = None, category: st
         query = query.filter(models.CommercialProduct.active_ingredient_name.ilike(f"%{ingredient}%"))
     
     if category:
-         query = query.filter(models.CommercialProduct.category.ilike(category))
+        query = query.filter(models.CommercialProduct.category.ilike(category))
          
     return query.all()
 
@@ -166,6 +181,23 @@ def seed_commercial_products(db: Session):
     db.add_all(products)
     db.commit()
 
+def seed_defaults_for_user(db: Session, user_id: int):
+    """
+    Seed default marketplace listings for a specific user.
+    """
+    defaults = [
+        models.ProductListing(
+            seller_id=user_id, listing_type="SELL", product_name="Example: Fresh Tomatoes",
+            category="Vegetable", description="This is a demo listing. Add your own to remove it.",
+            quantity=50.0, unit="Kg", price=40.0, price_unit="per_kg",
+            image_url="https://dummyimage.com/300x200/e74c3c/fff&text=Tomato",
+            available_date=datetime.now().date(),
+            is_default=True
+        )
+    ]
+    db.add_all(defaults)
+    db.commit()
+
 def seed_dummy_listings(db: Session):
     """
     Seed farmer listings to demonstrate the marketplace categories.
@@ -180,15 +212,19 @@ def seed_dummy_listings(db: Session):
             category="Crop Grown", description="Ready for harvest in 2 weeks. Total 500 bunches.",
             quantity=5.0, unit="Tons", price=15000.0, price_unit="per_ton",
             image_url="https://dummyimage.com/300x200/2ecc71/fff&text=Banana",
-            available_date=datetime.now().date()
+            available_date=datetime.now().date(),
+            is_default=True
         ),
-        # FRUIT
+        # ... (Other dummy listings also marked as default if they belong to a demo user, 
+        # but for global dummy data we might keep is_default=False or True depending on policy.
+        # Here we mark them True so they are clearly identifiable as non-real)
         models.ProductListing(
             seller_id=2, listing_type="SELL", product_name="Alphonso Mangoes",
             category="Fruit", description="Premium export quality organic mangoes.",
             quantity=100.0, unit="Dozen", price=800.0, price_unit="per_dozen",
             image_url="https://dummyimage.com/300x200/f1c40f/fff&text=Mango",
-            available_date=datetime.now().date()
+            available_date=datetime.now().date(),
+            is_default=True
         ),
         # VEGETABLE
         models.ProductListing(
@@ -196,7 +232,8 @@ def seed_dummy_listings(db: Session):
             category="Vegetable", description="Nashik Red Onions, medium size, dry.",
             quantity=500.0, unit="Kg", price=25.0, price_unit="per_kg",
             image_url="https://dummyimage.com/300x200/9b59b6/fff&text=Onion",
-            available_date=datetime.now().date()
+            available_date=datetime.now().date(),
+            is_default=True
         ),
         # LIVESTOCK (Adult + Young)
         models.ProductListing(
@@ -204,14 +241,16 @@ def seed_dummy_listings(db: Session):
             category="Livestock", description="Healthy Holstein Friesian cow, 2nd lactation, 15L milk/day.",
             quantity=1.0, unit="Number", price=65000.0, price_unit="per_head",
             image_url="https://dummyimage.com/300x200/ecf0f1/333&text=Cow",
-            available_date=datetime.now().date()
+            available_date=datetime.now().date(),
+            is_default=True
         ),
         models.ProductListing(
             seller_id=3, listing_type="SELL", product_name="Boer Goat Kids",
             category="Livestock (Young)", description="3 month old active male kids for breeding.",
             quantity=4.0, unit="Number", price=8000.0, price_unit="per_kid",
             image_url="https://dummyimage.com/300x200/d35400/fff&text=Goat+Kid",
-            available_date=datetime.now().date()
+            available_date=datetime.now().date(),
+            is_default=True
         ),
         # MACHINERY (Used/Selling) - New category
         models.ProductListing(
@@ -219,7 +258,8 @@ def seed_dummy_listings(db: Session):
             category="Machinery", description="2018 model, good condition, new tyres.",
             quantity=1.0, unit="Number", price=450000.0, price_unit="total",
             image_url="https://dummyimage.com/300x200/e74c3c/fff&text=Tractor",
-            available_date=datetime.now().date()
+            available_date=datetime.now().date(),
+            is_default=True
         ),
         # BUY REQUEST (Wanted)
         models.ProductListing(
@@ -227,7 +267,8 @@ def seed_dummy_listings(db: Session):
             category="Crop Residue", description="Looking for 10 tons of wheat straw for fodder.",
             quantity=10.0, unit="Tons", price=2000.0, price_unit="per_ton",
             image_url=None,
-            available_date=datetime.now().date()
+            available_date=datetime.now().date(),
+            is_default=True
         ),
         # MEAT / POULTRY
         models.ProductListing(
@@ -235,7 +276,8 @@ def seed_dummy_listings(db: Session):
             category="Meat", description="Free-range, organic fed Kadaknath chicken meat.",
             quantity=20.0, unit="Kg", price=850.0, price_unit="per_kg",
             image_url="https://dummyimage.com/300x200/5e3c58/fff&text=Kadaknath",
-            available_date=datetime.now().date()
+            available_date=datetime.now().date(),
+            is_default=True
         ),
         # DAIRY
         models.ProductListing(
@@ -243,7 +285,8 @@ def seed_dummy_listings(db: Session):
             category="Dairy", description="Pure handmade Vedic bilona ghee from Gir cows.",
             quantity=50.0, unit="Liter", price=2500.0, price_unit="per_liter",
             image_url="https://dummyimage.com/300x200/f39c12/fff&text=Ghee",
-            available_date=datetime.now().date()
+            available_date=datetime.now().date(),
+            is_default=True
         ),
     ]
     

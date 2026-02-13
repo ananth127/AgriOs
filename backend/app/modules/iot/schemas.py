@@ -14,6 +14,7 @@ class IoTDeviceBase(BaseModel):
 class IoTDeviceCreate(IoTDeviceBase):
     config: Optional[Dict[str, Any]] = {}
     asset_type: Optional[str] = "Device"
+    parent_device_id: Optional[int] = None
 
 class IoTDeviceUpdate(BaseModel):
     name: Optional[str] = None
@@ -22,6 +23,8 @@ class IoTDeviceUpdate(BaseModel):
     location_lng: Optional[float] = None
     config: Optional[Dict[str, Any]] = None
     status: Optional[str] = None
+    parent_device_id: Optional[int] = None
+    # Can also manually reset stats if needed, but usually handled by system
 
 class IoTDeviceResponse(IoTDeviceBase):
     id: int
@@ -34,6 +37,13 @@ class IoTDeviceResponse(IoTDeviceBase):
     asset_type: str = "Device"
     created_at: datetime
     
+    # Stats
+    parent_device_id: Optional[int]
+    last_active_at: Optional[datetime]
+    total_runtime_minutes: float
+    current_run_start_time: Optional[datetime]
+    target_turn_off_at: Optional[datetime]
+    
     class Config:
         from_attributes = True
 
@@ -44,7 +54,7 @@ class IoTCommandBase(BaseModel):
     payload: Dict[str, Any] = {}
 
 class IoTCommandCreate(IoTCommandBase):
-    pass
+    payload: Optional[Dict[str, Any]] = {}
 
 class IoTCommandResponse(IoTCommandBase):
     id: int

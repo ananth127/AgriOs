@@ -1,8 +1,24 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
+import random
+import string
 from . import models, schemas, utils
 
 def get_user_by_email(db: Session, email: str):
     return db.query(models.User).filter(models.User.email == email).first()
+
+def get_user_by_login_id(db: Session, identifier: str):
+    return db.query(models.User).filter(
+        or_(
+            models.User.email == identifier,
+            models.User.phone_number == identifier,
+            models.User.unique_id == identifier
+        )
+    ).first()
+
+def generate_unique_id():
+    """Generate a random 12-digit ID string."""
+    return ''.join(random.choices(string.digits, k=12))
 
 def create_user(db: Session, user: schemas.UserCreate):
     hashed_password = utils.get_password_hash(user.password)
@@ -11,11 +27,17 @@ def create_user(db: Session, user: schemas.UserCreate):
     if user.latitude and user.longitude:
         _check_location_conflict(db, user.latitude, user.longitude)
 
+    while True:
+        unique_id = generate_unique_id()
+        if not db.query(models.User).filter(models.User.unique_id == unique_id).first():
+            break
+
     db_user = models.User(
         email=user.email,
         hashed_password=hashed_password,
         full_name=user.full_name,
         role=user.role,
+        unique_id=unique_id,
         phone_number=user.phone_number,
         latitude=user.latitude,
         longitude=user.longitude,
@@ -28,8 +50,8 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     return db_user
 
-def authenticate_user(db: Session, email: str, password: str):
-    user = get_user_by_email(db, email)
+def authenticate_user(db: Session, identifier: str, password: str):
+    user = get_user_by_login_id(db, identifier)
     if not user:
         return None
     if not utils.verify_password(password, user.hashed_password):

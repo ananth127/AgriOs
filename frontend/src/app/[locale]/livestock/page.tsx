@@ -34,7 +34,7 @@ export default function LivestockPage() {
     const [loggingAnimal, setLoggingAnimal] = useState<any>(null); // For logging production
     const [qrModalAnimal, setQrModalAnimal] = useState<any>(null); // For QR printing
     const [sellingAnimal, setSellingAnimal] = useState<any>(null); // For selling
-    const farmId = 1; // Default
+    const [farmId, setFarmId] = useState<number | null>(null);
 
     const [housing, setHousing] = useState<any[]>([]);
     const [feedPlans, setFeedPlans] = useState<any[]>([]);
@@ -42,7 +42,16 @@ export default function LivestockPage() {
     const [isAddFeedOpen, setIsAddFeedOpen] = useState(false);
     const [stats, setStats] = useState<any[]>([]);
 
+    useEffect(() => {
+        api.farmManagement.getUserFarmId()
+            .then(res => {
+                if (res.farm_id) setFarmId(res.farm_id);
+            })
+            .catch(err => console.error("Failed to load user farm ID", err));
+    }, []);
+
     const fetchAnimals = async () => {
+        if (!farmId) return;
         try {
             // Concurrent fetching for better performance
             const [data, housingData, feedData, statsData]: [any, any, any, any] = await Promise.all([
@@ -65,7 +74,7 @@ export default function LivestockPage() {
                         species: 'Cow',
                         breed: 'Holstein',
                         gender: 'Female',
-                        date_of_birth: '2022-01-01',
+                        birth_date: '2022-01-01',
                         weight_kg: 500,
                         health_status: 'Healthy',
                         purpose: 'Dairy',
@@ -79,7 +88,7 @@ export default function LivestockPage() {
                         species: 'Goat',
                         breed: 'Boer',
                         gender: 'Male',
-                        date_of_birth: '2023-05-15',
+                        birth_date: '2023-05-15',
                         weight_kg: 45,
                         health_status: 'Healthy',
                         purpose: 'Meat',
@@ -106,11 +115,9 @@ export default function LivestockPage() {
                         const seededData: any = await api.livestock.list(farmId);
                         setAnimals(seededData);
                     } catch (seedErr) {
-                        console.error("Seeding failed, using mock state temporarily", seedErr);
-                        setAnimals([
-                            { ...defaultCow, id: 'temp-1' },
-                            { ...defaultGoat, id: 'temp-2' }
-                        ]);
+                        console.error("Seeding failed", seedErr);
+                        // Do NOT use temp IDs that cause 422s. Just leave empty.
+                        setAnimals([]);
                     }
                     return;
                 }
@@ -127,8 +134,8 @@ export default function LivestockPage() {
     };
 
     useEffect(() => {
-        fetchAnimals();
-    }, []);
+        if (farmId) fetchAnimals();
+    }, [farmId]);
 
     // Handle URL param for direct access
     useEffect(() => {
@@ -167,7 +174,8 @@ export default function LivestockPage() {
                     {!selectedCategory && (
                         <button
                             onClick={() => setIsRegisterOpen(true)}
-                            className="w-full md:w-auto bg-green-500 hover:bg-green-400 text-slate-950 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 shadow-lg shadow-green-900/20"
+                            disabled={!farmId}
+                            className={`w-full md:w-auto text-slate-950 px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-green-900/20 ${!farmId ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-400 hover:scale-105'}`}
                         >
                             + {t('register_animal')}
                         </button>
@@ -228,14 +236,14 @@ export default function LivestockPage() {
                 isOpen={isRegisterOpen}
                 onClose={() => setIsRegisterOpen(false)}
                 onSuccess={fetchAnimals}
-                farmId={farmId}
+                farmId={farmId || 0}
             />
 
             <AddHousingModal
                 isOpen={isAddHousingOpen}
                 onClose={() => setIsAddHousingOpen(false)}
                 onSuccess={fetchAnimals}
-                farmId={farmId}
+                farmId={farmId || 0}
             />
 
             <AddFeedPlanModal

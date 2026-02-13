@@ -71,18 +71,16 @@ export default function MarketplacePage() {
             .finally(() => setLoading(false));
     }, [categoryFilter]);
 
-    // Mock Fetch Jobs
+    // Fetch Jobs (Real)
     const fetchJobs = useCallback(() => {
         setLoading(true);
-        // Simulate API delay
-        setTimeout(() => {
-            setJobs([
-                { id: 1, title: 'Tractor Driver Needed', farm: 'Green Acres', location: 'Pune, MH', salary: '₹800/day', type: 'Temporary', posted: '2d ago', description: 'Need experienced driver for plowing season. Must know John Deere models.' },
-                { id: 2, title: 'Harvest Helper', farm: 'Sunshine Orchards', location: 'Nashik, MH', salary: '₹500/day', type: 'Full Time', posted: '1d ago', description: 'Looking for 5 helpers for grape harvest. Food and stay provided.' },
-                { id: 3, title: 'Irrigation Specialist', farm: 'HydroTech Farms', location: 'Nagpur, MH', salary: '₹15,000/mo', type: 'Contract', posted: '5d ago', description: 'Manage drip irrigation systems for 20 acre plot.' },
-            ]);
-            setLoading(false);
-        }, 800);
+        api.marketplace.jobs.list()
+            .then((data: any) => setJobs(Array.isArray(data) ? data : []))
+            .catch(err => {
+                console.error("Failed to fetch jobs", err);
+                setJobs([]);
+            })
+            .finally(() => setLoading(false));
     }, []);
 
     useEffect(() => {
@@ -97,10 +95,16 @@ export default function MarketplacePage() {
 
     /* Accessors */
     /* Accessors */
-    // Filter out my own listings from general browse view to simulate "Marketplace" logic
-    // But show them if filter is active or if we have a specific 'My Listings' view later.
-    // For now, if activeTab is 'browse', we hide my listings.
-    const displayedListings = listings.filter(l => l.seller_id !== myUserId);
+    const displayedListings = listings.filter(l => {
+        if (activeTab === 'my-listings') {
+            return l.seller_id === myUserId;
+        } else {
+            // Browse: Show everything EXCEPT my non-default listings? 
+            // Actually standard marketplace browse is "Everything that isn't mine".
+            // But if I want to see my default demo data, I should look in "My Listings".
+            return l.seller_id !== myUserId;
+        }
+    });
 
     /* Handlers */
     const handleDelete = async (id: number) => {
@@ -119,7 +123,7 @@ export default function MarketplacePage() {
     };
 
     const handleApplyJob = (job: any) => {
-        alert(`Application sent for ${job.title} at ${job.farm}! You can track this in 'Track & Trace'.`);
+        alert(`Application sent for ${job.title}! You can track this in 'Track & Trace'.`);
     };
 
     const renderViewTab = (mode: ViewMode, label: string, icon: any) => (
@@ -167,9 +171,25 @@ export default function MarketplacePage() {
             {viewMode === 'market' && (
                 <>
                     {/* Toolbar */}
-                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-slate-900/50 p-4 rounded-2xl border border-white/5 backdrop-blur-sm sticky top-0 z-10">
+                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-slate-900/50 p-4 rounded-2xl border border-white/5 backdrop-blur-sm sticky top-0 z-10 transition-all">
 
                         <div className="flex flex-wrap gap-2 w-full md:w-auto items-center">
+                            {/* Tabs: Browse vs My Listings */}
+                            <div className="flex bg-slate-950 p-1 rounded-xl border border-white/10 mr-2">
+                                <button
+                                    onClick={() => setActiveTab('browse')}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'browse' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-300'}`}
+                                >
+                                    Browse Market
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('my-listings')}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'my-listings' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-slate-300'}`}
+                                >
+                                    My Listings
+                                </button>
+                            </div>
+
                             {/* Search */}
                             <div className="relative flex-grow md:flex-grow-0 w-full md:w-auto">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -216,13 +236,18 @@ export default function MarketplacePage() {
                                 <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-4 text-3xl opacity-50">
                                     📦
                                 </div>
-                                <p className="text-slate-400 font-bold">No active listings</p>
-                                <p className="text-xs text-slate-500 mt-1">Be the first to post something!</p>
+                                <p className="text-slate-400 font-bold">No active listings found</p>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    {activeTab === 'my-listings' ? "You haven't posted anything yet." : "Be the first to post something!"}
+                                </p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                                 {displayedListings.map((item, i) => (
-                                    <Card key={i} className="group overflow-hidden border-white/5 bg-slate-900/80 hover:border-emerald-500/30 transition-all">
+                                    <Card
+                                        key={i}
+                                        className={`group overflow-hidden border-white/5 bg-slate-900/80 hover:border-emerald-500/30 transition-all ${item.is_default ? 'opacity-90 border-dashed border-slate-700' : ''}`}
+                                    >
                                         {/* Image Area */}
                                         <div className="aspect-[4/3] bg-slate-950 relative overflow-hidden">
                                             {item.image_url ? (
@@ -239,6 +264,13 @@ export default function MarketplacePage() {
                                                     item.listing_type === 'BUY' ? 'bg-blue-600' : 'bg-orange-600'}`}>
                                                 {item.listing_type}
                                             </div>
+
+                                            {/* Default/Demo Badge */}
+                                            {item.is_default && (
+                                                <div className="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-amber-500 text-black shadow-sm" title="This is a demo listing. Create your own to remove it.">
+                                                    Demo Data
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="p-4">
@@ -246,6 +278,7 @@ export default function MarketplacePage() {
                                                 <h3 className="font-bold text-white text-lg line-clamp-1">{item.product_name}</h3>
                                                 <p className="text-xs text-slate-500 flex items-center gap-1">
                                                     <User className="w-3 h-3" /> {item.seller_id ? `Seller #${item.seller_id}` : 'Anonymous'}
+                                                    {item.seller_id === myUserId && " (You)"}
                                                 </p>
                                             </div>
 
@@ -253,7 +286,25 @@ export default function MarketplacePage() {
                                                 <div className="font-mono text-emerald-400 font-bold text-lg">
                                                     ₹{item.price} <span className="text-[10px] text-slate-500 font-sans font-normal">/ {item.unit}</span>
                                                 </div>
-                                                {item.seller_id !== myUserId && (
+
+                                                {item.seller_id === myUserId ? (
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => setEditingListing(item)}
+                                                            className="p-1.5 bg-slate-800 text-slate-300 hover:text-white rounded-lg transition-colors"
+                                                            title="Edit"
+                                                        >
+                                                            <Pencil className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(item.id)}
+                                                            className="p-1.5 bg-red-900/30 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors"
+                                                            title="Delete"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ) : (
                                                     <button
                                                         onClick={() => handleBuy(item)}
                                                         className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold shadow-lg shadow-emerald-900/20 transition-colors"
@@ -288,36 +339,46 @@ export default function MarketplacePage() {
                     </div>
 
                     <ContentLoader loading={loading} text="Loading opportunities...">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {jobs.map((job) => (
-                                <div key={job.id} className="bg-slate-900 border border-white/5 rounded-2xl p-5 hover:border-blue-500/30 transition-all group relative">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className="w-10 h-10 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center font-bold text-xl">
-                                            {job.title.charAt(0)}
-                                        </div>
-                                        <span className="bg-slate-800 text-slate-400 px-2 py-1 rounded-lg text-[10px] font-bold uppercase">{job.type}</span>
-                                    </div>
-
-                                    <h3 className="text-lg font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">{job.title}</h3>
-                                    <p className="text-sm text-slate-400 mb-4">{job.farm}</p>
-
-                                    <div className="flex flex-wrap gap-3 text-xs text-slate-500 mb-4">
-                                        <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {job.location}</span>
-                                        <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> {job.posted}</span>
-                                    </div>
-
-                                    <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                                        <span className="font-bold text-white">{job.salary}</span>
-                                        <button
-                                            onClick={() => handleApplyJob(job)}
-                                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20"
-                                        >
-                                            Apply Now
-                                        </button>
-                                    </div>
+                        {jobs.length === 0 ? (
+                            <div className="col-span-full flex flex-col items-center justify-center py-20 bg-slate-900/30 rounded-3xl border border-white/5 border-dashed">
+                                <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-4 text-3xl opacity-50">
+                                    👷
                                 </div>
-                            ))}
-                        </div>
+                                <p className="text-slate-400 font-bold">No active job listings found</p>
+                                <p className="text-xs text-slate-500 mt-1">Be the first to post a job!</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {jobs.map((job) => (
+                                    <div key={job.id} className="bg-slate-900 border border-white/5 rounded-2xl p-5 hover:border-blue-500/30 transition-all group relative">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="w-10 h-10 bg-blue-500/10 text-blue-400 rounded-xl flex items-center justify-center font-bold text-xl">
+                                                {job.title ? job.title.charAt(0) : 'J'}
+                                            </div>
+                                            <span className="bg-slate-800 text-slate-400 px-2 py-1 rounded-lg text-[10px] font-bold uppercase">Contract</span>
+                                        </div>
+
+                                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">{job.title}</h3>
+                                        <p className="text-sm text-slate-400 mb-4">Farm #{job.farm_id}</p>
+
+                                        <div className="flex flex-wrap gap-3 text-xs text-slate-500 mb-4">
+                                            <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> On Site</span>
+                                            <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Start: {new Date(job.start_date).toLocaleDateString()}</span>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                                            <span className="font-bold text-white">₹{job.wage_per_day}/day</span>
+                                            <button
+                                                onClick={() => handleApplyJob(job)}
+                                                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-blue-900/20"
+                                            >
+                                                Apply Now
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </ContentLoader>
                 </div>
             )}
@@ -341,29 +402,39 @@ export default function MarketplacePage() {
                     </div>
 
                     <ContentLoader loading={loading} text={t('loading_store')}>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {commercialProducts.map((prod, i) => (
-                                <Card key={i} className="group overflow-hidden border-white/5 bg-slate-900/40 hover:bg-slate-900/80 transition-all hover:border-blue-500/30">
-                                    <div className="aspect-square bg-white p-4 flex items-center justify-center relative">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={prod.image_url} alt={prod.brand_name} className="max-w-full max-h-full object-contain" />
-                                        <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded">
-                                            {prod.category}
+                        {commercialProducts.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-20 bg-slate-900/30 rounded-3xl border border-white/5 border-dashed">
+                                <div className="w-16 h-16 bg-slate-800/50 rounded-full flex items-center justify-center mb-4 text-3xl opacity-50">
+                                    🏪
+                                </div>
+                                <p className="text-slate-400 font-bold">No products found</p>
+                                <p className="text-xs text-slate-500 mt-1">Try selecting a different category or check back later.</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {commercialProducts.map((prod, i) => (
+                                    <Card key={i} className="group overflow-hidden border-white/5 bg-slate-900/40 hover:bg-slate-900/80 transition-all hover:border-blue-500/30">
+                                        <div className="aspect-square bg-white p-4 flex items-center justify-center relative">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={prod.image_url} alt={prod.brand_name} className="max-w-full max-h-full object-contain" />
+                                            <div className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded">
+                                                {prod.category}
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="p-4">
-                                        <div className="text-xs text-blue-400 font-bold uppercase mb-1">{prod.manufacturer}</div>
-                                        <h3 className="text-lg font-bold text-white leading-tight mb-2">{prod.brand_name}</h3>
-                                        <div className="flex items-center justify-between mt-4">
-                                            <div className="text-xl font-bold text-white">₹{prod.unit_price}</div>
-                                            <button className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors shadow-lg shadow-blue-900/20">
-                                                <ShoppingCart className="w-5 h-5" />
-                                            </button>
+                                        <div className="p-4">
+                                            <div className="text-xs text-blue-400 font-bold uppercase mb-1">{prod.manufacturer}</div>
+                                            <h3 className="text-lg font-bold text-white leading-tight mb-2">{prod.brand_name}</h3>
+                                            <div className="flex items-center justify-between mt-4">
+                                                <div className="text-xl font-bold text-white">₹{prod.unit_price}</div>
+                                                <button className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors shadow-lg shadow-blue-900/20">
+                                                    <ShoppingCart className="w-5 h-5" />
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                </Card>
-                            ))}
-                        </div>
+                                    </Card>
+                                ))}
+                            </div>
+                        )}
                     </ContentLoader>
                 </div>
             )}

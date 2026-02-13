@@ -46,9 +46,13 @@ from app.modules.sync import router as sync_router
 from app.modules.ufsi import router as ufsi_router
 from app.modules.consent import router as consent_router
 from app.modules.diagnosis import router as diagnosis_router
+from app.modules.diagnosis import model_router as model_registry_router
 from app.modules.knowledge_graph import router as kg_router
 from app.modules.iot import router as iot_router
+from app.modules.iot import lorawan_router
 from app.modules.dashboard import router as dashboard_router
+from app.modules.irrigation import router as irrigation_router
+from app.modules.irrigation import models as irrigation_models
 from app.modules.logging import router as logging_router
 
 # Create tables
@@ -58,6 +62,7 @@ app = FastAPI(title="Agri-OS Backend")
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000", "*"],
     allow_origin_regex="https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
@@ -84,9 +89,12 @@ app.include_router(sync_router.router, prefix="/api/v1/sync", tags=["sync"])
 app.include_router(ufsi_router.router, prefix="/api/v1/ufsi", tags=["ufsi"])
 app.include_router(consent_router.router, prefix="/api/v1/consent", tags=["consent"])
 app.include_router(diagnosis_router.router, prefix="/api/v1/diagnosis", tags=["diagnosis"])
+app.include_router(model_registry_router.router, prefix="/api/v1/edge", tags=["edge_models"])
 app.include_router(kg_router.router, prefix="/api/v1/library", tags=["knowledge_graph"])
 app.include_router(iot_router.router, prefix="/api/v1/iot", tags=["iot"])
+app.include_router(lorawan_router.router, prefix="/api/v1/iot", tags=["lorawan"])
 app.include_router(dashboard_router.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+app.include_router(irrigation_router.router, prefix="/api/v1", tags=["irrigation"])
 app.include_router(logging_router, prefix="/api/v1", tags=["logging"])
 
 

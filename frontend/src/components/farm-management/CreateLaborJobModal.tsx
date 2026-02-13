@@ -8,9 +8,10 @@ interface CreateJobProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    farmId: number;
 }
 
-export const CreateLaborJobModal: React.FC<CreateJobProps> = ({ isOpen, onClose, onSuccess }) => {
+export const CreateLaborJobModal: React.FC<CreateJobProps> = ({ isOpen, onClose, onSuccess, farmId }) => {
     const t = useTranslations('FarmManagement');
     const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
@@ -34,7 +35,8 @@ export const CreateLaborJobModal: React.FC<CreateJobProps> = ({ isOpen, onClose,
                 start_date: formData.start_date,
                 duration_days: parseInt(formData.duration_days),
                 provides_food: false,
-                provides_travel: false
+                provides_travel: false,
+                farm_id: farmId
             });
             onSuccess();
             onClose();

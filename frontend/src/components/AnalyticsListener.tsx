@@ -3,7 +3,7 @@
 
 import { useEffect, Suspense } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { initAnalytics, trackPageView, trackGlobalClick, setUserLoginStatus, setUserLocation } from '@/lib/analytics';
+import { initAnalytics, trackPageView, trackGlobalClick, setUserLoginStatus, setUserLocation, trackScroll, trackFormInteraction } from '@/lib/analytics';
 import { useAuth } from '@/lib/auth-context';
 
 // Map paths to readable Page Names (matching Sidebar)
@@ -47,7 +47,7 @@ function AnalyticsTracker() {
     }, []);
 
     useEffect(() => {
-        setUserLoginStatus(isAuthenticated);
+        setUserLoginStatus(isAuthenticated, user);
         if (user?.latitude && user?.longitude && user?.location_name) {
             setUserLocation(user.latitude, user.longitude, user.location_name);
         }
@@ -93,6 +93,73 @@ function AnalyticsTracker() {
 
         window.addEventListener('click', handleClick);
         return () => window.removeEventListener('click', handleClick);
+    }, []);
+
+    // Scroll Tracking
+    useEffect(() => {
+        let maxScroll = 0;
+        const pageName = getPageName(pathname || '/');
+
+        const handleScroll = () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.body.scrollHeight - window.innerHeight;
+            if (docHeight <= 0) return;
+
+            const scrollPercent = Math.round((scrollTop / docHeight) * 100);
+
+            // Track milestones: 25, 50, 75, 90
+            [25, 50, 75, 90].forEach(milestone => {
+                if (scrollPercent >= milestone && maxScroll < milestone) {
+                    maxScroll = milestone;
+                    trackScroll(pageName, milestone);
+                }
+            });
+        };
+
+        // Throttled scroll listener could be better but basic version for now
+        let timeoutId: NodeJS.Timeout;
+        const throttledScroll = () => {
+            if (timeoutId) return;
+            timeoutId = setTimeout(() => {
+                handleScroll();
+                clearTimeout(timeoutId);
+                // @ts-ignore
+                timeoutId = null;
+            }, 500);
+        };
+
+        window.addEventListener('scroll', throttledScroll);
+        return () => window.removeEventListener('scroll', throttledScroll);
+    }, [pathname]);
+
+    // Form Interaction Tracking (Capture Phase for focus/blur)
+    useEffect(() => {
+        const handleFocus = (e: FocusEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA') {
+                const fieldName = target.getAttribute('name') || target.getAttribute('id') || target.getAttribute('placeholder') || 'unknown_field';
+                const pageName = getPageName(window.location.pathname);
+                trackFormInteraction(pageName, fieldName, 'focus');
+            }
+        };
+
+        const handleBlur = (e: FocusEvent) => {
+            const target = e.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA') {
+                const fieldName = target.getAttribute('name') || target.getAttribute('id') || target.getAttribute('placeholder') || 'unknown_field';
+                const pageName = getPageName(window.location.pathname);
+                trackFormInteraction(pageName, fieldName, 'blur');
+            }
+        };
+
+        // Use capture phase to catch focus/blur which don't bubble
+        window.addEventListener('focus', handleFocus, true);
+        window.addEventListener('blur', handleBlur, true);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus, true);
+            window.removeEventListener('blur', handleBlur, true);
+        };
     }, []);
 
     return null;

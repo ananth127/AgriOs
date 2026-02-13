@@ -40,9 +40,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
                 return user
 
     # Cache miss — full lookup
-    user = service.get_user_by_email(db, email=token_data.email)
+    # Use get_user_by_login_id to support email/phone/unique_id stored in token 'sub'
+    user = service.get_user_by_login_id(db, identifier=token_data.email)
     if user is None:
         raise credentials_exception
 
     _user_cache[token_data.email] = (user.id, time.time())
     return user
+
+
+def get_current_user_id(user: models.User = Depends(get_current_user)) -> int:
+    return user.id

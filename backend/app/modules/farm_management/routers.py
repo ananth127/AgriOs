@@ -85,11 +85,14 @@ def add_asset(asset: schemas.FarmAssetCreate, db: Session = Depends(get_db), cur
             owner_id = current_user.id
 
             # Prepare IoT Device Payload
+            parent_id = asset.config.get('parent_device_id') if asset.config else None
+            
             iot_payload = iot_schemas.IoTDeviceCreate(
                 name=asset.name,
                 hardware_id=asset.iot_device_id or f"GEN-{db_asset.id}", # Fallback ID
                 asset_type=asset.asset_type,
-                config=asset.config or {}
+                config=asset.config or {},
+                parent_device_id=int(parent_id) if parent_id else None
             )
             
             # Register in IoT System

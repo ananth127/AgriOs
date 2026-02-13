@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { AddAssetModal } from './AddAssetModal';
 import { EditAssetModal } from './EditAssetModal';
 import { api } from '@/lib/api';
-import { Pencil, Trash2, Activity } from 'lucide-react';
+import { Pencil, Trash2, Activity, AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { CriticalAlertModal } from '@/components/iot/CriticalAlertModal';
 import { DeviceControlModal } from '@/components/iot/DeviceControlModal';
@@ -11,16 +11,44 @@ import { useSearchParams } from 'next/navigation';
 
 export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery' | 'iot' }> = ({ farmId, category = 'machinery' }) => {
     const t = useTranslations('FarmManagement');
+    const searchParams = useSearchParams();
     const [assets, setAssets] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [loading, setLoading] = useState(false);
     const [editingAsset, setEditingAsset] = useState<any>(null);
     const [controlDevice, setControlDevice] = useState<any>(null);
     const [alertData, setAlertData] = useState<any>(null);
     const [ignoredAlerts, setIgnoredAlerts] = useState<string[]>([]);
-    const searchParams = useSearchParams();
+    const [iotDevices, setIotDevices] = useState<any[]>([]);
 
-    // Load ignored alerts from local storage on mount
+    // Fetch IoT Devices for mapping
+    useEffect(() => {
+        if (category === 'iot') {
+            api.iot.getDevices().then(data => {
+                if (Array.isArray(data)) setIotDevices(data);
+            }).catch(console.error);
+        }
+    }, [category]);
+
+    // Handle opening control modal with correct device mapping
+    const handleOpenControl = (asset: any) => {
+        if (category !== 'iot') return;
+
+        // Find the real IoT Device object
+        const device = iotDevices.find(d =>
+            d.hardware_id === asset.iot_device_id ||
+            String(d.id) === String(asset.iot_device_id)
+        );
+
+        if (device) {
+            setControlDevice(device);
+        } else {
+            console.warn("Could not find linked IoT Device for asset:", asset);
+            alert("Device not found in IoT Registry. Please check configuration.");
+        }
+    };
+
+    // Load ignored alerts
     useEffect(() => {
         const stored = localStorage.getItem('agrios_ignored_alerts');
         if (stored) {
@@ -44,7 +72,6 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
     const fetchAssets = useCallback(async (silent = false) => {
         if (!silent) setLoading(true);
         try {
-            // Only force-refresh on explicit (non-silent) loads; silent polls use cache
             const data = await api.farmManagement.getAssets(farmId, { forceRefresh: !silent });
             const allAssets = Array.isArray(data) ? data : [];
 
@@ -59,20 +86,20 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
             });
 
             setAssets(filtered);
-
         } catch (error) {
             console.error('Failed to fetch assets:', error);
-            setAssets([]); // Set empty on error
+            setAssets([]);
         } finally {
             if (!silent) setLoading(false);
         }
     }, [farmId, category]);
 
+    // Initial fetch
     useEffect(() => {
         fetchAssets();
     }, [fetchAssets]);
 
-    // Check for Critical Alerts (Effect ensures we have fresh 'ignoredAlerts' closure)
+    // Check for Critical Alerts
     useEffect(() => {
         if (category === 'iot' && assets.length > 0) {
             for (const asset of assets) {
@@ -81,7 +108,6 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
                     const alertId = `${asset.id}-${alert.timestamp}`;
 
                     if (!ignoredAlerts.includes(alertId)) {
-                        // Only set if we are not already showing THIS alert
                         if (!alertData || alertData.id !== alertId) {
                             setAlertData({
                                 title: "Pump Safety Stop",
@@ -91,7 +117,7 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
                                 id: alertId
                             });
 
-                            // Force close the control modal if it's open for this device
+                            // Force close control modal if it's for this device
                             if (controlDevice && (controlDevice.id === asset.id || controlDevice.iot_device_id === asset.iot_device_id)) {
                                 setControlDevice(null);
                             }
@@ -101,9 +127,9 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
                 }
             }
         }
-    }, [assets, ignoredAlerts, category]);
+    }, [assets, ignoredAlerts, category, alertData, controlDevice]);
 
-    // Polling for updates (every 30 seconds, silent)
+    // Polling
     useEffect(() => {
         const interval = setInterval(() => {
             fetchAssets(true);
@@ -111,33 +137,28 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
         return () => clearInterval(interval);
     }, [fetchAssets]);
 
-    // Update the open modal if data changes in background
+    // Background update for control modal
     useEffect(() => {
         if (controlDevice && assets.length > 0) {
             const updated = assets.find(a => a.id === controlDevice.id);
-            // Only update if something changed to avoid re-renders if strict check fails? 
-            // React state updates only trigger if reference changes or value changes. 
-            // Here `updated` is likely a new object reference from API.
-            // DeviceControlModal handles prop updates gracefully.
             if (updated && updated.status !== controlDevice.status) {
                 setControlDevice(updated);
             }
         }
-    }, [assets]); // Intentionally not including controlDevice to avoid loops, though strict mode is safe.
+    }, [assets, controlDevice]);
 
-    // Handle Auto-Open from URL (e.g. Scan QR)
+    // Auto-open from URL
     useEffect(() => {
         if (assets.length > 0 && category === 'iot') {
             const openId = searchParams.get('open_device');
-            if (openId && !controlDevice) { // Only auto-open if not already open (prevents over-writing user interaction)
-                // Try matching ID or IoT Hardware ID
+            if (openId && !controlDevice) {
                 const target = assets.find(a => String(a.id) === openId || a.iot_device_id === openId);
                 if (target) {
-                    setControlDevice(target);
+                    handleOpenControl(target);
                 }
             }
         }
-    }, [assets, searchParams, category]); // Removed controlDevice from deps to fix lint warnings but safe logic.
+    }, [assets, searchParams, category]);
 
     const handleDelete = async (id: number) => {
         if (!confirm(t('confirm_delete_asset'))) return;
@@ -175,17 +196,15 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
                             {assets.map((asset) => {
-                                // Mock run-time data if not in DB yet, for consistent "monitoring" feel
                                 const fuel = asset.fuel_level || Math.floor(Math.random() * 40) + 60;
                                 const maintenance = asset.maintenance_status || 'Good';
-                                const task = asset.current_task || (asset.status === 'Active' ? 'Running' : 'Idle');
 
                                 return (
                                     <div key={asset.id} className="p-4 border rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 relative group flex flex-col md:flex-row gap-4 items-center">
                                         <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-200 dark:bg-slate-800 p-1 rounded z-10">
                                             {category === 'iot' && (
                                                 <button
-                                                    onClick={() => setControlDevice(asset)}
+                                                    onClick={() => handleOpenControl(asset)}
                                                     className="text-green-500 hover:text-green-600 p-1"
                                                     title="Open Dashboard"
                                                 >
@@ -201,29 +220,48 @@ export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery'
                                             <button onClick={() => handleDelete(asset.id)} className="text-red-500 hover:text-red-600 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
                                         </div>
 
-                                        {/* Icon / Avatar - Clickable for IoT */}
                                         <div
-                                            onClick={() => category === 'iot' && setControlDevice(asset)}
+                                            onClick={() => handleOpenControl(asset)}
                                             className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl shrink-0 ${asset.status === 'Active' ? 'bg-green-100 dark:bg-green-900/40 text-green-600' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'} ${category === 'iot' ? 'cursor-pointer hover:scale-105 transition-transform' : ''}`}
                                         >
                                             {category === 'iot' ? '📡' : '🚜'}
                                         </div>
 
-                                        {/* Main Info */}
-                                        <div className="flex-1 text-center md:text-left cursor-pointer" onClick={() => category === 'iot' && setControlDevice(asset)}>
+                                        <div className="flex-1 text-center md:text-left cursor-pointer" onClick={() => handleOpenControl(asset)}>
                                             <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
                                                 <h3 className="font-bold text-lg text-slate-900 dark:text-white hover:text-green-500 transition-colors">{asset.name}</h3>
                                                 <span className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded-full border ${asset.status === 'Active' ? 'bg-green-50 dark:bg-green-900/20 text-green-600 border-green-200' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200'}`}>
                                                     {asset.status || 'Idle'}
                                                 </span>
                                             </div>
-                                            <p className="text-sm text-slate-500">
-                                                {asset.asset_type}
-                                                {asset.iot_device_id && <span className="font-mono text-xs ml-2 bg-slate-100 dark:bg-slate-800 px-1 rounded">ID: {asset.iot_device_id}</span>}
-                                            </p>
+                                            <div className="text-sm text-slate-500 space-y-1">
+                                                <p>{asset.asset_type}</p>
+                                                {/* Show Linked Pump if Valve */}
+                                                {asset.asset_type === 'Valve' && (
+                                                    asset.iot_settings?.parent_device_id ? (
+                                                        <p className="text-xs text-blue-500 flex items-center gap-1">
+                                                            <Activity className="w-3 h-3" />
+                                                            Connected to: <span className="font-bold">
+                                                                {iotDevices.find(d => d.id === asset.iot_settings.parent_device_id)?.name || `Pump #${asset.iot_settings.parent_device_id}`}
+                                                            </span>
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-xs text-amber-500 flex items-center gap-1 font-medium bg-amber-500/10 p-1 rounded w-fit">
+                                                            <AlertTriangle className="w-3 h-3" />
+                                                            No Pump Connected!
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setEditingAsset(asset); }}
+                                                                className="underline hover:text-amber-600 ml-1"
+                                                            >
+                                                                Link Now
+                                                            </button>
+                                                        </p>
+                                                    )
+                                                )}
+                                                {asset.iot_device_id && <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1 rounded">ID: {asset.iot_device_id}</span>}
+                                            </div>
                                         </div>
 
-                                        {/* Monitoring Stats */}
                                         <div className="flex gap-6 w-full md:w-auto justify-center md:justify-end bg-white dark:bg-slate-950/50 p-3 rounded-lg border border-slate-100 dark:border-white/5">
                                             {category === 'machinery' ? (
                                                 <div className="text-center min-w-[80px]">

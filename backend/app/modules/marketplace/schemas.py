@@ -41,6 +41,7 @@ class ProductListing(ProductListingBase):
     id: int
     seller_id: int
     is_active: bool
+    is_default: bool = False
     created_at: Optional[datetime] = None
 
     class Config:

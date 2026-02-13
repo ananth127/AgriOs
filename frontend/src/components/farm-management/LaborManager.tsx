@@ -10,9 +10,18 @@ export const LaborManager: React.FC = () => {
     const [jobs, setJobs] = useState<any[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const farmId = 1; // Default
+    const [farmId, setFarmId] = useState<number | null>(null);
+
+    useEffect(() => {
+        api.farmManagement.getUserFarmId()
+            .then(res => {
+                if (res.farm_id) setFarmId(res.farm_id);
+            })
+            .catch(err => console.error("Failed to load user farm ID", err));
+    }, []);
 
     const fetchJobs = async () => {
+        if (!farmId) return;
         setLoading(true);
         try {
             let data = await api.farmManagement.getJobs(farmId) as any[];
@@ -64,8 +73,8 @@ export const LaborManager: React.FC = () => {
     };
 
     useEffect(() => {
-        fetchJobs();
-    }, []);
+        if (farmId) fetchJobs();
+    }, [farmId]);
 
     return (
         <>
@@ -74,7 +83,8 @@ export const LaborManager: React.FC = () => {
                     <CardTitle>{t('labor_title')}</CardTitle>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        disabled={!farmId}
+                        className={`px-3 py-2 text-white rounded-lg text-sm font-medium transition-colors ${!farmId ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                     >
                         {t('btn_post_new_job')}
                     </button>
@@ -126,6 +136,7 @@ export const LaborManager: React.FC = () => {
                     fetchJobs();
                     alert(t('success_post_job'));
                 }}
+                farmId={farmId || 0}
             />
         </>
     );

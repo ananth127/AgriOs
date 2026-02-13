@@ -64,33 +64,41 @@ export default function DevicesPage() {
     }, [devices]);
 
     const handleToggle = async (device: any) => {
+        // --- SAFETY CHECK ---
+        const isOrphanValve = device.asset_type === 'Valve' && !device.iot_settings?.parent_device_id && !device.config?.parent_device_id && device.status !== 'Active';
+
+        if (isOrphanValve) {
+            alert("Cannot turn on Valve: No connected Pump found. Please link a pump in settings.");
+            return;
+        }
+
         setToggling(device.id);
-        const newState = device.status !== 'Active';
-        const newStatusStr = newState ? 'Active' : 'Idle';
+        const isActive = device.status === 'Active';
+        const action = isActive ? 'TURN_OFF' : 'TURN_ON';
+        const newStatusStr = !isActive ? 'Active' : 'Idle';
 
         // Optimistic Update
         setDevices(prev => prev.map(d => d.id === device.id ? { ...d, status: newStatusStr } : d));
 
         try {
-            // If it has a real IoT ID, update that. If not (just camera), update asset locally.
-            // But we want to call API updateAsset or IoT update.
-            // If it's a "Camera", usually status isn't toggleable like a valve, but maybe "Recording" vs "Idle"?
-            // For now, assume this is for Valves/Pumps.
-
-            // We use generic IoT update which syncs back to farm asset
-            if (device.iot_device_id && !device.iot_device_id.startsWith('http')) {
-                // It has a real hardware ID? Or maybe the ID is reused.
-                // Just use updateAsset to be safe if we don't know the proper IoT ID mapping
-                await api.farmManagement.updateAsset(device.id, { status: newStatusStr });
-            } else {
-                await api.farmManagement.updateAsset(device.id, { status: newStatusStr });
+            // Use Unified IoT Command API
+            let targetId = device.id;
+            // Attempt to find real IoT ID if wrapper
+            if (device.iot_device_id && !isNaN(Number(device.iot_device_id))) {
+                targetId = Number(device.iot_device_id);
             }
 
-        } catch (e) {
+            await api.iot.sendCommand(Number(targetId), {
+                command: action,
+                payload: {}
+            });
+
+        } catch (e: any) {
             console.error("Toggle failed", e);
             // Revert
             setDevices(prev => prev.map(d => d.id === device.id ? { ...d, status: device.status } : d));
-            alert("Failed to toggle device. Check connection.");
+            const msg = e.response?.data?.detail || e.message || "Command Failed";
+            alert(`Error: ${msg}`);
         } finally {
             setToggling(null);
         }
@@ -195,8 +203,18 @@ function IotAssetCard({ device, onToggle, isToggling }: { device: any, onToggle:
     const isOnline = true; // Assume online for assets unless we have a specific field
     const isActive = device.status === 'Active';
 
+    // Check Orphan Status
+    // Helper to find parent ID from various potential locations in object
+    const parentId = device.iot_settings?.parent_device_id || device.config?.parent_device_id;
+    const isOrphanValve = device.asset_type === 'Valve' && !parentId && !isActive;
+
     return (
-        <div className="group relative block bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-2xl p-5 shadow-sm hover:shadow-xl hover:border-green-500/30 transition-all duration-300">
+        <div className={cn(
+            "group relative block bg-white dark:bg-slate-950 border rounded-2xl p-5 shadow-sm transition-all duration-300",
+            isOrphanValve
+                ? "border-amber-200/50 dark:border-amber-900/30 opacity-75"
+                : "border-slate-200 dark:border-white/10 hover:shadow-xl hover:border-green-500/30"
+        )}>
             <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-3">
                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shadow-inner", isActive ? "bg-green-100/50 dark:bg-green-500/10 text-green-600" : "bg-slate-100 dark:bg-slate-800 text-slate-400")}>
@@ -217,14 +235,24 @@ function IotAssetCard({ device, onToggle, isToggling }: { device: any, onToggle:
             </div>
 
             <div className="space-y-4">
-                <div className="py-2 border-t border-slate-100 dark:border-white/5">
-                    <ValveSwitch
-                        label={isActive ? "Status: OPEN/ON" : "Status: CLOSED/OFF"}
-                        isOn={isActive}
-                        isLoading={isToggling}
-                        onToggle={onToggle}
-                    />
-                </div>
+                {isOrphanValve ? (
+                    <div className="py-2 border-t border-slate-100 dark:border-white/5">
+                        <div className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 p-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                            <AlertTriangle className="w-4 h-4" />
+                            No Pump Linked
+                        </div>
+                        <p className="text-[10px] text-center text-slate-400 mt-2">Go to Management to link a pump.</p>
+                    </div>
+                ) : (
+                    <div className="py-2 border-t border-slate-100 dark:border-white/5">
+                        <ValveSwitch
+                            label={isActive ? "Status: OPEN/ON" : "Status: CLOSED/OFF"}
+                            isOn={isActive}
+                            isLoading={isToggling}
+                            onToggle={onToggle}
+                        />
+                    </div>
+                )}
 
                 <div className="flex justify-between text-xs text-slate-500 pt-2 border-t border-slate-100 dark:border-white/5">
                     <span>ID: <span className="font-mono">{device.iot_device_id || 'N/A'}</span></span>

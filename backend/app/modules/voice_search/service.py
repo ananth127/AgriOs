@@ -11,10 +11,10 @@ try:
     WHISPER_AVAILABLE = True
     # Load model once on startup
     whisper_model = whisper.load_model("base")  # Good balance of speed/accuracy
-    print("✅ Whisper loaded successfully")
+    print("[OK] Whisper loaded successfully")
 except (ImportError, OSError, Exception) as e:
     WHISPER_AVAILABLE = False
-    print(f"⚠️ Whisper not available: {e}")
+    print(f"[WARNING] Whisper not available: {e}")
 
 # Initialize Vertex AI
 try:
@@ -23,7 +23,7 @@ try:
     VERTEX_AVAILABLE = True
 except ImportError:
     VERTEX_AVAILABLE = False
-    print("⚠️ Vertex AI not installed. Install with: pip install google-cloud-aiplatform")
+    print("[WARNING] Vertex AI not installed. Install with: pip install google-cloud-aiplatform")
 
 # Speech-to-Text using Google Cloud Speech (part of Vertex AI ecosystem)
 try:
@@ -31,7 +31,7 @@ try:
     GOOGLE_SPEECH_AVAILABLE = True
 except ImportError:
     GOOGLE_SPEECH_AVAILABLE = False
-    print("⚠️ Google Cloud Speech not available")
+    print("[WARNING] Google Cloud Speech not available")
 
 def transcribe_audio_google_speech(audio_bytes: bytes) -> Tuple[str, str]:
     """
@@ -217,10 +217,10 @@ def process_audio(file_bytes: bytes) -> schemas.VoiceQueryResponse:
     # Step 1: Speech-to-Text (Try Google Speech first, then Whisper)
     if GOOGLE_SPEECH_AVAILABLE and len(file_bytes) > 1000:
         try:
-            print("🎤 Using Google Cloud Speech-to-Text")
+            print("[MIC] Using Google Cloud Speech-to-Text")
             transcription, language = transcribe_audio_google_speech(file_bytes)
         except Exception as e:
-            print(f"⚠️ Google Speech failed: {e}. Trying Whisper...")
+            print(f"[WARNING] Google Speech failed: {e}. Trying Whisper...")
             if WHISPER_AVAILABLE:
                 transcription, language = transcribe_audio_whisper(file_bytes)
             else:
@@ -230,7 +230,7 @@ def process_audio(file_bytes: bytes) -> schemas.VoiceQueryResponse:
         try:
             transcription, language = transcribe_audio_whisper(file_bytes)
         except Exception as e:
-            print(f"⚠️  Whisper transcription failed: {e}")
+            print(f"[WARNING] Whisper transcription failed: {e}")
             print("Using mock transcription instead")
             transcription = "What is the price of Onion in Nasik?"
             language = "en"
@@ -238,7 +238,7 @@ def process_audio(file_bytes: bytes) -> schemas.VoiceQueryResponse:
         # Mock for testing when no audio provided or Whisper not available
         transcription = "What is the price of Onion in Nasik?"
         language = "en"
-        print("ℹ️  Using mock transcription (no real audio or Whisper unavailable)")
+        print("[INFO] Using mock transcription (no real audio or Whisper unavailable)")
     
     # Step 2: Intent Classification using Gemini
     intent_result = classify_intent_gemini(transcription)

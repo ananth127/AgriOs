@@ -14,7 +14,7 @@ class ConsentPolicyOut(BaseModel):
     created_at: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class UserConsentCreate(BaseModel):
     policy_id: int
@@ -30,4 +30,4 @@ class UserConsentOut(BaseModel):
     timestamp: datetime
     
     class Config:
-        orm_mode = True
+        from_attributes = True

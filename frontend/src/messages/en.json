@@ -427,6 +427,7 @@
     "FarmManagement": {
         "title": "Farm Management",
         "description": "Track investments, operations, and resources.",
+        "loading_farm": "Loading Farm Data...",
         "tabs": {
             "overview": "Overview",
             "timeline": "Timeline",

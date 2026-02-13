@@ -135,6 +135,9 @@ export const api = {
         orders: {
             create: (data: any) => fetchAPI("/marketplace/orders", "POST", data),
         },
+        jobs: {
+            list: () => fetchAPI("/marketplace/jobs"),
+        },
         // Legacy support if needed, or remove duplicate list
         listProducts: (options?: { forceRefresh?: boolean }) => fetchAPI("/marketplace/products/", "GET", undefined, !options?.forceRefresh),
     },
@@ -214,7 +217,7 @@ export const api = {
 
         // Timeline & Activities
         logActivity: (data: any) => fetchAPI("/farm-management/activities", "POST", data),
-        getTimeline: (cropCycleId: number) => fetchAPI(`/farm-management/timeline/${cropCycleId}`),
+        getTimeline: (farmId: number) => fetchAPI(`/farm-management/timeline/?farm_id=${farmId}`),
 
         // Financials
         getFinancials: (farmId: number) => fetchAPI(`/farm-management/financials/${farmId}`),

@@ -1,5 +1,5 @@
 'use client';
-import { trackLocationSelect, trackCurrentLocation } from '@/lib/analytics';
+import { trackLocationSelect, trackCurrentLocation, trackUserAction } from '@/lib/analytics';
 import { useTranslations } from 'next-intl';
 
 import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents, Polygon } from 'react-leaflet';
@@ -69,6 +69,7 @@ function LocationMarker({ position, onPositionChange }: { position: L.LatLng | n
     const t = useTranslations('LocationSelector');
     useMapEvents({
         click(e) {
+            trackUserAction('map_click_try', 'Map Interaction', { lat: e.latlng.lat, lng: e.latlng.lng });
             onPositionChange(e.latlng);
         },
     });
@@ -225,6 +226,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect, zones = []
     }, [searchQuery]);
 
     const handleSelectResult = (lat: string, lon: string, name: string) => {
+        trackUserAction('search_select_try', 'Map Interaction', { lat, lon, name });
         const latlng = new L.LatLng(parseFloat(lat), parseFloat(lon));
         setPosition(latlng);
         setSearchResults([]);
@@ -241,6 +243,7 @@ export default function LocationSelector({ isOpen, onClose, onSelect, zones = []
 
             onSelect(position.lat, position.lng, displayName, 'manual');
             trackLocationSelect(position.lat, position.lng, displayName);
+            trackUserAction('confirm_location', 'Map Interaction', { lat: position.lat, lng: position.lng, name: displayName });
             onClose();
         } catch (e) {
             onSelect(position.lat, position.lng, t('custom_location'), 'manual');

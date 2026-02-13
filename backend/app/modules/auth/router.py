@@ -30,9 +30,9 @@ def login_for_access_token(
         password = login_data.password
         
     if not email or not password:
-         raise HTTPException(status_code=400, detail="Missing email or password")
+         raise HTTPException(status_code=400, detail="Missing email/ID or password")
 
-    user = service.authenticate_user(db, email=email, password=password)
+    user = service.authenticate_user(db, identifier=email, password=password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

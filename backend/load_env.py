@@ -189,8 +189,8 @@ def load_env_with_decryption():
         
         print(f"Loaded {len(env_vars)} environment variables into memory")
         
-        # Show loaded keys (not values for security)
-        print(f"Variables: {', '.join(env_vars.keys())}")
+        # Show loaded keys (not values for security) - COMMENTED OUT to avoid massive log dumps
+        # print(f"Variables: {', '.join(env_vars.keys())}")
     else:
         print("No environment variables loaded")
 

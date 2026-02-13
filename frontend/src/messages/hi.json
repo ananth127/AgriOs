@@ -136,7 +136,11 @@
         "my_land_location": "मेरी भूमि का स्थान",
         "survey_no": "सर्वे नंबर",
         "correction_boundary": "सुधार सीमा",
-        "est_land_area": "अनुमानित भूमि क्षेत्र"
+        "est_land_area": "अनुमानित भूमि क्षेत्र",
+        "zone_sw": "दक्षिण पश्चिम जोन",
+        "zone_nw": "उत्तर पश्चिम जोन",
+        "zone_ne": "उत्तरी पूर्वी जोन",
+        "zone_se": "दक्षिण पूर्व जोन"
     },
     "Dashboard": {
         "hero_title_part1": "आधुनिक कृषि के लिए",
@@ -522,6 +526,7 @@
         "type_harvesting": "Harvesting",
         "type_usage": "General/Labor Usage",
         "label_description": "Description",
+        "label_desc": "विवरण",
         "ph_activity_desc": "Details about the activity...",
         "label_date": "Date",
         "ph_optional": "Optional",

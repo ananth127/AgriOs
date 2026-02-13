@@ -19,13 +19,18 @@ class IoTDevice(Base):
     last_heartbeat = Column(DateTime, nullable=True)
     secret_key = Column(String, nullable=False)  # For HMAC signing
     config = Column(JSON, default={})  # Store pin configs, schedule, etc.
-    asset_type = Column(String, default="Device")
+    asset_type = Column(String, default="Device") # Pump, Valve, Sensor
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # --- New Fields for Smart Logic ---
+    parent_device_id = Column(Integer, ForeignKey("iot_devices.id"), nullable=True) # Linked Pump for a Valve
+    last_active_at = Column(DateTime, nullable=True)
+    total_runtime_minutes = Column(Float, default=0.0)
+    current_run_start_time = Column(DateTime, nullable=True) # If set, device is currently ON
+    target_turn_off_at = Column(DateTime, nullable=True) # Timer Target
+
     # Relationships
-    # Note: Relationship to User is commented out to avoid circular import issues
-    # Access via user_id foreign key instead
-    # owner = relationship("User", back_populates="devices")
+    parent_device = relationship("IoTDevice", remote_side=[id], backref="child_devices")
     commands = relationship("IoTCommand", back_populates="device")
 
 

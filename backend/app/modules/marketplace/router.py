@@ -5,6 +5,8 @@ from app.core.database import get_db
 from app.modules.auth.dependencies import get_current_user
 from app.modules.auth.models import User
 from . import service, schemas
+from app.modules.farm_management import models as farm_models
+from app.modules.farm_management import schemas as farm_schemas
 
 router = APIRouter()
 
@@ -94,3 +96,11 @@ def search_commercial_products(
     """
     service.seed_commercial_products(db)
     return service.search_commercial_products(db, ingredient, category)
+
+# --- Jobs (Public Board) ---
+@router.get("/jobs", response_model=List[farm_schemas.LaborJob])
+def list_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Public job board: List all open jobs.
+    """
+    return db.query(farm_models.LaborJob).filter(farm_models.LaborJob.status == "Open").offset(skip).limit(limit).all()
