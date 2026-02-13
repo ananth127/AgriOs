@@ -49,10 +49,10 @@ sql_app.db
 archive/
 
 # IDE
-.vscode/
-.gemini/
-.claude/
-.opencode/
+# .vscode/
+# .gemini/
+# .claude/
+# .opencode/
 .idea/
 *.swp
 *.swo
@@ -91,4 +91,5 @@ build/
 *.tmp
 *.temp
 .cache/
-nul
+
+nul
