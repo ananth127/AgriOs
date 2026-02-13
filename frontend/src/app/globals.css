@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased selection:bg-green-500/30 selection:text-green-100 transition-colors duration-300;
+    }
+
+    /* Custom Scrollbar for Webkit */
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        @apply bg-slate-200 dark:bg-slate-950;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        @apply bg-slate-300 dark:bg-slate-800 rounded-full hover:bg-slate-400 dark:hover:bg-slate-700 transition-colors;
+    }
+}
+
+@layer utilities {
+    .glass {
+        @apply bg-white/5 backdrop-blur-lg border border-white/10;
+    }
+
+    .glass-card {
+        @apply bg-slate-900/50 backdrop-blur-md border border-white/5 shadow-xl;
+    }
+}

@@ -1,0 +1,56 @@
+services:
+  # 🧠 The Brain (FastAPI)
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres.uhqjgahpxhcenzpmgjrr:2c%UH5-sQukJLMN@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres
+      - GEMINI_API_KEY=AIzaSyCxEGQZLvkFv1kgftRgomt_yK_1GE8peS4
+      - REDIS_URL=redis://redis:6379/0
+      - DEV=false
+    depends_on:
+      - db
+      - redis
+
+  # ⚛️ The Body (Next.js)
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+
+  # 🗄️ Universal Database
+  db:
+    image: postgis/postgis:15-3.3
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=anth123
+      - POSTGRES_DB=agrios
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # ⚡ Cache & Queue
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # 🔍 Universal Search
+  meilisearch:
+    image: getmeili/meilisearch:v1.3
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_MASTER_KEY=masterKey
+
+volumes:
+  pgdata:

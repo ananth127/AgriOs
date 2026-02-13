@@ -1,0 +1,336 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
+import { AddAssetModal } from './AddAssetModal';
+import { EditAssetModal } from './EditAssetModal';
+import { api } from '@/lib/api';
+import { Pencil, Trash2, Activity, AlertTriangle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { CriticalAlertModal } from '@/components/iot/CriticalAlertModal';
+import { DeviceControlModal } from '@/components/iot/DeviceControlModal';
+import { useSearchParams } from 'next/navigation';
+
+export const MachineryManager: React.FC<{ farmId: number; category?: 'machinery' | 'iot' }> = ({ farmId, category = 'machinery' }) => {
+    const t = useTranslations('FarmManagement');
+    const searchParams = useSearchParams();
+    const [assets, setAssets] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingAsset, setEditingAsset] = useState<any>(null);
+    const [controlDevice, setControlDevice] = useState<any>(null);
+    const [alertData, setAlertData] = useState<any>(null);
+    const [ignoredAlerts, setIgnoredAlerts] = useState<string[]>([]);
+    const [iotDevices, setIotDevices] = useState<any[]>([]);
+
+    // Fetch IoT Devices for mapping
+    useEffect(() => {
+        if (category === 'iot') {
+            api.iot.getDevices().then(data => {
+                if (Array.isArray(data)) setIotDevices(data);
+            }).catch(console.error);
+        }
+    }, [category]);
+
+    // Handle opening control modal with correct device mapping
+    const handleOpenControl = (asset: any) => {
+        if (category !== 'iot') return;
+
+        // Find the real IoT Device object
+        const device = iotDevices.find(d =>
+            d.hardware_id === asset.iot_device_id ||
+            String(d.id) === String(asset.iot_device_id)
+        );
+
+        if (device) {
+            setControlDevice(device);
+        } else {
+            console.warn("Could not find linked IoT Device for asset:", asset);
+            alert("Device not found in IoT Registry. Please check configuration.");
+        }
+    };
+
+    // Load ignored alerts
+    useEffect(() => {
+        const stored = localStorage.getItem('agrios_ignored_alerts');
+        if (stored) {
+            try {
+                setIgnoredAlerts(JSON.parse(stored));
+            } catch (e) {
+                console.error("Failed to parse ignored alerts", e);
+            }
+        }
+    }, []);
+
+    const dismissCurrentAlert = () => {
+        if (alertData?.id) {
+            const newIgnored = [...ignoredAlerts, alertData.id];
+            setIgnoredAlerts(newIgnored);
+            localStorage.setItem('agrios_ignored_alerts', JSON.stringify(newIgnored));
+        }
+        setAlertData(null);
+    };
+
+    const fetchAssets = useCallback(async (silent = false) => {
+        if (!silent) setLoading(true);
+        try {
+            const data = await api.farmManagement.getAssets(farmId, { forceRefresh: !silent });
+            const allAssets = Array.isArray(data) ? data : [];
+
+            // Filter based on Category
+            const filtered = allAssets.filter((asset: any) => {
+                const isIotType = ['Valve', 'Pump', 'Sensor', 'IoT Device', 'Weather Station'].includes(asset.asset_type) || asset.is_iot_enabled;
+                if (category === 'iot') {
+                    return isIotType;
+                } else {
+                    return !isIotType;
+                }
+            });
+
+            setAssets(filtered);
+        } catch (error) {
+            console.error('Failed to fetch assets:', error);
+            setAssets([]);
+        } finally {
+            if (!silent) setLoading(false);
+        }
+    }, [farmId, category]);
+
+    // Initial fetch
+    useEffect(() => {
+        fetchAssets();
+    }, [fetchAssets]);
+
+    // Check for Critical Alerts
+    useEffect(() => {
+        if (category === 'iot' && assets.length > 0) {
+            for (const asset of assets) {
+                if (asset.iot_settings?.last_alert && asset.status === 'Idle') {
+                    const alert = asset.iot_settings.last_alert;
+                    const alertId = `${asset.id}-${alert.timestamp}`;
+
+                    if (!ignoredAlerts.includes(alertId)) {
+                        if (!alertData || alertData.id !== alertId) {
+                            setAlertData({
+                                title: "Pump Safety Stop",
+                                message: alert.message,
+                                device_name: asset.name,
+                                timestamp: alert.timestamp,
+                                id: alertId
+                            });
+
+                            // Force close control modal if it's for this device
+                            if (controlDevice && (controlDevice.id === asset.id || controlDevice.iot_device_id === asset.iot_device_id)) {
+                                setControlDevice(null);
+                            }
+                        }
+                        break; // Show one at a time
+                    }
+                }
+            }
+        }
+    }, [assets, ignoredAlerts, category, alertData, controlDevice]);
+
+    // Polling
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchAssets(true);
+        }, 30000);
+        return () => clearInterval(interval);
+    }, [fetchAssets]);
+
+    // Background update for control modal
+    useEffect(() => {
+        if (controlDevice && assets.length > 0) {
+            const updated = assets.find(a => a.id === controlDevice.id);
+            if (updated && updated.status !== controlDevice.status) {
+                setControlDevice(updated);
+            }
+        }
+    }, [assets, controlDevice]);
+
+    // Auto-open from URL
+    useEffect(() => {
+        if (assets.length > 0 && category === 'iot') {
+            const openId = searchParams.get('open_device');
+            if (openId && !controlDevice) {
+                const target = assets.find(a => String(a.id) === openId || a.iot_device_id === openId);
+                if (target) {
+                    handleOpenControl(target);
+                }
+            }
+        }
+    }, [assets, searchParams, category]);
+
+    const handleDelete = async (id: number) => {
+        if (!confirm(t('confirm_delete_asset'))) return;
+        try {
+            await api.farmManagement.deleteAsset(id);
+            fetchAssets();
+        } catch (error) {
+            console.error("Delete failed", error);
+            alert(t('error_delete_asset'));
+        }
+    };
+
+    const title = category === 'iot' ? "IoT Devices & Smart Assets" : t('machinery_title');
+    const addButtonText = category === 'iot' ? "Add New Device" : t('btn_add_asset');
+
+    return (
+        <>
+            <Card className="w-full">
+                <CardHeader className="flex flex-row justify-between items-center">
+                    <CardTitle>{title}</CardTitle>
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                        {addButtonText}
+                    </button>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <div className="p-8 text-center text-slate-500">{t('loading_assets')}</div>
+                    ) : assets.length === 0 ? (
+                        <div className="p-8 text-center text-slate-500">
+                            {category === 'iot' ? "No IoT devices found. Add valves, pumps, or sensors to get started." : t('empty_assets')}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 gap-4">
+                            {assets.map((asset) => {
+                                const fuel = asset.fuel_level || Math.floor(Math.random() * 40) + 60;
+                                const maintenance = asset.maintenance_status || 'Good';
+
+                                return (
+                                    <div key={asset.id} className="p-4 border rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-white/10 relative group flex flex-col md:flex-row gap-4 items-center">
+                                        <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-200 dark:bg-slate-800 p-1 rounded z-10">
+                                            {category === 'iot' && (
+                                                <button
+                                                    onClick={() => handleOpenControl(asset)}
+                                                    className="text-green-500 hover:text-green-600 p-1"
+                                                    title="Open Dashboard"
+                                                >
+                                                    <Activity className="w-3.5 h-3.5" />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => setEditingAsset(asset)}
+                                                className="text-blue-500 hover:text-blue-600 p-1"
+                                            >
+                                                <Pencil className="w-3.5 h-3.5" />
+                                            </button>
+                                            <button onClick={() => handleDelete(asset.id)} className="text-red-500 hover:text-red-600 p-1"><Trash2 className="w-3.5 h-3.5" /></button>
+                                        </div>
+
+                                        <div
+                                            onClick={() => handleOpenControl(asset)}
+                                            className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl shrink-0 ${asset.status === 'Active' ? 'bg-green-100 dark:bg-green-900/40 text-green-600' : 'bg-slate-200 dark:bg-slate-800 text-slate-500'} ${category === 'iot' ? 'cursor-pointer hover:scale-105 transition-transform' : ''}`}
+                                        >
+                                            {category === 'iot' ? '📡' : '🚜'}
+                                        </div>
+
+                                        <div className="flex-1 text-center md:text-left cursor-pointer" onClick={() => handleOpenControl(asset)}>
+                                            <div className="flex items-center justify-center md:justify-start gap-2 mb-1">
+                                                <h3 className="font-bold text-lg text-slate-900 dark:text-white hover:text-green-500 transition-colors">{asset.name}</h3>
+                                                <span className={`px-2 py-0.5 text-[10px] uppercase font-bold rounded-full border ${asset.status === 'Active' ? 'bg-green-50 dark:bg-green-900/20 text-green-600 border-green-200' : 'bg-slate-100 dark:bg-slate-800 text-slate-500 border-slate-200'}`}>
+                                                    {asset.status || 'Idle'}
+                                                </span>
+                                            </div>
+                                            <div className="text-sm text-slate-500 space-y-1">
+                                                <p>{asset.asset_type}</p>
+                                                {/* Show Linked Pump if Valve */}
+                                                {asset.asset_type === 'Valve' && (
+                                                    asset.iot_settings?.parent_device_id ? (
+                                                        <p className="text-xs text-blue-500 flex items-center gap-1">
+                                                            <Activity className="w-3 h-3" />
+                                                            Connected to: <span className="font-bold">
+                                                                {iotDevices.find(d => d.id === asset.iot_settings.parent_device_id)?.name || `Pump #${asset.iot_settings.parent_device_id}`}
+                                                            </span>
+                                                        </p>
+                                                    ) : (
+                                                        <p className="text-xs text-amber-500 flex items-center gap-1 font-medium bg-amber-500/10 p-1 rounded w-fit">
+                                                            <AlertTriangle className="w-3 h-3" />
+                                                            No Pump Connected!
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setEditingAsset(asset); }}
+                                                                className="underline hover:text-amber-600 ml-1"
+                                                            >
+                                                                Link Now
+                                                            </button>
+                                                        </p>
+                                                    )
+                                                )}
+                                                {asset.iot_device_id && <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 px-1 rounded">ID: {asset.iot_device_id}</span>}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-6 w-full md:w-auto justify-center md:justify-end bg-white dark:bg-slate-950/50 p-3 rounded-lg border border-slate-100 dark:border-white/5">
+                                            {category === 'machinery' ? (
+                                                <div className="text-center min-w-[80px]">
+                                                    <div className="flex items-center gap-1 text-[10px] text-slate-400 mb-1 justify-center uppercase tracking-wider">
+                                                        Fuel
+                                                    </div>
+                                                    <div className="w-16 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden relative mx-auto mb-1">
+                                                        <div
+                                                            className={`h-full ${fuel < 20 ? 'bg-red-500' : 'bg-green-500'} transition-all`}
+                                                            style={{ width: `${fuel}%` }}
+                                                        ></div>
+                                                    </div>
+                                                    <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300">{fuel}%</span>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center min-w-[80px]">
+                                                    <div className="flex items-center gap-1 text-[10px] text-slate-400 mb-1 justify-center uppercase tracking-wider">
+                                                        Signal
+                                                    </div>
+                                                    <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                                                        {asset.status === 'Active' ? 'Strong' : '-'}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="text-center min-w-[80px] border-l border-slate-200 dark:border-white/10 pl-4">
+                                                <div className="flex items-center gap-1 text-[10px] text-slate-400 mb-1 justify-center uppercase tracking-wider">
+                                                    Status
+                                                </div>
+                                                <div className={`text-sm font-bold ${maintenance === 'Good' ? 'text-green-500' : 'text-red-500'}`}>
+                                                    {maintenance}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+            <AddAssetModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSuccess={fetchAssets}
+                farmId={farmId}
+                category={category === 'iot' ? 'irrigation' : 'machinery'}
+            />
+            {editingAsset && (
+                <EditAssetModal
+                    isOpen={!!editingAsset}
+                    onClose={() => setEditingAsset(null)}
+                    onSuccess={fetchAssets}
+                    asset={editingAsset}
+                />
+            )}
+            {controlDevice && (
+                <DeviceControlModal
+                    isOpen={!!controlDevice}
+                    onClose={() => setControlDevice(null)}
+                    device={controlDevice}
+                    onUpdate={fetchAssets}
+                />
+            )}
+            <CriticalAlertModal
+                isOpen={!!alertData}
+                onClose={dismissCurrentAlert}
+                alert={alertData}
+            />
+        </>
+    );
+};
