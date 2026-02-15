@@ -7,6 +7,14 @@ except Exception as e:
     # Continue anyway - env vars might be set directly
 
 import os
+import sys
+
+# DEBUG: Print environment to help diagnose port binding issues
+print(f"Agri-OS Backend initializing...")
+print(f"Current Working Directory: {os.getcwd()}")
+print(f"Environment PORT: {os.environ.get('PORT')}")
+print(f"Environment RENDER: {os.environ.get('RENDER')}")
+
 import traceback
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -232,11 +240,17 @@ def startup_event():
 
 if __name__ == "__main__":
     import uvicorn
+    # Check if running on Render (Render sets RENDER=true)
+    is_render = os.environ.get("RENDER") or os.environ.get("render")
+    
+    # Render requires binding to 0.0.0.0
+    host = "0.0.0.0" if is_render else "127.0.0.1"
     port = int(os.environ.get("PORT", 10000))
-    print(f"Starting uvicorn on 0.0.0.0:{port}...")
+    
+    print(f"Starting uvicorn on {host}:{port}...")
     uvicorn.run(
         app,
-        host="0.0.0.0",
+        host=host,
         port=port,
         reload=False  # Set to False in production
     )

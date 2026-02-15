@@ -5,6 +5,7 @@
 
 fastapi
 uvicorn[standard]
+gunicorn
 sqlalchemy
 psycopg2-binary
 pydantic
@@ -24,7 +25,6 @@ shapely
 opentelemetry-api
 opentelemetry-sdk
 # ultralytics
-python-multipart
 
 
 # Voice Search - Free AI Alternatives
