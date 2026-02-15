@@ -7,6 +7,14 @@ except Exception as e:
     # Continue anyway - env vars might be set directly
 
 import os
+import sys
+
+# DEBUG: Print environment to help diagnose port binding issues
+print(f"Agri-OS Backend initializing...")
+print(f"Current Working Directory: {os.getcwd()}")
+print(f"Environment PORT: {os.environ.get('PORT')}")
+print(f"Environment RENDER: {os.environ.get('RENDER')}")
+
 import traceback
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,6 +36,8 @@ from app.modules.retailer import models as retail_models
 from app.modules.market_access import models as market_models
 from app.modules.fintech import models as fintech_models
 from app.modules.traceability import models as trace_models
+from app.modules.feed import models as feed_models
+from app.modules.chat import models as chat_models
 
 # --- Router imports ---
 from app.modules.auth import router as auth_router
@@ -54,6 +64,8 @@ from app.modules.dashboard import router as dashboard_router
 from app.modules.irrigation import router as irrigation_router
 from app.modules.irrigation import models as irrigation_models
 from app.modules.logging import router as logging_router
+from app.modules.feed import router as feed_router
+from app.modules.chat import router as chat_router
 
 from app.admin import setup_admin
 
@@ -109,6 +121,8 @@ app.include_router(lorawan_router.router, prefix="/api/v1/iot", tags=["lorawan"]
 app.include_router(dashboard_router.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(irrigation_router.router, prefix="/api/v1", tags=["irrigation"])
 app.include_router(logging_router, prefix="/api/v1", tags=["logging"])
+app.include_router(feed_router.router, prefix="/api/v1/feed", tags=["feed"]) # Added feed router
+app.include_router(chat_router.router, prefix="/api/v1/chat", tags=["chat"])
 
 
 @app.get("/")
@@ -168,6 +182,10 @@ def _run_schema_migrations():
             for col in ["parent_device_id INTEGER", "last_active_at TIMESTAMP", "total_runtime_minutes FLOAT DEFAULT 0.0", "current_run_start_time TIMESTAMP", "target_turn_off_at TIMESTAMP", "asset_type VARCHAR DEFAULT 'Device'"]:
                 _add_column("iot_devices", col)
 
+            # 10. Chat Enhancements
+            for col in ["message_type VARCHAR DEFAULT 'text'", "attachment_url VARCHAR"]:
+                _add_column("chat_messages", col)
+
             # --- Unique ID Migration ---
             # Format: (table_name, id_column_name, is_numeric)
             unique_id_configs = [
@@ -218,3 +236,21 @@ def _run_schema_migrations():
 def startup_event():
     _run_schema_migrations()
     print("Agri-OS Backend started.")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    # Check if running on Render (Render sets RENDER=true)
+    is_render = os.environ.get("RENDER") or os.environ.get("render")
+    
+    # Render requires binding to 0.0.0.0
+    host = "0.0.0.0" if is_render else "127.0.0.1"
+    port = int(os.environ.get("PORT", 10000))
+    
+    print(f"Starting uvicorn on {host}:{port}...")
+    uvicorn.run(
+        app,
+        host=host,
+        port=port,
+        reload=False  # Set to False in production
+    )

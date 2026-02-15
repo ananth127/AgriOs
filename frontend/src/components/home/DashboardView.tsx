@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/navigation';
 import dynamic from 'next/dynamic';
@@ -14,40 +15,30 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ... (existing code for FarmEcosystem, etc. - no change needed until LiveOperationsCarousel)
+import { FarmEcosystem } from '@/components/dashboard/FarmEcosystem';
+
+// Dynamic Imports with SSR disabled for heavy widgets
+const ProphetWidget = dynamic(() => import('@/components/dashboard/ProphetWidget'), { ssr: false });
+const WeatherWidget = dynamic(() => import('@/components/dashboard/WeatherWidget'), { ssr: false });
+const QrScannerModal = dynamic(() => import('@/components/dashboard/QrScannerModal').then(mod => mod.QrScannerModal), { ssr: false });
+const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
+import { API_BASE_URL } from '@/lib/constants';
 
 function LiveOperationsCarousel({ operations }: { operations: any[] }) {
     const tDashboard = useTranslations('Dashboard');
     const [index, setIndex] = React.useState(0);
-    // Logic: Mobile 1 item, Desktop 2 items. 
-    // We'll treat the index as the index of the *first* visible item.
-    // For smooth sliding, we need to know the width of items. 
-    // Simply sliding by % is easier. 
-    // Mobile: 100% shift per index. Desktop: 50% shift per index.
-
-    // However, keeping it simple: We will group data into "pages" of 2 (desktop) or 1 (mobile) logic is complex in pure CSS/React without resize listeners.
-    // Alternative: Just render a horizontal list and translate it.
-
-    // Let's assume a "card width" percentage.
-    // On Desktop (sm+), we want 2 visible. So each card is 50%.
-    // On Mobile, we want 1 visible? Or maybe 1.2 to show peek? Let's do 1 visible (100%).
 
     React.useEffect(() => {
         if (!operations || operations.length === 0) return;
 
         const interval = setInterval(() => {
             setIndex((prev) => {
-                // If we are at the end, reset to 0.
-                // We show 2 items at a time on desktop.
-                // So if valid indices are 0 to N-1.
-                // We want to stop when the last item is visible.
-                // But simplified infinite loop is better for "dashboard" feel.
                 return (prev + 1) % operations.length;
             });
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [operations?.length]);
+    }, [operations]);
 
     if (!operations?.length) {
         return (
@@ -88,10 +79,6 @@ function LiveOperationsCarousel({ operations }: { operations: any[] }) {
             <div
                 className="flex transition-transform duration-700 ease-[cubic-bezier(0.25,0.1,0.25,1)] h-full"
                 style={{
-                    // Simple "One Page" slide logic.
-                    // To avoid complex responsive JS logic, we slide by 100% (1 page) at a time.
-                    // On Mobile: 1 Page = 1 Item (100% width).
-                    // On Desktop: 1 Page = 2 Items (50% width each).
                     transform: `translateX(-${index * 100}%)`
                 }}
             >
@@ -122,23 +109,12 @@ function LiveOperationsCarousel({ operations }: { operations: any[] }) {
             {/* Simple Indicators */}
             <div className="absolute bottom-1 left-0 right-0 flex justify-center gap-1">
                 {operations.map((_, i) => (
-                    // Only show dots if there are enough pages? 
-                    // If we show 1 dot per item, it's fine.
                     <div key={i} className={`h-1 rounded-full transition-all ${i === index ? 'w-4 bg-green-500' : 'w-1 bg-slate-300 dark:bg-slate-700'}`} />
                 ))}
             </div>
         </div>
     );
 }
-
-import { FarmEcosystem } from '@/components/dashboard/FarmEcosystem';
-
-// Dynamic Imports with SSR disabled for heavy widgets
-const ProphetWidget = dynamic(() => import('@/components/dashboard/ProphetWidget'), { ssr: false });
-const WeatherWidget = dynamic(() => import('@/components/dashboard/WeatherWidget'), { ssr: false });
-const QrScannerModal = dynamic(() => import('@/components/dashboard/QrScannerModal').then(mod => mod.QrScannerModal), { ssr: false });
-const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
-import { API_BASE_URL } from '@/lib/constants';
 
 export default function DashboardView({ locale }: { locale: string }) {
     const tDashboard = useTranslations('Dashboard');
@@ -314,7 +290,10 @@ export default function DashboardView({ locale }: { locale: string }) {
                             <Link href="/farm-management?tab=iot" className="text-xs font-bold text-blue-500 hover:text-blue-400">{tDashboard('manage_devices')}</Link>
                         </div>
 
-                        <SmartMonitorWidget />
+                        <div className="space-y-6">
+                            <SmartMonitorWidget />
+                            <LiveOperationsCarousel operations={realtime?.operations || []} />
+                        </div>
                     </div>
 
                     {/* Suggested Actions */}
@@ -440,13 +419,12 @@ export default function DashboardView({ locale }: { locale: string }) {
                     <ProphetWidget locationName={user?.location_name} />
                 </div>
 
+
+
             </div>
         </main>
     );
 }
-
-
-
 
 
 // Re-write SuggestedActionsCarousel to be Swipeable using framer-motion
@@ -457,22 +435,22 @@ function SuggestedActionsCarousel({ suggestions }: { suggestions: any[] }) {
     const validSuggestions = suggestions?.length ? suggestions : [];
     const index = validSuggestions.length > 0 ? Math.abs(page % validSuggestions.length) : 0;
 
+    const paginate = React.useCallback((newDirection: number) => {
+        setPage(prev => [prev[0] + newDirection, newDirection]);
+    }, []);
+
     // Auto-slide logic
     React.useEffect(() => {
         if (validSuggestions.length <= 1) return;
         const timer = setInterval(() => {
-            setPage([page + 1, 1]);
-        }, 6000);
+            paginate(1);
+        }, 10000);
         return () => clearInterval(timer);
-    }, [page, validSuggestions.length]);
+    }, [validSuggestions.length, paginate]);
 
     if (!validSuggestions.length) {
         return <p className="text-sm text-slate-500 italic">{tDashboard('no_suggestions')}</p>;
     }
-
-    const paginate = (newDirection: number) => {
-        setPage([page + newDirection, newDirection]);
-    };
 
     const swipeConfidenceThreshold = 10000;
     const swipePower = (offset: number, velocity: number) => {
@@ -527,7 +505,8 @@ function SuggestedActionsCarousel({ suggestions }: { suggestions: any[] }) {
                             {(() => {
                                 const i1 = index % validSuggestions.length;
                                 const i2 = (index + 1) % validSuggestions.length;
-                                const items = [validSuggestions[i1], validSuggestions[i2]];
+                                // Only show one item in small box
+                                const items = [validSuggestions[i1]];
 
                                 return items.map((sugg, i) => (
                                     <Link key={i} href={sugg?.action_link || '#'} className="block w-full text-left p-3 lg:p-4 bg-white dark:bg-slate-900 rounded-xl border border-amber-100 dark:border-white/5 shadow-sm hover:shadow-md hover:border-amber-300 transition-all group h-full">
@@ -559,23 +538,17 @@ function SuggestedActionsCarousel({ suggestions }: { suggestions: any[] }) {
                         <p className="text-xs mb-3 min-h-[2.5em]">Placeholder content</p>
                         <div className="flex"><span className="text-[10px]">Placeholder</span></div>
                     </div>
-                    <div>
-                        <div className="mb-2"><span className="text-sm">Placeholder</span></div>
-                        <p className="text-xs mb-3 min-h-[2.5em]">Placeholder content</p>
-                        <div className="flex"><span className="text-[10px]">Placeholder</span></div>
-                    </div>
                 </div>
             </div>
 
-            {/* Carousel Indicators - Adjusted for dual slide */}
-            {validSuggestions.length > 2 && (
+            {/* Carousel Indicators */}
+            {validSuggestions.length > 1 && (
                 <div className="flex justify-center gap-1.5 mt-4">
-                    {Array.from({ length: Math.ceil(validSuggestions.length / 2) }).map((_, i) => (
+                    {Array.from({ length: validSuggestions.length }).map((_, i) => (
                         <button
                             key={i}
-                            onClick={() => setPage([i, i > Math.floor(index / 2) ? 1 : -1])}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${i === Math.floor(index / 2) ? 'w-6 bg-amber-500' : 'w-1.5 bg-amber-300/40 hover:bg-amber-400'}`}
-                            aria-label={`Go to slide group ${i + 1}`}
+                            onClick={() => setPage([i, i > index ? 1 : -1])}
+                            className={`h-1.5 rounded-full transition-all duration-300 ${i === index ? 'w-6 bg-amber-500' : 'w-1.5 bg-amber-300/40 hover:bg-amber-400'}`}
                         />
                     ))}
                 </div>
@@ -674,9 +647,9 @@ function SmartMonitorWidget() {
         { id: 102, src: 'https://images.unsplash.com/photo-1577705998148-6da4f3963bc8?q=80&w=400', time: '10:40 AM', label: 'Leak Detected', cam: 'CAM 09' },
     ]);
 
-    const paginate = (newDirection: number) => {
-        setPage([page + newDirection, newDirection]);
-    };
+    const paginate = React.useCallback((newDirection: number) => {
+        setPage(prev => [prev[0] + newDirection, newDirection]);
+    }, []);
 
     // Auto-slide
     React.useEffect(() => {
@@ -684,10 +657,7 @@ function SmartMonitorWidget() {
             paginate(1);
         }, 10000);
         return () => clearInterval(timer);
-    }, [page]);
-
-    // Snapshot Update
-
+    }, [paginate]);
 
     const slideVariants = {
         enter: (direction: number) => ({
@@ -763,10 +733,12 @@ function SmartMonitorWidget() {
                                 <span className="text-white text-xs font-bold tracking-wider">LIVE • {activeFeed.cam}</span>
                             </div>
 
-                            <img
+                            <Image
                                 src={activeFeed.image || "https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=1200"}
                                 alt="Live Feed"
-                                className="w-full h-full object-cover opacity-90 pointer-events-none"
+                                fill
+                                className="object-cover opacity-90 pointer-events-none"
+                                unoptimized
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/20 pointer-events-none" />
 
@@ -816,7 +788,7 @@ function SmartMonitorWidget() {
                                 transition={{ duration: 0.3 }}
                                 className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 aspect-[4/3] group cursor-pointer shadow-sm hover:shadow-md hover:border-green-500/40 transition-all z-0"
                             >
-                                <img src={activeFeed.recent_photo} alt="Recent 1m" className="w-full h-full object-cover" />
+                                <Image src={activeFeed.recent_photo} alt="Recent 1m" fill className="object-cover" unoptimized />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-80" />
                                 <div className="absolute top-2 right-2 bg-blue-500/80 backdrop-blur px-1.5 py-0.5 rounded text-[8px] font-bold text-white">1m ago</div>
                                 <div className="absolute bottom-2 left-2 text-white">
@@ -835,7 +807,7 @@ function SmartMonitorWidget() {
                                 transition={{ duration: 0.3, delay: 0.1 }}
                                 className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 aspect-[4/3] group cursor-pointer shadow-sm hover:shadow-md hover:border-red-500/40 transition-all z-0"
                             >
-                                <img src={activeFeed.last_alert} alt="Last Alert" className="w-full h-full object-cover" />
+                                <Image src={activeFeed.last_alert} alt="Last Alert" fill className="object-cover" unoptimized />
                                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent opacity-80" />
                                 <div className="absolute top-2 right-2 bg-red-500/80 backdrop-blur px-1.5 py-0.5 rounded text-[8px] font-bold text-white flex items-center gap-1">
                                     <Activity size={8} /> {tDashboard('detected')}
@@ -853,7 +825,7 @@ function SmartMonitorWidget() {
                                     layout
                                     className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-slate-800 aspect-[4/3] group cursor-pointer shadow-sm hover:shadow-md hover:border-amber-500/40 transition-all z-0"
                                 >
-                                    <img src={alert.src} alt="Global Alert" className="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all" />
+                                    <Image src={alert.src} alt="Global Alert" fill className="object-cover grayscale-[0.3] group-hover:grayscale-0 transition-all" unoptimized />
                                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
                                     <div className="absolute top-2 left-2 bg-amber-500/80 backdrop-blur px-1.5 py-0.5 rounded text-[8px] font-bold text-white">GLOBAL</div>
                                     <div className="absolute bottom-0 inset-x-0 p-2.5 text-white">
@@ -866,9 +838,6 @@ function SmartMonitorWidget() {
                     </div>
                 </div>
             </div>
-        </div >
+        </div>
     );
 }
-
-
-

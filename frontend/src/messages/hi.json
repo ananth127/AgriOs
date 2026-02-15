@@ -40,6 +40,7 @@
     },
     "Sidebar": {
         "menu_overview": "अवलोकन",
+        "menu_daily_updates": "दैनिक अपडेट",
         "menu_my_farms": "मेरे खेत",
         "menu_crops_registry": "फसलें और रजिस्ट्री",
         "menu_management": "प्रबंधन",

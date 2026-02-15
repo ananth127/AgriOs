@@ -7,8 +7,9 @@ services:
     plan: free
     branch: main
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    # Valid Start Command for Render:
+    # Explicitly bind to 0.0.0.0 and port 10000 (Render default)
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
     healthCheckPath: /docs
     envVars:
       - key: DATABASE_URL
@@ -18,8 +19,12 @@ services:
       # Hugging Face API (Primary AI)
       - key: HUGGINGFACE_API_KEY
         sync: false
-      # Legacy: Keep for backward compatibility
       - key: GEMINI_API_KEY
         sync: false
       - key: PYTHON_VERSION
         value: 3.10.0
+      # Force Uvicorn defaults for Render (0.0.0.0 binding)
+      - key: UVICORN_HOST
+        value: 0.0.0.0
+      - key: UVICORN_PORT
+        value: 10000

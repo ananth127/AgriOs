@@ -55,4 +55,7 @@ def update_user_me(
     db: Session = Depends(get_db),
     current_user: schemas.User = Depends(dependencies.get_current_user)
 ):
-    return service.update_user(db=db, current_user=current_user, user_update=user_update)
+    try:
+        return service.update_user(db=db, current_user=current_user, user_update=user_update)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

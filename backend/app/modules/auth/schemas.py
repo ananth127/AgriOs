@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -38,7 +38,7 @@ class UserUpdate(BaseModel):
 class User(UserBase):
     id: int
     is_active: bool
-    unique_id: Optional[str] = None
+    unique_id: Optional[str] = Field(None, validation_alias="user_unique_id")
     created_at: Optional[datetime] = None
 
     class Config:
