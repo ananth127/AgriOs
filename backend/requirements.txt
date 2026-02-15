@@ -34,19 +34,19 @@ opentelemetry-sdk
 # google-cloud-aiplatform
 litellm
 
-# Hugging Face Transformers for local AI inference
-transformers>=4.30.0
-torch>=2.0.0
-accelerate>=0.20.0
-huggingface_hub
+# Hugging Face Transformers & Torch - Removed for Render deployment (OOM issues)
+# transformers>=4.30.0
+# torch>=2.0.0
+# accelerate>=0.20.0
+# huggingface_hub
 
-# Audio processing without FFmpeg (production-ready)
-soundfile>=0.12.0
-librosa>=0.10.0
-pydub>=0.25.0  # Optional: for MP3, OGG support
-av>=10.0.0  # PyAV: for WebM/Opus support without system FFmpeg
+# Audio processing - Removed for Render deployment
+# soundfile>=0.12.0
+# librosa>=0.10.0
+# pydub>=0.25.0  # Optional: for MP3, OGG support
+# av>=10.0.0  # PyAV: for WebM/Opus support without system FFmpeg
 
-google-cloud-speech
+# google-cloud-speech
 google-cloud-texttospeech
 
 # Security - .env encryption
