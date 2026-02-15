@@ -7,8 +7,9 @@ services:
     plan: free
     branch: main
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: python main.py
+    # Valid Start Command for Render:
+    # Explicitly bind to 0.0.0.0 and port 10000 (Render default)
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
     healthCheckPath: /docs
     envVars:
       - key: DATABASE_URL
