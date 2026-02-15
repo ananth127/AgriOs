@@ -52,4 +52,5 @@ google-cloud-texttospeech
 # Security - .env encryption
 cryptography
 sqladmin
+itsdangerous
 
