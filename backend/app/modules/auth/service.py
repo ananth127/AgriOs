@@ -23,7 +23,7 @@ def get_user_by_login_id(db: Session, identifier: str):
         or_(
             models.User.email == identifier,
             models.User.phone_number == identifier,
-            models.User.unique_id == identifier
+            models.User.user_unique_id == identifier
         )
     ).first()
 
@@ -78,7 +78,7 @@ def create_user(db: Session, user: schemas.UserCreate):
 
     while True:
         unique_id = generate_unique_id(user.latitude, user.longitude, user.phone_number)
-        if not db.query(models.User).filter(models.User.unique_id == unique_id).first():
+        if not db.query(models.User).filter(models.User.user_unique_id == unique_id).first():
             break
 
     db_user = models.User(
@@ -86,7 +86,7 @@ def create_user(db: Session, user: schemas.UserCreate):
         hashed_password=hashed_password,
         full_name=user.full_name,
         role=user.role,
-        unique_id=unique_id,
+        user_unique_id=unique_id,
         phone_number=user.phone_number,
         latitude=user.latitude,
         longitude=user.longitude,
@@ -126,6 +126,16 @@ def _check_location_conflict(db: Session, lat: float, lng: float, exclude_user_i
 def update_user(db: Session, current_user: models.User, user_update: schemas.UserUpdate):
     update_data = user_update.dict(exclude_unset=True)
     
+    # Check Phone Number Uniqueness (if phone is provided and different)
+    if 'phone_number' in update_data and update_data['phone_number'] and update_data['phone_number'] != current_user.phone_number:
+        # Check if phone exists for ANOTHER user
+        existing_phone = db.query(models.User).filter(
+            models.User.phone_number == update_data['phone_number'],
+            models.User.id != current_user.id
+        ).first()
+        if existing_phone:
+            raise ValueError("Phone number is already in use by another account.")
+
     # Validate Location Uniqueness if location is changing
     if 'latitude' in update_data and 'longitude' in update_data:
         _check_location_conflict(db, update_data['latitude'], update_data['longitude'], current_user.id)

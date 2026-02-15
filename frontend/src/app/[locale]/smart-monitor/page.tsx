@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -128,7 +129,7 @@ export default function SmartMonitorPage() {
         fetchData();
         const interval = setInterval(fetchData, 30000);
         return () => clearInterval(interval);
-    }, [targetId]);
+    }, [targetId, items.length]);
 
 
 
@@ -382,20 +383,18 @@ export default function SmartMonitorPage() {
                                                 // If URL exists, try to show it. If it fails, show "Signal Lost"
                                                 if (url && url.length > 5) {
                                                     return (
-                                                        <img
-                                                            src={url}
-                                                            className="w-full h-full object-cover"
-                                                            alt="Live Feed"
-                                                            onError={(e) => {
-                                                                // Show Signal Lost Placeholder on Error
-                                                                e.currentTarget.style.display = 'none';
-                                                                // We can't easily swap to a div here in React via generic logic without state,
-                                                                // but we can ensure the parent background shows "Signal Lost"
-                                                                // Or simpler: swap src to a known placeholder if available, or just fail.
-                                                                // Better: Use a reliable fallback image that looks like "Static"
-                                                                e.currentTarget.src = "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1200&auto=format&fit=crop"; // Cyberpunk static / tech background
-                                                            }}
-                                                        />
+                                                        <div className="relative w-full h-full">
+                                                            <Image
+                                                                src={url}
+                                                                alt="Live Feed"
+                                                                fill
+                                                                className="object-cover"
+                                                                onError={(e) => {
+                                                                    // Handle error gracefully or hide
+                                                                }}
+                                                                unoptimized
+                                                            />
+                                                        </div>
                                                     );
                                                 }
 
@@ -574,9 +573,12 @@ export default function SmartMonitorPage() {
                                     }`}
                             >
                                 <div className="relative w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-black">
-                                    <img
+                                    <Image
                                         src={item.imageUrl || "https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=200"}
-                                        className="w-full h-full object-cover opacity-70"
+                                        alt={item.name}
+                                        fill
+                                        className="object-cover opacity-70"
+                                        unoptimized
                                     />
                                     <div className={`absolute top-1 right-1 w-2 h-2 rounded-full ${item.status === 'ALERT' ? 'bg-red-500 animate-ping' : 'bg-green-500'}`} />
                                 </div>
@@ -610,7 +612,13 @@ export default function SmartMonitorPage() {
                                             <span className="text-[10px] text-slate-500 font-mono">{snap.time}</span>
                                         </div>
                                         <div className="w-full h-20 rounded-lg overflow-hidden mt-2 relative">
-                                            <img src={snap.src} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                            <Image
+                                                src={snap.src}
+                                                alt={snap.label}
+                                                fill
+                                                className="object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                                unoptimized
+                                            />
                                             <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                                             <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur px-1.5 py-0.5 rounded text-[8px] text-white">00:15</div>
                                         </div>

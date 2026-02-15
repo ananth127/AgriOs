@@ -1,19 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Link, usePathname } from '@/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Calculator, LogOut, LogIn, X, MapPin, Briefcase, Loader2, Stethoscope, Activity, BookOpen, RefreshCw, Cpu } from 'lucide-react';
+import { LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Calculator, LogIn, Stethoscope, Activity, BookOpen, RefreshCw, Cpu, Newspaper, Briefcase, MessageCircle, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { syncData } from '@/db/sync';
-import { API_BASE_URL } from '@/lib/constants';
-import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { trackSidebarClick, trackAuthEvent } from '@/lib/analytics';
 import { startNavigationProgress } from '@/components/NavigationLoader';
 import { useConnectionHealth } from '@/hooks/useConnectionHealth';
-
-const LocationSelector = dynamic(() => import('@/components/LocationSelector'), { ssr: false });
 
 interface SidebarProps {
     locale: string;
@@ -24,104 +19,16 @@ export function Sidebar({ locale }: SidebarProps) {
     const tGlobal = useTranslations('Global');
     const tAuth = useTranslations('Auth');
     const pathname = usePathname();
-    const { user, isAuthenticated, logout, updateUser, token } = useAuth();
-
-    // Profile Modal State
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
-    const [isLocationSelectorOpen, setIsLocationSelectorOpen] = useState(false);
-    const [saving, setSaving] = useState(false);
-
-    // Edit State
-    const [editRole, setEditRole] = useState(user?.role || 'farmer');
-    const [editLocation, setEditLocation] = useState<{ name: string, lat: number, lng: number } | null>(null);
-    const [editSurveyNumber, setEditSurveyNumber] = useState(user?.survey_number || '');
-    const [editBoundary, setEditBoundary] = useState<[number, number][] | undefined>(user?.boundary);
-    const [fetchingBoundary, setFetchingBoundary] = useState(false);
+    const { user, isAuthenticated } = useAuth();
 
     // Connection States from Hook
     const { isOnline, frontendSignalStrength, isBackendHealthy, backendSignalStrength, connectionWarning } = useConnectionHealth();
 
-    // Sync state when user loads or modal opens (moved up for clarity)
-    useEffect(() => {
-        if (user) {
-            setEditRole(user.role);
-            setEditSurveyNumber(user.survey_number || '');
-            setEditBoundary(user.boundary);
-            if (user.location_name && user.latitude && user.longitude) {
-                setEditLocation({
-                    name: user.location_name,
-                    lat: user.latitude,
-                    lng: user.longitude
-                });
-            }
-        }
-    }, [user, isProfileOpen]);
-
-
-
-
-
-    const handleFetchBoundary = async () => {
-        setFetchingBoundary(true);
-        // Simulate API call
-        setTimeout(() => {
-            if (editLocation) {
-                const centerLat = editLocation.lat;
-                const centerLng = editLocation.lng;
-                const mockBoundary: [number, number][] = [
-                    [centerLat - 0.001, centerLng - 0.001],
-                    [centerLat + 0.001, centerLng - 0.001],
-                    [centerLat + 0.001, centerLng + 0.001],
-                    [centerLat - 0.001, centerLng + 0.001],
-                ];
-                setEditBoundary(mockBoundary);
-                alert(tGlobal('boundary_found', { no: editSurveyNumber }));
-            } else {
-                alert(tGlobal('set_location_first'));
-            }
-            setFetchingBoundary(false);
-        }, 1500);
-    };
-
-    const handleSaveProfile = async () => {
-        setSaving(true);
-        try {
-            const payload = {
-                role: editRole,
-                ...(editLocation && {
-                    latitude: editLocation.lat,
-                    longitude: editLocation.lng,
-                    location_name: editLocation.name
-                }),
-                survey_number: editSurveyNumber,
-                boundary: editBoundary
-            };
-
-            const res = await fetch(`${API_BASE_URL}/auth/me`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (!res.ok) throw new Error('Failed to update profile');
-
-            const updatedUser = await res.json();
-            updateUser(updatedUser); // Update context
-            setIsProfileOpen(false);
-
-        } catch (err) {
-            console.error(err);
-            alert(tGlobal('error_save_profile'));
-        } finally {
-            setSaving(false);
-        }
-    };
-
     const links = [
         { href: '/', label: t('menu_overview'), icon: LayoutDashboard },
+        { href: '/chat', label: t('menu_chat'), icon: MessageSquare },
+        { href: '/feed', label: t('menu_daily_updates'), icon: Newspaper },
+        { href: '/community', label: t('menu_community'), icon: MessageCircle },
         { href: '/smart-monitor', label: t('menu_smart_monitor'), icon: Activity },
         { href: '/farms', label: t('menu_my_farms'), icon: Tractor },
         { href: '/crops', label: t('menu_crops_registry'), icon: Sprout },
@@ -144,7 +51,6 @@ export function Sidebar({ locale }: SidebarProps) {
                     <div className="text-3xl font-extrabold bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 dark:from-green-400 dark:via-emerald-500 dark:to-teal-600 bg-clip-text text-transparent tracking-tight">
                         {tGlobal('app_name')}
                     </div>
-                    {/* Status Indicators */}
                     {/* Status Indicators */}
                     <div className="flex flex-col justify-center gap-[2px] ml-2 mb-1">
                         {/* Frontend Status */}
@@ -238,9 +144,8 @@ export function Sidebar({ locale }: SidebarProps) {
 
             <div className="p-4 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-slate-900/30 transition-colors duration-300">
                 {isAuthenticated ? (
-                    <>
+                    <Link href="/profile" className="block">
                         <div
-                            onClick={() => setIsProfileOpen(true)}
                             className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-white/5 rounded-xl p-3.5 hover:bg-slate-100 dark:hover:bg-slate-800/80 hover:border-green-500/30 transition-all cursor-pointer group shadow-lg"
                         >
                             <div className="flex items-center gap-3.5">
@@ -259,127 +164,7 @@ export function Sidebar({ locale }: SidebarProps) {
                                 </div>
                             </div>
                         </div>
-
-                        {/* Profile Modal */}
-                        {isProfileOpen && (
-                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                                <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
-                                    <button
-                                        onClick={() => setIsProfileOpen(false)}
-                                        className="absolute top-4 right-4 text-slate-500 hover:text-white"
-                                    >
-                                        <X className="w-5 h-5" />
-                                    </button>
-
-                                    <h2 className="text-xl font-bold text-white mb-6">{t('profile_edit_title')}</h2>
-
-                                    <div className="space-y-4">
-                                        {/* Name (Read-only for now or simple edit) */}
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium text-slate-400">{t('profile_full_name')}</label>
-                                            <div className="p-3 bg-slate-950/50 rounded-lg text-white border border-white/5">
-                                                {user?.full_name}
-                                            </div>
-                                        </div>
-
-                                        {/* Role */}
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium text-slate-400">{t('profile_role')}</label>
-                                            <div className="relative">
-                                                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                                <select
-                                                    value={editRole}
-                                                    onChange={(e) => setEditRole(e.target.value)}
-                                                    className="w-full bg-slate-950/50 border border-white/10 rounded-lg py-2.5 pl-10 pr-4 text-white appearance-none focus:outline-none focus:border-green-500/50"
-                                                >
-                                                    <option value="farmer">{t('role_farmer')}</option>
-                                                    <option value="agri_officer">{t('role_officer')}</option>
-                                                    <option value="broker">{t('role_broker')}</option>
-                                                    <option value="buyer">{t('role_buyer')}</option>
-                                                    <option value="logistics">{t('role_logistics')}</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        {/* Location */}
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium text-slate-400">{t('profile_farming_location')}</label>
-                                            <div
-                                                onClick={() => setIsLocationSelectorOpen(true)}
-                                                className="w-full bg-slate-950/50 border border-white/10 rounded-lg py-3 px-4 text-white hover:bg-slate-900/80 cursor-pointer transition-colors flex items-center justify-between group"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <MapPin className="w-4 h-4 text-slate-500 group-hover:text-green-400" />
-                                                    <div className="text-sm truncate max-w-[200px]">
-                                                        {editLocation?.name || t('profile_set_location')}
-                                                    </div>
-                                                </div>
-                                                <div className="text-xs text-green-400">{t('profile_change_location')}</div>
-                                            </div>
-                                        </div>
-
-                                        {/* Survey Number / Patta */}
-                                        <div className="p-3 bg-slate-950/50 border border-white/5 rounded-lg">
-                                            <label className="block text-xs font-medium text-slate-400 mb-2">{t('govt_record_label')}</label>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    className="flex-1 bg-slate-950 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-green-500/50 focus:outline-none"
-                                                    placeholder={t('survey_no_placeholder')}
-                                                    value={editSurveyNumber}
-                                                    onChange={(e) => setEditSurveyNumber(e.target.value)}
-                                                />
-                                                <button
-                                                    onClick={handleFetchBoundary}
-                                                    type="button" // Important to prevent form submit if inside form
-                                                    disabled={!editSurveyNumber || fetchingBoundary}
-                                                    className="px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-600/30 text-xs font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                                >
-                                                    {fetchingBoundary ? <Loader2 className="w-3 h-3 animate-spin" /> : t('fetch_btn')}
-                                                </button>
-                                            </div>
-                                            {editBoundary && editBoundary.length > 0 && (
-                                                <div className="mt-2 text-[10px] text-green-500 flex items-center gap-1">
-                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                                    {t('boundary_loaded')}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="pt-4 flex gap-3">
-                                            <button
-                                                onClick={handleSaveProfile}
-                                                disabled={saving}
-                                                className="flex-1 bg-green-500 hover:bg-green-400 text-slate-900 font-bold py-2.5 rounded-lg transition-colors flex justify-center items-center gap-2"
-                                            >
-                                                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : tGlobal('save_changes')}
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    trackAuthEvent('logout');
-                                                    logout();
-                                                    setIsProfileOpen(false);
-                                                }}
-                                                className="px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 font-medium rounded-lg border border-red-500/20 transition-colors"
-                                            >
-                                                {tAuth('logout')}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Location Selector Modal */}
-                        <LocationSelector
-                            isOpen={isLocationSelectorOpen}
-                            onClose={() => setIsLocationSelectorOpen(false)}
-                            onSelect={(lat, lng, name, method) => {
-                                setEditLocation({ lat, lng, name });
-                                setIsLocationSelectorOpen(false);
-                            }}
-                        />
-                    </>
+                    </Link>
                 ) : (
                     <Link href="/auth/login" className="block">
                         <div className="bg-slate-800 rounded-lg p-3 hover:bg-green-500/10 hover:border-green-500/30 border border-transparent transition-colors cursor-pointer group">

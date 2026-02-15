@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useRouter } from '@/navigation';
 import { api } from '@/lib/api';
@@ -50,7 +50,7 @@ export default function LivestockPage() {
             .catch(err => console.error("Failed to load user farm ID", err));
     }, []);
 
-    const fetchAnimals = async () => {
+    const fetchAnimals = useCallback(async () => {
         if (!farmId) return;
         try {
             // Concurrent fetching for better performance
@@ -61,8 +61,6 @@ export default function LivestockPage() {
                 api.livestock.getStats(farmId)
             ]);
 
-
-
             setAnimals(data || []);
             setHousing(housingData || []);
             setFeedPlans(feedData || []);
@@ -71,11 +69,11 @@ export default function LivestockPage() {
         } catch (err) {
             console.error("Failed to fetch livestock data", err);
         }
-    };
+    }, [farmId]);
 
     useEffect(() => {
         if (farmId) fetchAnimals();
-    }, [farmId]);
+    }, [farmId, fetchAnimals]);
 
     // Handle URL param for direct access
     useEffect(() => {

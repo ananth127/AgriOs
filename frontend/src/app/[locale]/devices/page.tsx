@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { api } from '@/lib/api';
 import { getUserFarmId } from '@/lib/userFarm';
@@ -20,11 +20,7 @@ export default function DevicesPage() {
     const [showScanner, setShowScanner] = useState(false);
     const [scannedDevice, setScannedDevice] = useState<any>(null);
 
-    useEffect(() => {
-        fetchDevices();
-    }, []);
-
-    const fetchDevices = async (silent = false) => {
+    const fetchDevices = useCallback(async (silent = false) => {
         if (!silent) setIsLoading(true);
         try {
             // Get User Farm ID (cached after first call)
@@ -43,7 +39,11 @@ export default function DevicesPage() {
         } finally {
             if (!silent) setIsLoading(false);
         }
-    };
+    }, [/* No dependencies needed as api/getUserFarmId are external/stable */]);
+
+    useEffect(() => {
+        fetchDevices();
+    }, [fetchDevices]);
 
     // Polling for updates (30s — use WebSocket for real-time later)
     useEffect(() => {
@@ -51,7 +51,7 @@ export default function DevicesPage() {
             fetchDevices(true);
         }, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchDevices]);
 
     // Sync open modal with polled data
     useEffect(() => {
@@ -61,7 +61,7 @@ export default function DevicesPage() {
                 setScannedDevice(updated);
             }
         }
-    }, [devices]);
+    }, [devices, scannedDevice]);
 
     const handleToggle = async (device: any) => {
         // --- SAFETY CHECK ---

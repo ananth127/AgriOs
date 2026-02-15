@@ -40,6 +40,9 @@
     },
     "Sidebar": {
         "menu_overview": "Overview",
+        "menu_community": "Community",
+        "menu_chat": "Messages",
+        "menu_daily_updates": "Daily Updates",
         "menu_my_farms": "My Farms",
         "menu_crops_registry": "Crops & Registry",
         "menu_management": "Management",

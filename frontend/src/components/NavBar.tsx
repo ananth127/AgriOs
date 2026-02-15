@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -9,12 +8,10 @@ import { Link, usePathname } from '@/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/auth-context';
 import {
-    LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Menu, X, Calculator, LogIn, LogOut, Briefcase, Stethoscope, BookOpen, Activity
+    LayoutDashboard, Sprout, Tractor, ShoppingBag, ScrollText, Users, Camera, Menu, X, Calculator, LogIn, LogOut, Briefcase, Stethoscope, BookOpen, Activity, Newspaper, Bell, Cpu, MessageCircle, MessageSquare
 } from 'lucide-react';
 import { useConnectionHealth } from '@/hooks/useConnectionHealth';
 import { startNavigationProgress } from '@/components/NavigationLoader';
-
-
 
 export default function NavBar({ locale }: { locale: string }) {
     const tSidebar = useTranslations('Sidebar');
@@ -30,7 +27,10 @@ export default function NavBar({ locale }: { locale: string }) {
 
     const links = [
         { href: '/', label: tSidebar('menu_overview'), icon: LayoutDashboard },
-        { href: '/smart-monitor', label: "Smart Monitor", icon: Activity },
+        { href: '/chat', label: tSidebar('menu_chat'), icon: MessageSquare },
+        { href: '/feed', label: tSidebar('menu_daily_updates'), icon: Newspaper },
+        { href: '/community', label: tSidebar('menu_community'), icon: MessageCircle },
+        { href: '/smart-monitor', label: tSidebar('menu_smart_monitor'), icon: Activity },
         { href: '/farms', label: tSidebar('menu_my_farms'), icon: Tractor },
         { href: '/crops', label: tSidebar('menu_crops_registry'), icon: Sprout },
         { href: '/farm-management', label: tSidebar('menu_management'), icon: Briefcase },
@@ -40,6 +40,7 @@ export default function NavBar({ locale }: { locale: string }) {
         { href: '/supply-chain', label: tSidebar('menu_track_trace'), icon: ScrollText },
         { href: '/marketplace', label: tSidebar('menu_marketplace'), icon: ShoppingBag },
         { href: '/drone', label: tSidebar('menu_drone_ai'), icon: Camera },
+        { href: '/devices', label: tSidebar('menu_smart_devices'), icon: Cpu },
         { href: '/calculator', label: tSidebar('menu_calculator'), icon: Calculator },
         { href: '/docs', label: tSidebar('menu_docs'), icon: BookOpen },
     ];
@@ -92,6 +93,24 @@ export default function NavBar({ locale }: { locale: string }) {
                     <div className="flex gap-4 items-center">
                         <ThemeToggle />
                         <LanguageSwitcher locale={locale} />
+
+                        {/* Notification Bell */}
+                        {isAuthenticated && (
+                            <Link href="/notifications" className="relative p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/10 rounded-full transition-colors">
+                                <Bell className="w-5 h-5" />
+                                {/* Optional: Unread indicator if we had count */}
+                                {false && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white dark:border-slate-900"></span>}
+                            </Link>
+                        )}
+
+                        {/* Profile Link in Navbar - Desktop only if Sidebar hidden/collapsed */}
+                        {isAuthenticated && (
+                            <Link href="/profile" className="md:hidden"> {/* Only show on mobile here as desktop has sidebar */}
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-green-500 to-emerald-600 flex items-center justify-center text-xs font-bold text-white shadow-lg ring-2 ring-white/20">
+                                    {user?.full_name?.charAt(0) || 'U'}
+                                </div>
+                            </Link>
+                        )}
                     </div>
                 </div>
 
@@ -133,17 +152,21 @@ export default function NavBar({ locale }: { locale: string }) {
                             </button>
                         </div>
 
-                        {/* Mobile User Profile Summary (Inside Drawer Header) */}
+                        {/* Mobile User Profile Summary (Inside Drawer Header) - CLICKABLE */}
                         {isAuthenticated && (
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-500 to-emerald-600 flex items-center justify-center text-sm font-bold text-white shadow-lg">
+                            <Link
+                                href="/profile"
+                                onClick={() => setIsMenuOpen(false)}
+                                className="flex items-center gap-3 p-2 -ml-2 rounded-xl transition-colors hover:bg-white/5 active:bg-white/10 group cursor-pointer"
+                            >
+                                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-500 to-emerald-600 flex items-center justify-center text-sm font-bold text-white shadow-lg group-hover:scale-105 transition-transform duration-200">
                                     {user?.full_name?.charAt(0) || 'U'}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-sm font-bold text-white truncate">{user?.full_name}</div>
-                                    <div className="text-xs text-slate-400 truncate">{user?.role || 'Farmer'}</div>
+                                    <div className="text-sm font-bold text-white truncate group-hover:text-green-400 transition-colors">{user?.full_name}</div>
+                                    <div className="text-xs text-slate-400 truncate group-hover:text-slate-300 transition-colors">{user?.role || 'Farmer'}</div>
                                 </div>
-                            </div>
+                            </Link>
                         )}
                     </div>
 
